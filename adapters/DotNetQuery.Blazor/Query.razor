@@ -1,0 +1,70 @@
+@typeparam TData
+@implements IDisposable
+@inject IQueryClient QueryClient
+
+@if (_observer is not null)
+{
+    @ChildContent(_observer.CurrentResult)
+}
+
+@code {
+    private QueryObserver<TData>? _observer;
+
+    /// <summary>The key identifying the query.</summary>
+    [Parameter, EditorRequired]
+    public QueryKey Key { get; set; } = default!;
+
+    /// <summary>Delegate that performs the fetch.</summary>
+    [Parameter, EditorRequired]
+    public Func<CancellationToken, Task<TData>> Fetcher { get; set; } = default!;
+
+    /// <summary>Optional per-query options.</summary>
+    [Parameter]
+    public QueryOptions? Options { get; set; }
+
+    /// <summary>Render fragment receiving the live query result.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment<QueryResult<TData>> ChildContent { get; set; } = default!;
+
+    private bool _needsFetch;
+
+    protected override void OnParametersSet()
+    {
+        // Re-subscribe (and schedule a fetch) only when the key changes, so re-renders that merely
+        // recreate the fetcher lambda don't trigger redundant fetches.
+        if (_observer is not null && _observer.Key != Key)
+        {
+            Unsubscribe();
+        }
+
+        if (_observer is null)
+        {
+            _observer = QueryClient.Watch<TData>(Key);
+            _observer.StateChanged += OnStateChanged;
+            _needsFetch = true;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_needsFetch)
+        {
+            _needsFetch = false;
+            await QueryClient.FetchAsync(Key, Fetcher, Options);
+        }
+    }
+
+    private void OnStateChanged(QueryState<TData> state) => InvokeAsync(StateHasChanged);
+
+    private void Unsubscribe()
+    {
+        if (_observer is not null)
+        {
+            _observer.StateChanged -= OnStateChanged;
+            _observer.Dispose();
+            _observer = null;
+        }
+    }
+
+    public void Dispose() => Unsubscribe();
+}

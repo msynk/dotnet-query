@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>DotNetQuery.DevTools.Blazor</PackageId>
+    <Description>Blazor visual DevTools panel for DotNetQuery: renders the cache inspector, live event log, and manual actions.</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery.DevTools\DotNetQuery.DevTools.csproj" />
+  </ItemGroup>
+
+</Project>

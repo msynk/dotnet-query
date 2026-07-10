@@ -1,0 +1,16 @@
+@implements IAsyncDisposable
+@inject BrowserSignalService Signals
+
+@* Invisible component: place once near the app root to enable focus/online/resume refetching. *@
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Signals.InitializeAsync();
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await Signals.DisposeAsync();
+}

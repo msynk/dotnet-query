@@ -1,0 +1,116 @@
+@implements IDisposable
+@inject IQueryClient QueryClient
+
+<div class="dnq-devtools">
+    <header class="dnq-header">
+        <strong>DotNetQuery DevTools</strong>
+        <span class="dnq-stats">
+            @_stats.TotalQueries queries · @_stats.ActiveQueries active · @_stats.StaleQueries stale ·
+            @_stats.FetchesSucceeded ok / @_stats.FetchesFailed failed ·
+            avg @_stats.AverageQueryDurationMs.ToString("0.0")ms
+        </span>
+        <button class="dnq-btn" @onclick="Refresh">Refresh</button>
+        <button class="dnq-btn" @onclick="() => _devtools!.ClearLog()">Clear log</button>
+    </header>
+
+    <table class="dnq-table">
+        <thead>
+            <tr>
+                <th>Key</th><th>Status</th><th>Type</th><th>Obs</th><th>Fetches</th><th>Stale</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var q in _queries)
+            {
+                <tr>
+                    <td><code>@q.Key</code></td>
+                    <td><span class="dnq-status dnq-@q.Status.ToString().ToLowerInvariant()">@q.Status</span></td>
+                    <td>@q.DataTypeName</td>
+                    <td>@q.ObserverCount</td>
+                    <td>@q.FetchCount</td>
+                    <td>@(q.IsStale ? "yes" : "no")</td>
+                    <td>
+                        <button class="dnq-btn" @onclick="() => Refetch(q.Key)">Refetch</button>
+                        <button class="dnq-btn" @onclick="() => Invalidate(q.Key)">Invalidate</button>
+                        <button class="dnq-btn" @onclick="() => Remove(q.Key)">Remove</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <details open>
+        <summary>Event log (@_events.Count)</summary>
+        <ul class="dnq-log">
+            @foreach (var e in _recent)
+            {
+                <li>@Describe(e)</li>
+            }
+        </ul>
+    </details>
+</div>
+
+@code {
+    private QueryDevTools? _devtools;
+    private IReadOnlyList<QueryDescriptor> _queries = [];
+    private IReadOnlyList<DotNetQueryEvent> _events = [];
+    private QueryDevToolsStats _stats = EmptyStats;
+    private IEnumerable<DotNetQueryEvent> _recent => _events.Reverse().Take(50);
+
+    /// <summary>How many recent events to retain in the log.</summary>
+    [Parameter] public int EventLogCapacity { get; set; } = 500;
+
+    protected override void OnInitialized()
+    {
+        _devtools = new QueryDevTools(QueryClient, EventLogCapacity);
+        _devtools.Changed += OnChanged;
+        Refresh();
+    }
+
+    private void OnChanged() => InvokeAsync(Refresh);
+
+    private void Refresh()
+    {
+        if (_devtools is null)
+        {
+            return;
+        }
+
+        _queries = _devtools.InspectQueries();
+        _events = _devtools.RecentEvents();
+        _stats = _devtools.GetStats();
+        StateHasChanged();
+    }
+
+    private async Task Refetch(QueryKey key) { await _devtools!.RefetchAsync(key); Refresh(); }
+    private async Task Invalidate(QueryKey key) { await _devtools!.InvalidateAsync(key); Refresh(); }
+    private void Remove(QueryKey key) { _devtools!.RemoveQuery(key); Refresh(); }
+
+    private static string Describe(DotNetQueryEvent e) => e switch
+    {
+        QueryStartedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ▶ started {q.Key}",
+        QueryCompletedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ✔ completed {q.Key} ({q.Duration.TotalMilliseconds:0.0}ms)",
+        QueryFailedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ✖ failed {q.Key}: {q.Error.Message}",
+        QueryInvalidatedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ↻ invalidated {string.Join(", ", q.Keys)}",
+        MutationStartedEvent => $"{e.Timestamp:HH:mm:ss.fff}  ▶ mutation started",
+        MutationCompletedEvent m => $"{e.Timestamp:HH:mm:ss.fff}  {(m.Succeeded ? "✔" : "✖")} mutation completed ({m.Duration.TotalMilliseconds:0.0}ms)",
+        _ => $"{e.Timestamp:HH:mm:ss.fff}  {e.GetType().Name}",
+    };
+
+    private static readonly QueryDevToolsStats EmptyStats = new()
+    {
+        TotalQueries = 0, ActiveQueries = 0, StaleQueries = 0,
+        StatusCounts = new Dictionary<QueryStatus, int>(),
+        FetchesStarted = 0, FetchesSucceeded = 0, FetchesFailed = 0,
+        MutationsStarted = 0, MutationsCompleted = 0, AverageQueryDurationMs = 0,
+    };
+
+    public void Dispose()
+    {
+        if (_devtools is not null)
+        {
+            _devtools.Changed -= OnChanged;
+            _devtools.Dispose();
+        }
+    }
+}

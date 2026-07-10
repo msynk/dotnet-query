@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>DotNetQuery.Blazor</PackageId>
+    <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component, component-scoped observers, and browser focus/online signal wiring.</Description>
+    <!-- Razor-generated code and component nullability don't fit doc/AOT/warnings-as-errors defaults. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery.DependencyInjection\DotNetQuery.DependencyInjection.csproj" />
+  </ItemGroup>
+
+</Project>

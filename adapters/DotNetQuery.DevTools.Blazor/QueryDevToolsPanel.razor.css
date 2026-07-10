@@ -1,0 +1,74 @@
+.dnq-devtools {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #1e1e1e;
+    color: #ddd;
+    overflow: hidden;
+}
+
+.dnq-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #252526;
+    border-bottom: 1px solid #333;
+}
+
+.dnq-stats {
+    color: #9aa;
+    flex: 1;
+}
+
+.dnq-btn {
+    background: #0e639c;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.dnq-btn:hover {
+    background: #1177bb;
+}
+
+.dnq-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dnq-table th,
+.dnq-table td {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.dnq-status {
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.dnq-success { background: #1a4; color: #fff; }
+.dnq-error { background: #a33; color: #fff; }
+.dnq-loading, .dnq-refetching { background: #b80; color: #fff; }
+.dnq-paused { background: #666; color: #fff; }
+.dnq-idle { background: #444; color: #ccc; }
+
+.dnq-log {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 8px 12px;
+    list-style: none;
+    white-space: pre;
+}
+
+.dnq-log li {
+    padding: 1px 0;
+}

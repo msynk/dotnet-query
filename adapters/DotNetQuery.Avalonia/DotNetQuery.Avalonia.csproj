@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PackageId>DotNetQuery.Avalonia</PackageId>
+    <Description>Avalonia adapter for DotNetQuery: dispatcher-aware factories over the MVVM bindings (ObservableQuery/ObservableMutation) for cross-platform XAML data binding.</Description>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\DotNetQuery.Mvvm\DotNetQuery.Mvvm.csproj" />
+  </ItemGroup>
+
+</Project>

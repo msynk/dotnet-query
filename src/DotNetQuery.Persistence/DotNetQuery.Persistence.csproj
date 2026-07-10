@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PackageId>DotNetQuery.Persistence</PackageId>
+    <Description>Pluggable cache persistence for DotNetQuery: persist and restore query data across sessions (in-memory and file-system providers included).</Description>
+    <!-- Uses reflection-based System.Text.Json; opt out of AOT/trim guarantees for this package. -->
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+  </ItemGroup>
+
+</Project>
