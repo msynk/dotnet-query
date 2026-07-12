@@ -98,3 +98,31 @@ jobs:
 
       - name: Run AOT harness
         run: ./aot/DotNetQuery.AotHarness/bin/Release/net10.0/linux-x64/publish/DotNetQuery.AotHarness
+
+  # MAUI adapter is outside the solution (its heads need per-OS workloads/tooling), so build & pack it
+  # here. The committed project targets the net10.0-android head; add ios/maccatalyst/windows in their
+  # own build environments.
+  maui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build MAUI adapter (android)
+        run: dotnet build adapters/DotNetQuery.Maui -c Release -f net10.0-android
+
+      - name: Pack MAUI adapter
+        run: dotnet pack adapters/DotNetQuery.Maui -c Release --no-build -o artifacts
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-maui
+          path: artifacts/*.nupkg

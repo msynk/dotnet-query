@@ -2,7 +2,7 @@
 
 Server-state management for the .NET ecosystem — the native, idiomatic counterpart to TanStack Query. DotNetQuery makes fetching, caching, synchronizing, and invalidating remote data effortless, with a framework-agnostic core built around `Task`, `CancellationToken`, immutable data, and Dependency Injection.
 
-> **Status: v0.7 ✅** — Everything in v0.6 plus a **framework-agnostic MVVM binding layer** (`ObservableQuery`/`ObservableMutation` as `INotifyPropertyChanged`) and a **WPF adapter**, proving the core runs unchanged across two very different UI paradigms (render-props and XAML/MVVM). See the [roadmap](#roadmap).
+> **Status: path to 1.0 🚧** — All P1 release-readiness work is done: a BenchmarkDotNet suite, a verified NativeAOT publish, GitHub Actions CI, SourceLink, and a **frozen public API surface** (PublicApiAnalyzers baselines). Breadth has landed too — **SQLite / Redis / Blazor-WASM persistence**, an **HTTP/JSON transport** package, **WinUI and MAUI adapters**, structured query-key builders, and an opt-in cancellation policy. See the [roadmap](#roadmap).
 
 ## Packages
 
@@ -11,12 +11,18 @@ Server-state management for the .NET ecosystem — the native, idiomatic counter
 | `DotNetQuery.Core` | Framework-agnostic core. Zero UI dependencies. |
 | `DotNetQuery.DependencyInjection` | `AddDotNetQuery` registration for `Microsoft.Extensions.DependencyInjection`. |
 | `DotNetQuery.Persistence` | Pluggable cache persistence (in-memory + file-system providers). |
+| `DotNetQuery.Persistence.Sqlite` | SQLite cache persistence (Microsoft.Data.Sqlite). |
+| `DotNetQuery.Persistence.Redis` | Redis cache persistence (StackExchange.Redis) for shared/server-side caches. |
+| `DotNetQuery.Persistence.BlazorWasm` | Browser `localStorage` persistence for Blazor WebAssembly. |
+| `DotNetQuery.Http` | HTTP/JSON transport conveniences: `HttpClient` → query fetchers, fetch-JSON-into-cache. |
 | `DotNetQuery.DevTools` | Framework-agnostic cache inspection, live event log, manual actions, JSON export. |
 | `DotNetQuery.Blazor` | Blazor adapter: the `<Query>` component, component-scoped observers, browser focus/online signals. |
 | `DotNetQuery.DevTools.Blazor` | Visual DevTools panel component for Blazor. |
 | `DotNetQuery.Mvvm` | Framework-agnostic `INotifyPropertyChanged` bindings (`ObservableQuery`/`ObservableMutation`) for any XAML UI. |
 | `DotNetQuery.Wpf` | WPF adapter: dispatcher-aware factories over the MVVM bindings. |
+| `DotNetQuery.WinUI` | WinUI 3 / Windows App SDK adapter: dispatcher-aware factories over the MVVM bindings. |
 | `DotNetQuery.Avalonia` | Avalonia adapter: cross-platform dispatcher-aware factories over the MVVM bindings. |
+| `DotNetQuery.Maui` | .NET MAUI adapter: dispatcher factories + a connectivity bridge for offline pause/resume. |
 
 The **`samples/TodoApp`** Blazor Server app demonstrates the full stack — fetching, caching, mutations, invalidation, and the live DevTools panel — end to end. Run it with `dotnet run --project samples/TodoApp`.
 
@@ -176,7 +182,8 @@ Full guides live in [`docs/`](docs/README.md):
 [Infinite Queries](docs/infinite-queries.md) ·
 [Offline Mode](docs/offline-mode.md) ·
 [Diagnostics](docs/diagnostics.md) ·
-[Performance](docs/performance.md)
+[Performance](docs/performance.md) ·
+[Advanced Scenarios](docs/advanced-scenarios.md)
 
 ## Building & testing
 
@@ -185,15 +192,17 @@ dotnet build
 dotnet test
 ```
 
-99 tests cover the stack end to end — 92 core (including concurrency/stress tests and
-**91% line coverage**) plus 7 bUnit component tests for the Blazor adapter. Run with
-coverage via `dotnet test --collect:"XPlat Code Coverage"`.
+130 tests cover the stack end to end — 121 core (including concurrency/stress tests and
+**91% line coverage**) plus 9 bUnit component tests for the Blazor adapter. Run with
+coverage via `dotnet test --collect:"XPlat Code Coverage"`. A `DotNetQuery.Benchmarks` (BenchmarkDotNet)
+suite and a `DotNetQuery.AotHarness` (verified NativeAOT publish) round out the quality gates; see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
-The portable libraries (Core, DependencyInjection, Persistence, DevTools, Mvvm, Avalonia) multi-target
-**net8.0 and net10.0**, so they run on .NET 8 (LTS) and later; the platform-specific adapters target
-their respective frameworks. All nine libraries are NuGet-ready — `dotnet pack -c Release` produces
-`.nupkg` + `.snupkg` (symbol) packages with embedded README, icon, XML docs, and resolved
-inter-package dependencies.
+The portable libraries multi-target **net8.0 and net10.0**, so they run on .NET 8 (LTS) and later; the
+platform-specific adapters (WPF, WinUI, MAUI) target their respective frameworks. The libraries are
+NuGet-ready — `dotnet pack -c Release` produces `.nupkg` + `.snupkg` (symbol) packages with SourceLink,
+embedded README, icon, XML docs, and resolved inter-package dependencies. The public API of every
+non-Razor library is locked by committed `PublicAPI.*.txt` baselines.
 
 ## Roadmap
 
@@ -207,7 +216,7 @@ See [ROADMAP.md](ROADMAP.md) for the detailed path to 1.0 (remaining work, prior
 - **v0.5** ✅ DevTools model, cache inspector, diagnostics export
 - **v0.6** ✅ Blazor adapter, visual DevTools panel, runnable sample
 - **v0.7** ✅ MVVM binding layer, WPF adapter
-- **v1.0** 🚧 API stabilization, remaining adapters (MAUI, Avalonia, WinUI), docs
+- **path to 1.0** 🚧 ✅ Benchmarks, NativeAOT, CI, SourceLink, **API freeze**; ✅ SQLite/Redis/Blazor-WASM persistence, HTTP transport, WinUI + MAUI adapters, structured keys, cancellation policy; remaining: more samples, IndexedDB, additional MAUI heads
 
 ## License
 
