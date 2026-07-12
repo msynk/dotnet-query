@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="DotNetQuery.Sample.Maui.MainPage"
+             Title="DotNetQuery · MAUI">
+
+    <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16">
+
+        <Label Grid.Row="0"
+               FontSize="22"
+               FontAttributes="Bold"
+               Text="Todos" />
+
+        <!-- Live query status, driven by ObservableQuery via INotifyPropertyChanged. -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="10">
+            <ActivityIndicator IsRunning="{Binding IsFetching}" IsVisible="{Binding IsFetching}" />
+            <Label VerticalOptions="Center" Text="{Binding Status, StringFormat='Status: {0}'}" />
+        </HorizontalStackLayout>
+
+        <Label Grid.Row="2"
+               TextColor="Red"
+               IsVisible="{Binding IsError}"
+               Text="{Binding Error.Message}" />
+
+        <CollectionView Grid.Row="3" ItemsSource="{Binding Data}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                    <Label Padding="0,10" FontSize="17" Text="{Binding}" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Button Grid.Row="4"
+                x:Name="RefetchBtn"
+                Text="Refetch"
+                Clicked="OnRefetchClicked" />
+
+    </Grid>
+
+</ContentPage>

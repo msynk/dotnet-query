@@ -24,7 +24,7 @@ Server-state management for the .NET ecosystem — the native, idiomatic counter
 | `DotNetQuery.Avalonia` | Avalonia adapter: cross-platform dispatcher-aware factories over the MVVM bindings. |
 | `DotNetQuery.Maui` | .NET MAUI adapter: dispatcher factories + a connectivity bridge for offline pause/resume. |
 
-The **`samples/TodoApp`** Blazor Server app demonstrates the full stack — fetching, caching, mutations, invalidation, and the live DevTools panel — end to end. Run it with `dotnet run --project samples/TodoApp`.
+The **`samples/TodoApp`** Blazor Server app demonstrates the full stack — fetching, caching, mutations, invalidation, and the live DevTools panel — end to end. Run it with `dotnet run --project samples/TodoApp`. The **`samples/DotNetQuery.Sample.Maui`** app demonstrates the MAUI adapter (`ObservableQuery` binding + connectivity bridge) on Android — see its [README](samples/DotNetQuery.Sample.Maui/README.md).
 
 ## Quick start
 
