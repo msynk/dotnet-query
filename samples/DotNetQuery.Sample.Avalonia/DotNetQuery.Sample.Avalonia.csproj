@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!-- Runnable sample, not a shipped library: relax the repo-wide library defaults. -->
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>false</IsAotCompatible>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- NU1903: Avalonia.Desktop pulls Tmds.DBus.Protocol 0.20.0 (Linux DBus backend) transitively.
+         This sample is not distributed (IsPackable=false) and its verified paths (headless render, and
+         Windows in CI) never touch DBus. Suppressed here rather than force a ~70-minor transitive bump
+         that could break Avalonia's Linux desktop backend at runtime. -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.1" />
+    <!-- Enables the headless render self-check (the "verify" arg; no display required).
+         Avalonia.Skia lets the headless renderer capture a real frame to PNG. -->
+    <PackageReference Include="Avalonia.Headless" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Skia" Version="11.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\..\adapters\DotNetQuery.Avalonia\DotNetQuery.Avalonia.csproj" />
+  </ItemGroup>
+
+</Project>

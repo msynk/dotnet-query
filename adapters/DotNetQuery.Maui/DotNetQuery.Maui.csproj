@@ -15,6 +15,12 @@
     <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 
+  <!-- .NET 8+ no longer implicitly references Essentials from UseMauiEssentials; declare it so the
+       produced package correctly depends on it (resolves MA002). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.20" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
     <ProjectReference Include="..\DotNetQuery.Mvvm\DotNetQuery.Mvvm.csproj" />

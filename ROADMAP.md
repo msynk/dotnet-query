@@ -1,6 +1,6 @@
 # DotNetQuery — Path to 1.0
 
-Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 15 NuGet packages, one verified sample, a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
+Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 15 NuGet packages, three verified samples (Blazor Server + MAUI/Android + Avalonia), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
 
 ## Done
 
@@ -49,8 +49,8 @@ WinUI and MAUI adapters, all landed (see **Done**). Remaining threads:
 
 | Item | Notes | Est. |
 | --- | --- | --- |
-| **More samples** | Brief lists Dashboard, ECommerce, Chat (infinite + SignalR), OfflineFirst. Each exercises a different feature cluster. | L |
-| **Avalonia sample** | Desktop app mirroring TodoApp to demo the Avalonia adapter live. | M |
+| **More samples** | ✅ **MAUI sample done** (`samples/DotNetQuery.Sample.Maui`, emulator-verified: fetch → refetch). Remaining brief ideas: Dashboard, ECommerce, Chat (infinite + SignalR), OfflineFirst. | M |
+| **Avalonia sample** | ✅ **Done** — `samples/DotNetQuery.Sample.Avalonia`, with a headless-render self-check (`-- verify`) that runs as an end-to-end smoke test in CI. | M |
 | **Advanced guides** | ✅ **Done** — [advanced-scenarios.md](docs/advanced-scenarios.md) covers persistence, cancellation policies, and testing your queries. Could still expand offline recipes further. | S |
 | **Standalone DevTools app** | Optional out-of-process inspector consuming the `ExportJson` model. | L |
 
