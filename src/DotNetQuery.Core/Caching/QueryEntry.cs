@@ -299,12 +299,22 @@ internal sealed class QueryEntry<T> : IQueryEntry
 
     internal void RemoveObserver(QueryObserver<T> observer)
     {
+        CancellationTokenSource? cancelInFlight = null;
         lock (_gate)
         {
             _observers.Remove(observer);
             _lastActivityAt = _timeProvider.GetUtcNow();
             UpdateRefetchSchedule();
+
+            // When the last observer leaves mid-fetch and the query opts in, abort the shared fetch so
+            // work for a no-longer-visible query stops. The last good state is left intact.
+            if (_observers.Count == 0 && _inFlight is not null && _lastOptions.CancelInFlightWhenUnobserved)
+            {
+                cancelInFlight = _inFlightCts;
+            }
         }
+
+        cancelInFlight?.Cancel();
     }
 
     /// <summary>

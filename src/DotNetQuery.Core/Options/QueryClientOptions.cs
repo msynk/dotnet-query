@@ -31,6 +31,12 @@ public sealed class QueryClientOptions
     public bool DefaultThrowOnError { get; set; }
 
     /// <summary>
+    /// Default value for <see cref="QueryOptions.CancelInFlightWhenUnobserved"/>. Defaults to
+    /// <see langword="false"/> (an in-flight fetch runs to completion even after its last observer leaves).
+    /// </summary>
+    public bool DefaultCancelInFlightWhenUnobserved { get; set; }
+
+    /// <summary>
     /// Interval at which the background garbage collector sweeps the cache for expired inactive
     /// queries. Defaults to 1 minute.
     /// </summary>
@@ -49,7 +55,8 @@ public sealed class QueryClientOptions
         RefetchOnReconnect: options?.RefetchOnReconnect ?? DefaultRefetchOnReconnect,
         RefetchOnFocus: options?.RefetchOnFocus ?? DefaultRefetchOnFocus,
         RefetchOnResume: options?.RefetchOnResume ?? DefaultRefetchOnResume,
-        ThrowOnError: options?.ThrowOnError ?? DefaultThrowOnError);
+        ThrowOnError: options?.ThrowOnError ?? DefaultThrowOnError,
+        CancelInFlightWhenUnobserved: options?.CancelInFlightWhenUnobserved ?? DefaultCancelInFlightWhenUnobserved);
 }
 
 /// <summary>Fully materialized options with all defaults applied. Internal to the client.</summary>
@@ -63,4 +70,5 @@ internal readonly record struct ResolvedQueryOptions(
     bool RefetchOnReconnect,
     bool RefetchOnFocus,
     bool RefetchOnResume,
-    bool ThrowOnError);
+    bool ThrowOnError,
+    bool CancelInFlightWhenUnobserved);

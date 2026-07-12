@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PackageId>DotNetQuery.Persistence.Sqlite</PackageId>
+    <Description>SQLite cache persistence for DotNetQuery: a Microsoft.Data.Sqlite-backed IQueryPersister that stores query data in a single table, for durable cross-session caching on desktop and mobile.</Description>
+    <!-- Microsoft.Data.Sqlite uses ADO.NET / native SQLite; opt out of AOT/trim guarantees. -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+  </ItemGroup>
+
+  <!-- Override the transitive native SQLite bundle with the patched release
+       (Microsoft.Data.Sqlite still pulls a version flagged by NU1903 / GHSA-2m69-gcr7-jv3q). -->
+  <ItemGroup>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetQuery.Persistence\DotNetQuery.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

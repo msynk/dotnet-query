@@ -15,3 +15,6 @@ artifacts/
 [Tt]est[Rr]esult*/
 coverage*.json
 *.coverage
+
+## BenchmarkDotNet output (commit curated baselines deliberately, not raw runs)
+BenchmarkDotNet.Artifacts/

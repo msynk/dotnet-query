@@ -1,0 +1,25 @@
+#nullable enable
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.Data.get -> TData?
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.Error.get -> System.Exception?
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.IsError.get -> bool
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.IsPending.get -> bool
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.IsSuccess.get -> bool
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.MutateAsync(TVariables variables, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.MutationResult<TVariables, TData>>!
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.ObservableMutation(DotNetQuery.IQueryClient! client, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> void
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.Reset() -> void
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.Status.get -> DotNetQuery.MutationStatus
+DotNetQuery.Mvvm.ObservableQuery<T>
+DotNetQuery.Mvvm.ObservableQuery<T>.Data.get -> T?
+DotNetQuery.Mvvm.ObservableQuery<T>.Dispose() -> void
+DotNetQuery.Mvvm.ObservableQuery<T>.Error.get -> System.Exception?
+DotNetQuery.Mvvm.ObservableQuery<T>.HasData.get -> bool
+DotNetQuery.Mvvm.ObservableQuery<T>.IsError.get -> bool
+DotNetQuery.Mvvm.ObservableQuery<T>.IsFetching.get -> bool
+DotNetQuery.Mvvm.ObservableQuery<T>.IsLoading.get -> bool
+DotNetQuery.Mvvm.ObservableQuery<T>.IsSuccess.get -> bool
+DotNetQuery.Mvvm.ObservableQuery<T>.ObservableQuery(DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null) -> void
+DotNetQuery.Mvvm.ObservableQuery<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+DotNetQuery.Mvvm.ObservableQuery<T>.RefetchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Mvvm.ObservableQuery<T>.Status.get -> DotNetQuery.QueryStatus

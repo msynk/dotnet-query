@@ -1,0 +1,44 @@
+#nullable enable
+DotNetQuery.Persistence.FileSystemQueryPersister
+DotNetQuery.Persistence.FileSystemQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.FileSystemQueryPersister.FileSystemQueryPersister(string! directory, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.FileSystemQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.FileSystemQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.FileSystemQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.FileSystemQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.InMemoryQueryPersister
+DotNetQuery.Persistence.InMemoryQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.InMemoryQueryPersister.InMemoryQueryPersister() -> void
+DotNetQuery.Persistence.InMemoryQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.InMemoryQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.InMemoryQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.InMemoryQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IQueryPersister
+DotNetQuery.Persistence.IQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.IQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.IQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.PersistedQuery
+DotNetQuery.Persistence.PersistedQuery.<Clone>$() -> DotNetQuery.Persistence.PersistedQuery!
+DotNetQuery.Persistence.PersistedQuery.Deconstruct(out string! Key, out string! Payload, out System.DateTimeOffset UpdatedAt) -> void
+DotNetQuery.Persistence.PersistedQuery.Equals(DotNetQuery.Persistence.PersistedQuery? other) -> bool
+DotNetQuery.Persistence.PersistedQuery.Key.get -> string!
+DotNetQuery.Persistence.PersistedQuery.Key.init -> void
+DotNetQuery.Persistence.PersistedQuery.Payload.get -> string!
+DotNetQuery.Persistence.PersistedQuery.Payload.init -> void
+DotNetQuery.Persistence.PersistedQuery.PersistedQuery(string! Key, string! Payload, System.DateTimeOffset UpdatedAt) -> void
+DotNetQuery.Persistence.PersistedQuery.UpdatedAt.get -> System.DateTimeOffset
+DotNetQuery.Persistence.PersistedQuery.UpdatedAt.init -> void
+DotNetQuery.Persistence.QueryPersistenceManager
+DotNetQuery.Persistence.QueryPersistenceManager.PersistAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.QueryPersistenceManager.PersistAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.QueryPersistenceManager.QueryPersistenceManager(DotNetQuery.IQueryClient! client, DotNetQuery.Persistence.IQueryPersister! persister, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.QueryPersistenceManager.Register<T>(DotNetQuery.QueryKey! key) -> DotNetQuery.Persistence.QueryPersistenceManager!
+DotNetQuery.Persistence.QueryPersistenceManager.RestoreAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+DotNetQuery.Persistence.QueryPersistenceManager.RestoreAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+override DotNetQuery.Persistence.PersistedQuery.Equals(object? obj) -> bool
+override DotNetQuery.Persistence.PersistedQuery.GetHashCode() -> int
+override DotNetQuery.Persistence.PersistedQuery.ToString() -> string!
+static DotNetQuery.Persistence.PersistedQuery.operator !=(DotNetQuery.Persistence.PersistedQuery? left, DotNetQuery.Persistence.PersistedQuery? right) -> bool
+static DotNetQuery.Persistence.PersistedQuery.operator ==(DotNetQuery.Persistence.PersistedQuery? left, DotNetQuery.Persistence.PersistedQuery? right) -> bool

@@ -12,6 +12,7 @@ Server-state management for .NET — fetching, caching, synchronizing, and mutat
 6. [Offline Mode](offline-mode.md) — pausing, resuming, and queuing while offline
 7. [Diagnostics](diagnostics.md) — event stream, OpenTelemetry traces & metrics, DevTools
 8. [Performance Tips](performance.md) — deduplication, allocations, threading, AOT
+9. [Advanced Scenarios](advanced-scenarios.md) — persistence, cancellation policies, testing your queries
 
 ## Core concepts at a glance
 
@@ -29,7 +30,9 @@ Server-state management for .NET — fetching, caching, synchronizing, and mutat
 
 - **DotNetQuery.Core** — the portable engine (zero UI dependencies)
 - **DotNetQuery.DependencyInjection** — `AddDotNetQuery`
-- **DotNetQuery.Persistence** — cache persistence providers
+- **DotNetQuery.Persistence** — cache persistence (in-memory + file system)
+- **DotNetQuery.Persistence.Sqlite** / **.Redis** / **.BlazorWasm** — SQLite, Redis, and browser localStorage providers
+- **DotNetQuery.Http** — HTTP/JSON fetcher conveniences
 - **DotNetQuery.DevTools** — inspection, event log, export
 - **DotNetQuery.Blazor** / **DotNetQuery.DevTools.Blazor** — Blazor components
-- **DotNetQuery.Mvvm** / **DotNetQuery.Wpf** — XAML/MVVM bindings
+- **DotNetQuery.Mvvm** / **DotNetQuery.Wpf** / **DotNetQuery.WinUI** / **DotNetQuery.Avalonia** / **DotNetQuery.Maui** — XAML/MVVM bindings & adapters

@@ -5,6 +5,13 @@
     <Project Path="adapters/DotNetQuery.DevTools.Blazor/DotNetQuery.DevTools.Blazor.csproj" />
     <Project Path="adapters/DotNetQuery.Mvvm/DotNetQuery.Mvvm.csproj" />
     <Project Path="adapters/DotNetQuery.Wpf/DotNetQuery.Wpf.csproj" />
+    <Project Path="adapters/DotNetQuery.WinUI/DotNetQuery.WinUI.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/DotNetQuery.Benchmarks/DotNetQuery.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/aot/">
+    <Project Path="aot/DotNetQuery.AotHarness/DotNetQuery.AotHarness.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/TodoApp/TodoApp.csproj" />
@@ -14,6 +21,10 @@
     <Project Path="src/DotNetQuery.DependencyInjection/DotNetQuery.DependencyInjection.csproj" />
     <Project Path="src/DotNetQuery.DevTools/DotNetQuery.DevTools.csproj" />
     <Project Path="src/DotNetQuery.Persistence/DotNetQuery.Persistence.csproj" />
+    <Project Path="src/DotNetQuery.Persistence.Sqlite/DotNetQuery.Persistence.Sqlite.csproj" />
+    <Project Path="src/DotNetQuery.Persistence.Redis/DotNetQuery.Persistence.Redis.csproj" />
+    <Project Path="src/DotNetQuery.Persistence.BlazorWasm/DotNetQuery.Persistence.BlazorWasm.csproj" />
+    <Project Path="src/DotNetQuery.Http/DotNetQuery.Http.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />

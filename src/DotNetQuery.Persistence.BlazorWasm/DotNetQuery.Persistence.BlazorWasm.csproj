@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PackageId>DotNetQuery.Persistence.BlazorWasm</PackageId>
+    <Description>Browser localStorage cache persistence for DotNetQuery in Blazor WebAssembly: an IJSRuntime-backed IQueryPersister that survives page reloads. Also usable from Blazor Server (via JS interop).</Description>
+    <!-- Uses reflection-based System.Text.Json; opt out of AOT/trim guarantees. -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.JSInterop" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.JSInterop" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetQuery.Persistence\DotNetQuery.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

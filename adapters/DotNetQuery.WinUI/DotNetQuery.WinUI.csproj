@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>DotNetQuery.WinUI</PackageId>
+    <Description>WinUI 3 / Windows App SDK adapter for DotNetQuery: dispatcher-aware factories over the MVVM bindings (ObservableQuery/ObservableMutation) for XAML data binding.</Description>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- Pure-C# adapter (only the DispatcherQueue projection is used), so we skip UseWinUI/XAML/PRI
+         tooling, which the bare .NET SDK can't run (MSB4062: ExpandPriContent). Disabling PRI generation
+         removes the whole MrtCore resource-index chain. -->
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
+  </PropertyGroup>
+
+  <!-- Exclude the WindowsAppSDK MSBuild targets (MSIX/PRI/Appx tasks) — they require full Visual Studio
+       tooling that the bare .NET SDK lacks. We only need the pre-generated DispatcherQueue projection
+       from the package's lib assets, which remain referenced. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250205002" ExcludeAssets="build;buildTransitive;buildMultitargeting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\DotNetQuery.Mvvm\DotNetQuery.Mvvm.csproj" />
+  </ItemGroup>
+
+</Project>

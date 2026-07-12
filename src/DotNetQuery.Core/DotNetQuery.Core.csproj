@@ -4,6 +4,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.Core</PackageId>
     <Description>Framework-agnostic core of DotNetQuery: server-state management (fetching, caching, deduplication, retries, invalidation) for .NET. Zero UI dependencies.</Description>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 
 </Project>

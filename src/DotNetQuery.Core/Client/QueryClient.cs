@@ -104,6 +104,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         QueryKey key,
         Func<CancellationToken, Task<T>> fetcher,
         QueryOptions? options = null,
+        bool forceRefetch = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -124,7 +125,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             return new QueryResult<T>(key, entry.PauseOrServeCached(fetcher, resolved));
         }
 
-        var state = await entry.FetchAsync(fetcher, resolved, forceRefetch: false, cancellationToken).ConfigureAwait(false);
+        var state = await entry.FetchAsync(fetcher, resolved, forceRefetch, cancellationToken).ConfigureAwait(false);
         return new QueryResult<T>(key, state);
     }
 
@@ -137,7 +138,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
     {
         try
         {
-            await FetchAsync(key, fetcher, options, cancellationToken).ConfigureAwait(false);
+            await FetchAsync(key, fetcher, options, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

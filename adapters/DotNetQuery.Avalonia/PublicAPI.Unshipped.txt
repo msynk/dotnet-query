@@ -1,0 +1,4 @@
+#nullable enable
+DotNetQuery.Avalonia.AvaloniaQueryExtensions
+static DotNetQuery.Avalonia.AvaloniaQueryExtensions.CreateObservableMutation<TVariables, TData>(this DotNetQuery.IQueryClient! client, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>!
+static DotNetQuery.Avalonia.AvaloniaQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null) -> DotNetQuery.Mvvm.ObservableQuery<T>!

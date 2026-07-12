@@ -22,11 +22,22 @@
     [Parameter]
     public QueryOptions? Options { get; set; }
 
+    /// <summary>
+    /// Optional dependency value describing the fetcher's inputs. When it changes between renders
+    /// (by structural equality) while the <see cref="Key"/> stays the same, the query refetches using
+    /// the current <see cref="Fetcher"/>. Combine several inputs with a tuple, e.g.
+    /// <c>Inputs="@((page, filter))"</c>. Leave unset to refetch on key change only.
+    /// </summary>
+    [Parameter]
+    public object? Inputs { get; set; }
+
     /// <summary>Render fragment receiving the live query result.</summary>
     [Parameter, EditorRequired]
     public RenderFragment<QueryResult<TData>> ChildContent { get; set; } = default!;
 
     private bool _needsFetch;
+    private bool _needsRefetch;
+    private object? _lastInputs;
 
     protected override void OnParametersSet()
     {
@@ -42,6 +53,14 @@
             _observer = QueryClient.Watch<TData>(Key);
             _observer.StateChanged += OnStateChanged;
             _needsFetch = true;
+            _lastInputs = Inputs;
+        }
+        else if (!Equals(_lastInputs, Inputs))
+        {
+            // Same key, but the declared inputs changed → force a refetch with the current fetcher,
+            // bypassing staleness so the new inputs take effect immediately.
+            _lastInputs = Inputs;
+            _needsRefetch = true;
         }
     }
 
@@ -50,7 +69,13 @@
         if (_needsFetch)
         {
             _needsFetch = false;
+            _needsRefetch = false;
             await QueryClient.FetchAsync(Key, Fetcher, Options);
+        }
+        else if (_needsRefetch)
+        {
+            _needsRefetch = false;
+            await QueryClient.FetchAsync(Key, Fetcher, Options, forceRefetch: true);
         }
     }
 

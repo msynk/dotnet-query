@@ -64,6 +64,44 @@ public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
     }
 
     /// <summary>
+    /// Creates a new key by appending <paramref name="segments"/> after this key's segments, deriving a
+    /// child key from a parent (for example <c>users.Append(42)</c> → <c>["users", 42]</c>). This key is
+    /// always a <see cref="IsPrefixOf"/> the result, so invalidating the parent invalidates the child.
+    /// Returns this key unchanged when no segments are supplied.
+    /// </summary>
+    public QueryKey Append(params object?[] segments)
+    {
+        if (segments is null || segments.Length == 0)
+        {
+            return this;
+        }
+
+        var combined = new object?[_segments.Length + segments.Length];
+        Array.Copy(_segments, combined, _segments.Length);
+        Array.Copy(segments, 0, combined, _segments.Length, segments.Length);
+        return new QueryKey(combined);
+    }
+
+    /// <summary>Starts a fluent <see cref="QueryKeyBuilder"/> seeded with the supplied segments.</summary>
+    public static QueryKeyBuilder Builder(params object?[] segments) => new(segments);
+
+    /// <summary>
+    /// Starts a fluent <see cref="QueryKeyBuilder"/> seeded with the runtime type name of
+    /// <typeparamref name="T"/>, followed by any supplied segments (mirrors <see cref="Create{T}"/>).
+    /// </summary>
+    public static QueryKeyBuilder Builder<T>(params object?[] segments)
+    {
+        var seed = new object?[(segments?.Length ?? 0) + 1];
+        seed[0] = typeof(T).Name;
+        if (segments is { Length: > 0 })
+        {
+            Array.Copy(segments, 0, seed, 1, segments.Length);
+        }
+
+        return new QueryKeyBuilder(seed);
+    }
+
+    /// <summary>
     /// Determines whether this key is a hierarchical prefix of <paramref name="other"/>.
     /// The key <c>["users"]</c> is a prefix of <c>["users", 42]</c>, enabling partial invalidation.
     /// </summary>

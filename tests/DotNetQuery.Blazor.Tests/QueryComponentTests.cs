@@ -81,6 +81,57 @@ public class QueryComponentTests : TestContext
     }
 
     [Fact]
+    public void Refetches_when_inputs_change_but_key_stays_the_same()
+    {
+        var key = QueryKey.Create("search");
+        var filter = "a";
+
+        var cut = RenderComponent<Query<string>>(ps => ps
+            .Add(p => p.Key, key)
+            .Add(p => p.Inputs, filter)
+            .Add(p => p.Fetcher, (CancellationToken _) => Task.FromResult($"result:{filter}"))
+            .Add(p => p.ChildContent, result => $"<span>{result.Data}</span>"));
+
+        cut.WaitForAssertion(() => Assert.Contains("result:a", cut.Markup));
+
+        // Same key, different inputs → the fetcher (capturing the new filter) must run again.
+        filter = "b";
+        cut.SetParametersAndRender(ps => ps
+            .Add(p => p.Key, key)
+            .Add(p => p.Inputs, filter)
+            .Add(p => p.Fetcher, (CancellationToken _) => Task.FromResult($"result:{filter}"))
+            .Add(p => p.ChildContent, result => $"<span>{result.Data}</span>"));
+
+        cut.WaitForAssertion(() => Assert.Contains("result:b", cut.Markup));
+    }
+
+    [Fact]
+    public void Does_not_refetch_when_inputs_are_unchanged()
+    {
+        var key = QueryKey.Create("stable");
+        var fetcherCalls = 0;
+
+        var cut = RenderComponent<Query<int>>(ps => ps
+            .Add(p => p.Key, key)
+            .Add(p => p.Inputs, 1)
+            .Add(p => p.Fetcher, (CancellationToken _) => { fetcherCalls++; return Task.FromResult(1); })
+            .Add(p => p.ChildContent, result => $"<span>{result.Data}</span>"));
+
+        cut.WaitForAssertion(() => Assert.Contains("1", cut.Markup));
+        Assert.Equal(1, fetcherCalls);
+
+        // Re-render with the same key and the same inputs (fresh lambda) → no extra fetch.
+        cut.SetParametersAndRender(ps => ps
+            .Add(p => p.Key, key)
+            .Add(p => p.Inputs, 1)
+            .Add(p => p.Fetcher, (CancellationToken _) => { fetcherCalls++; return Task.FromResult(1); })
+            .Add(p => p.ChildContent, result => $"<span>{result.Data}</span>"));
+
+        cut.WaitForAssertion(() => Assert.Contains("1", cut.Markup));
+        Assert.Equal(1, fetcherCalls);
+    }
+
+    [Fact]
     public void Disposing_component_unsubscribes_observer()
     {
         var key = QueryKey.Create("dispose");

@@ -4,6 +4,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.Mvvm</PackageId>
     <Description>Framework-agnostic MVVM bindings for DotNetQuery: ObservableQuery and ObservableMutation expose query/mutation state as INotifyPropertyChanged for any XAML UI (WPF, WinUI, Avalonia, MAUI, Uno).</Description>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>

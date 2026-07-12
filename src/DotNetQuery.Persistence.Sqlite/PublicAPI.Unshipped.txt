@@ -1,0 +1,11 @@
+#nullable enable
+DotNetQuery.Persistence.SqliteQueryPersister
+DotNetQuery.Persistence.SqliteQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.SqliteQueryPersister.Dispose() -> void
+DotNetQuery.Persistence.SqliteQueryPersister.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Persistence.SqliteQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.SqliteQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.SqliteQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.SqliteQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.SqliteQueryPersister.SqliteQueryPersister(string! connectionString) -> void
+static DotNetQuery.Persistence.SqliteQueryPersister.ForFile(string! path) -> DotNetQuery.Persistence.SqliteQueryPersister!

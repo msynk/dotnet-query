@@ -57,4 +57,12 @@ public sealed record QueryOptions
     /// rather than being captured into <see cref="QueryState{T}.Error"/>.
     /// </summary>
     public bool? ThrowOnError { get; init; }
+
+    /// <summary>
+    /// Whether an in-flight fetch should be cancelled when its last observer unsubscribes (for example
+    /// when a component using the query is disposed mid-fetch). When <see langword="false"/> the fetch
+    /// runs to completion and populates the cache for later use. Defaults to
+    /// <see cref="QueryClientOptions.DefaultCancelInFlightWhenUnobserved"/>.
+    /// </summary>
+    public bool? CancelInFlightWhenUnobserved { get; init; }
 }

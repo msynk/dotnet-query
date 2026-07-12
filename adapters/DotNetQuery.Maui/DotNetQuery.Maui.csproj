@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>DotNetQuery.Maui</PackageId>
+    <Description>.NET MAUI adapter for DotNetQuery: dispatcher-aware MVVM binding factories plus a connectivity bridge that drives offline pause/resume from Connectivity.Current.</Description>
+    <!-- Verified head that builds with the .NET CLI on this machine. Add the others in their build
+         environments: net10.0-ios;net10.0-maccatalyst on a Mac, and net10.0-windows10.0.19041.0 with
+         full Visual Studio MSBuild (the WinUI PRI/Appx tasks aren't in the bare .NET SDK). -->
+    <TargetFrameworks>net10.0-android</TargetFrameworks>
+    <UseMauiEssentials>true</UseMauiEssentials>
+    <IsAotCompatible>false</IsAotCompatible>
+    <!-- No Android resources in this library; skip the generated public Resource designer so the public
+         API surface is identical across target heads. -->
+    <AndroidGenerateResourceDesigner>false</AndroidGenerateResourceDesigner>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\DotNetQuery.Mvvm\DotNetQuery.Mvvm.csproj" />
+  </ItemGroup>
+
+</Project>

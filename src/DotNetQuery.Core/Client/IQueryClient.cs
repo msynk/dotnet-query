@@ -23,11 +23,17 @@ public interface IQueryClient : IDisposable
     /// <param name="key">The key identifying the query.</param>
     /// <param name="fetcher">Delegate that performs the actual fetch, honoring the token.</param>
     /// <param name="options">Optional per-query overrides.</param>
+    /// <param name="forceRefetch">
+    /// When <see langword="true"/>, ignores staleness and re-invokes <paramref name="fetcher"/> even if
+    /// the cached data is still fresh (existing in-flight fetches are still deduplicated). Useful when the
+    /// fetcher's captured inputs have changed while the key stayed the same.
+    /// </param>
     /// <param name="cancellationToken">Cancels this caller's wait without cancelling shared work.</param>
     Task<QueryResult<T>> FetchAsync<T>(
         QueryKey key,
         Func<CancellationToken, Task<T>> fetcher,
         QueryOptions? options = null,
+        bool forceRefetch = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>

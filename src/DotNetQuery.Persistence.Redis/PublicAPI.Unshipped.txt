@@ -1,0 +1,12 @@
+#nullable enable
+const DotNetQuery.Persistence.RedisQueryPersister.DefaultHashKey = "dotnetquery:queries" -> string!
+DotNetQuery.Persistence.RedisQueryPersister
+DotNetQuery.Persistence.RedisQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.RedisQueryPersister.Dispose() -> void
+DotNetQuery.Persistence.RedisQueryPersister.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Persistence.RedisQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.RedisQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.RedisQueryPersister.RedisQueryPersister(StackExchange.Redis.IConnectionMultiplexer! connection, string? hashKey = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.RedisQueryPersister.RedisQueryPersister(string! configuration, string? hashKey = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.RedisQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.RedisQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

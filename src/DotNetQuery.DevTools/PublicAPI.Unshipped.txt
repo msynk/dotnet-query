@@ -1,0 +1,42 @@
+#nullable enable
+DotNetQuery.DevTools.QueryDevTools
+DotNetQuery.DevTools.QueryDevTools.Changed -> System.Action?
+DotNetQuery.DevTools.QueryDevTools.ClearLog() -> void
+DotNetQuery.DevTools.QueryDevTools.Dispose() -> void
+DotNetQuery.DevTools.QueryDevTools.ExportJson(System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> string!
+DotNetQuery.DevTools.QueryDevTools.GetStats() -> DotNetQuery.DevTools.QueryDevToolsStats!
+DotNetQuery.DevTools.QueryDevTools.InspectQueries() -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryDescriptor!>!
+DotNetQuery.DevTools.QueryDevTools.InvalidateAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.DevTools.QueryDevTools.QueryDevTools(DotNetQuery.IQueryClient! client, int eventLogCapacity = 500) -> void
+DotNetQuery.DevTools.QueryDevTools.RecentEvents() -> System.Collections.Generic.IReadOnlyList<DotNetQuery.DotNetQueryEvent!>!
+DotNetQuery.DevTools.QueryDevTools.RefetchAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.DevTools.QueryDevTools.RemoveQuery(DotNetQuery.QueryKey! key) -> bool
+DotNetQuery.DevTools.QueryDevToolsStats
+DotNetQuery.DevTools.QueryDevToolsStats.<Clone>$() -> DotNetQuery.DevTools.QueryDevToolsStats!
+DotNetQuery.DevTools.QueryDevToolsStats.ActiveQueries.get -> int
+DotNetQuery.DevTools.QueryDevToolsStats.ActiveQueries.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.AverageQueryDurationMs.get -> double
+DotNetQuery.DevTools.QueryDevToolsStats.AverageQueryDurationMs.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.Equals(DotNetQuery.DevTools.QueryDevToolsStats? other) -> bool
+DotNetQuery.DevTools.QueryDevToolsStats.FetchesFailed.get -> long
+DotNetQuery.DevTools.QueryDevToolsStats.FetchesFailed.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.FetchesStarted.get -> long
+DotNetQuery.DevTools.QueryDevToolsStats.FetchesStarted.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.FetchesSucceeded.get -> long
+DotNetQuery.DevTools.QueryDevToolsStats.FetchesSucceeded.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.MutationsCompleted.get -> long
+DotNetQuery.DevTools.QueryDevToolsStats.MutationsCompleted.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.MutationsStarted.get -> long
+DotNetQuery.DevTools.QueryDevToolsStats.MutationsStarted.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.QueryDevToolsStats() -> void
+DotNetQuery.DevTools.QueryDevToolsStats.StaleQueries.get -> int
+DotNetQuery.DevTools.QueryDevToolsStats.StaleQueries.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.StatusCounts.get -> System.Collections.Generic.IReadOnlyDictionary<DotNetQuery.QueryStatus, int>!
+DotNetQuery.DevTools.QueryDevToolsStats.StatusCounts.init -> void
+DotNetQuery.DevTools.QueryDevToolsStats.TotalQueries.get -> int
+DotNetQuery.DevTools.QueryDevToolsStats.TotalQueries.init -> void
+override DotNetQuery.DevTools.QueryDevToolsStats.Equals(object? obj) -> bool
+override DotNetQuery.DevTools.QueryDevToolsStats.GetHashCode() -> int
+override DotNetQuery.DevTools.QueryDevToolsStats.ToString() -> string!
+static DotNetQuery.DevTools.QueryDevToolsStats.operator !=(DotNetQuery.DevTools.QueryDevToolsStats? left, DotNetQuery.DevTools.QueryDevToolsStats? right) -> bool
+static DotNetQuery.DevTools.QueryDevToolsStats.operator ==(DotNetQuery.DevTools.QueryDevToolsStats? left, DotNetQuery.DevTools.QueryDevToolsStats? right) -> bool

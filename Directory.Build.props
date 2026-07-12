@@ -34,7 +34,31 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Deterministic>true</Deterministic>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- SourceLink: embed repository/commit metadata so debuggers can fetch matching sources. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- Deterministic path mapping on CI for reproducible, verifiable builds. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
+
+  <ItemGroup Label="SourceLink">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Public API surface lock. Shipped libraries opt in with <EnablePublicApiAnalyzer>true; the
+       analyzer then flags any addition/removal/change to the public API that is not recorded in the
+       PublicAPI.*.txt baselines, failing the build (warnings are errors). -->
+  <!-- RS0026/RS0027: advisory guidance against optional parameters across overloads. Our overloads
+       are unambiguous (distinct first-parameter types, e.g. InvalidateQueriesAsync(QueryKey) vs
+       (Func<QueryKey,bool>)), matching BCL conventions, so we opt out of this stylistic pair. These
+       IDs only surface when the analyzer is referenced, so the suppression is unconditional. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(EnablePublicApiAnalyzer)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.11.0-beta1.24605.2" PrivateAssets="All" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
 
   <!-- Ship the README and icon inside every package (harmless for non-packable projects). -->
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
