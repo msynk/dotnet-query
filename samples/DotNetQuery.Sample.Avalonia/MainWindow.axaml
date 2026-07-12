@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="DotNetQuery.Sample.Avalonia.MainWindow"
+        Width="420" Height="520"
+        Title="DotNetQuery · Avalonia">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto">
+
+        <TextBlock Grid.Row="0" Margin="0,0,0,14" Text="Todos" FontSize="22" FontWeight="Bold" />
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,14" Orientation="Horizontal" Spacing="10">
+            <TextBlock VerticalAlignment="Center"
+                       Text="{Binding Todos.Status, StringFormat='Status: {0}'}" />
+        </StackPanel>
+
+        <ItemsControl Grid.Row="2" Margin="0,0,0,14" ItemsSource="{Binding Todos.Data}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Padding="0,8" FontSize="16" Text="{Binding}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Grid.Row="3"
+                Name="RefetchButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Content="Refetch"
+                Click="OnRefetchClicked" />
+
+    </Grid>
+
+</Window>
