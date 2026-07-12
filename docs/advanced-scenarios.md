@@ -46,6 +46,15 @@ await client.FetchJsonAsync<Todo>(QueryKey.Create<Todo>(7), http, "todos/7");
 var fetcher = http.JsonFetcher<List<Todo>>("todos");   // reuse anywhere a fetcher is accepted
 ```
 
+`DotNetQuery.GraphQL` does the same for GraphQL endpoints — it POSTs `{ query, variables }`, unwraps the
+`data` envelope, and raises a `GraphQLException` on `errors`:
+
+```csharp
+await client.FetchGraphQLAsync<UserResponse>(
+    QueryKey.Create<UserResponse>(7), http, "graphql",
+    "query($id:Int!){ user(id:$id){ id name } }", new { id = 7 });
+```
+
 ## Building keys safely
 
 Derive hierarchical keys from a parent with `Append`, or compose them with the fluent builder — so a

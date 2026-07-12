@@ -26,6 +26,7 @@
     <Project Path="src/DotNetQuery.Persistence.Redis/DotNetQuery.Persistence.Redis.csproj" />
     <Project Path="src/DotNetQuery.Persistence.BlazorWasm/DotNetQuery.Persistence.BlazorWasm.csproj" />
     <Project Path="src/DotNetQuery.Http/DotNetQuery.Http.csproj" />
+    <Project Path="src/DotNetQuery.GraphQL/DotNetQuery.GraphQL.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />

@@ -1,6 +1,6 @@
 # DotNetQuery — Path to 1.0
 
-Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 15 NuGet packages, three verified samples (Blazor Server + MAUI/Android + Avalonia), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
+Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 16 NuGet packages, three verified samples (Blazor Server + MAUI/Android + Avalonia), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
 
 ## Done
 
@@ -58,7 +58,7 @@ WinUI and MAUI adapters, all landed (see **Done**). Remaining threads:
 
 | Item | Notes |
 | --- | --- |
-| Transport helpers | ✅ **HTTP/JSON done** (`DotNetQuery.Http`). GraphQL / gRPC / SignalR conveniences remain as optional follow-ups. |
+| Transport helpers | ✅ **HTTP/JSON** (`DotNetQuery.Http`) and **GraphQL** (`DotNetQuery.GraphQL`) done. gRPC (already a `Task<T>`, so little to add) and SignalR (real-time push into the cache) remain as optional follow-ups. |
 | ~~Query cancellation-on-unmount policies~~ | ✅ **Done** — `CancelInFlightWhenUnobserved` (per-query and client default). |
 | ~~Structured query-key builders~~ | ✅ **Done** — `QueryKey.Append` + fluent `QueryKeyBuilder`. A compile-time source generator remains a possible future. |
 

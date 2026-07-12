@@ -1,0 +1,19 @@
+#nullable enable
+DotNetQuery.GraphQL.GraphQLError
+DotNetQuery.GraphQL.GraphQLError.<Clone>$() -> DotNetQuery.GraphQL.GraphQLError!
+DotNetQuery.GraphQL.GraphQLError.Deconstruct(out string! Message) -> void
+DotNetQuery.GraphQL.GraphQLError.Equals(DotNetQuery.GraphQL.GraphQLError? other) -> bool
+DotNetQuery.GraphQL.GraphQLError.GraphQLError(string! Message) -> void
+DotNetQuery.GraphQL.GraphQLError.Message.get -> string!
+DotNetQuery.GraphQL.GraphQLError.Message.init -> void
+DotNetQuery.GraphQL.GraphQLException
+DotNetQuery.GraphQL.GraphQLException.Errors.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.GraphQL.GraphQLError!>!
+DotNetQuery.GraphQL.GraphQLException.GraphQLException(System.Collections.Generic.IReadOnlyList<DotNetQuery.GraphQL.GraphQLError!>! errors) -> void
+DotNetQuery.GraphQLQueryExtensions
+override DotNetQuery.GraphQL.GraphQLError.Equals(object? obj) -> bool
+override DotNetQuery.GraphQL.GraphQLError.GetHashCode() -> int
+override DotNetQuery.GraphQL.GraphQLError.ToString() -> string!
+static DotNetQuery.GraphQL.GraphQLError.operator !=(DotNetQuery.GraphQL.GraphQLError? left, DotNetQuery.GraphQL.GraphQLError? right) -> bool
+static DotNetQuery.GraphQL.GraphQLError.operator ==(DotNetQuery.GraphQL.GraphQLError? left, DotNetQuery.GraphQL.GraphQLError? right) -> bool
+static DotNetQuery.GraphQLQueryExtensions.FetchGraphQLAsync<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Net.Http.HttpClient! http, string! requestUri, string! query, object? variables = null, DotNetQuery.QueryOptions? options = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.QueryResult<T>>!
+static DotNetQuery.GraphQLQueryExtensions.GraphQLFetcher<T>(this System.Net.Http.HttpClient! client, string! requestUri, string! query, object? variables = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>!

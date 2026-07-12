@@ -32,7 +32,7 @@ Server-state management for .NET — fetching, caching, synchronizing, and mutat
 - **DotNetQuery.DependencyInjection** — `AddDotNetQuery`
 - **DotNetQuery.Persistence** — cache persistence (in-memory + file system)
 - **DotNetQuery.Persistence.Sqlite** / **.Redis** / **.BlazorWasm** — SQLite, Redis, and browser localStorage providers
-- **DotNetQuery.Http** — HTTP/JSON fetcher conveniences
+- **DotNetQuery.Http** / **.GraphQL** — HTTP/JSON and GraphQL fetcher conveniences
 - **DotNetQuery.DevTools** — inspection, event log, export
 - **DotNetQuery.Blazor** / **DotNetQuery.DevTools.Blazor** — Blazor components
 - **DotNetQuery.Mvvm** / **DotNetQuery.Wpf** / **DotNetQuery.WinUI** / **DotNetQuery.Avalonia** / **DotNetQuery.Maui** — XAML/MVVM bindings & adapters

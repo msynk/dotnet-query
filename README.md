@@ -15,6 +15,7 @@ Server-state management for the .NET ecosystem — the native, idiomatic counter
 | `DotNetQuery.Persistence.Redis` | Redis cache persistence (StackExchange.Redis) for shared/server-side caches. |
 | `DotNetQuery.Persistence.BlazorWasm` | Browser `localStorage` persistence for Blazor WebAssembly. |
 | `DotNetQuery.Http` | HTTP/JSON transport conveniences: `HttpClient` → query fetchers, fetch-JSON-into-cache. |
+| `DotNetQuery.GraphQL` | GraphQL-over-HTTP transport: query fetchers that POST a document + variables and unwrap the `data` envelope. |
 | `DotNetQuery.DevTools` | Framework-agnostic cache inspection, live event log, manual actions, JSON export. |
 | `DotNetQuery.Blazor` | Blazor adapter: the `<Query>` component, component-scoped observers, browser focus/online signals. |
 | `DotNetQuery.DevTools.Blazor` | Visual DevTools panel component for Blazor. |

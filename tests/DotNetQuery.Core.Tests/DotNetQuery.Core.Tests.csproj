@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\DotNetQuery.Persistence.Redis\DotNetQuery.Persistence.Redis.csproj" />
     <ProjectReference Include="..\..\src\DotNetQuery.Persistence.BlazorWasm\DotNetQuery.Persistence.BlazorWasm.csproj" />
     <ProjectReference Include="..\..\src\DotNetQuery.Http\DotNetQuery.Http.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery.GraphQL\DotNetQuery.GraphQL.csproj" />
     <ProjectReference Include="..\..\src\DotNetQuery.DevTools\DotNetQuery.DevTools.csproj" />
     <ProjectReference Include="..\..\adapters\DotNetQuery.Mvvm\DotNetQuery.Mvvm.csproj" />
   </ItemGroup>
