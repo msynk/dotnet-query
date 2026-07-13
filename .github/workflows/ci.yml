@@ -44,6 +44,9 @@ jobs:
       - name: Chat sample end-to-end smoke test (infinite query + streaming)
         run: dotnet run --project samples/DotNetQuery.Sample.Chat -c Release --no-build
 
+      - name: OfflineFirst sample end-to-end smoke test (persist + offline queue + reconnect)
+        run: dotnet run --project samples/DotNetQuery.Sample.OfflineFirst -c Release --no-build
+
       - name: Pack
         run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts
 

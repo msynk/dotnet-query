@@ -17,6 +17,7 @@
     <Project Path="samples/TodoApp/TodoApp.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Avalonia/DotNetQuery.Sample.Avalonia.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Chat/DotNetQuery.Sample.Chat.csproj" />
+    <Project Path="samples/DotNetQuery.Sample.OfflineFirst/DotNetQuery.Sample.OfflineFirst.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/DotNetQuery.Core/DotNetQuery.Core.csproj" />
