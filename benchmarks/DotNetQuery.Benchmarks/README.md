@@ -14,7 +14,7 @@ dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks
 # A subset (glob against type/method names)
 dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --filter *QueryKey*
 
-# Quick validation pass (single op, no statistics — not a real measurement)
+# Quick validation pass (single op, no statistics - not a real measurement)
 dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --job dry
 
 # List everything available
@@ -25,10 +25,10 @@ dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --list flat
 
 | Suite | Path exercised |
 | --- | --- |
-| `QueryKeyBenchmarks` | Key construction, cached hash-code read, structural equality, and hierarchical `IsPrefixOf` matching — the operations the cache dictionary performs on every lookup. Parameterized by segment count. |
+| `QueryKeyBenchmarks` | Key construction, cached hash-code read, structural equality, and hierarchical `IsPrefixOf` matching - the operations the cache dictionary performs on every lookup. Parameterized by segment count. |
 | `FetchBenchmarks` | `CachedHit` (fresh-cache fast path, the baseline) vs. `ColdFetch` (entry creation + full fetch cycle) vs. `ForcedRefetch` (re-running the cycle on a live entry). |
 | `DedupBenchmarks` | Request deduplication: 2/8/32 concurrent callers for the same in-flight key collapsing onto one shared fetch. |
-| `NotificationBenchmarks` | Fanning one state change out to 1/10/100 subscribed observers — the cost every `SetQueryData` and fetch completion pays. |
+| `NotificationBenchmarks` | Fanning one state change out to 1/10/100 subscribed observers - the cost every `SetQueryData` and fetch completion pays. |
 
 ## Publishing a baseline
 

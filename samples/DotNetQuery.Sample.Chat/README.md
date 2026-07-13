@@ -2,10 +2,10 @@
 
 A console showcase of two DotNetQuery features working together for a chat UI, with no UI-framework noise:
 
-1. **Infinite query** — [Program.cs](Program.cs) paginates message *history* with
+1. **Infinite query** - [Program.cs](Program.cs) paginates message *history* with
    `CreateInfiniteQuery` (`FetchAsync` for the newest page, `FetchNextPageAsync` for older pages).
-2. **Real-time streaming** — `StreamIntoCacheAsync` folds a *live* message stream into the cache, and an
-   observer prints each new message as it arrives — exactly what a bound `<Query>` component or MVVM view
+2. **Real-time streaming** - `StreamIntoCacheAsync` folds a *live* message stream into the cache, and an
+   observer prints each new message as it arrives - exactly what a bound `<Query>` component or MVVM view
    would react to.
 
 The [ChatService](ChatService.cs) stands in for a backend: history pages (an HTTP/GraphQL call in a real

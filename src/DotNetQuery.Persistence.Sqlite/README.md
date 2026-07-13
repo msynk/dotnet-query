@@ -25,7 +25,7 @@ await manager.PersistAllAsync();   // on shutdown / periodically
 
 - **One connection, held open.** The persister keeps a single connection open for its lifetime (required
   so an in-memory database survives between calls) and serializes access with a semaphore. **Dispose it**
-  (`await using` / `using`) when done — disposal also clears the connection pool so the database file is
+  (`await using` / `using`) when done - disposal also clears the connection pool so the database file is
   released and can be deleted or replaced immediately.
 - **Not AOT/trim-safe.** Like the other persistence packages, it uses reflection-based
   `System.Text.Json` (via `QueryPersistenceManager`) and ADO.NET.

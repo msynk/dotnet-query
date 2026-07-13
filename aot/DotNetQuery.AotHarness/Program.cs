@@ -1,6 +1,6 @@
 // NativeAOT / trimming verification harness.
 //
-// This is not a functional sample — it exists so `dotnet publish -p:PublishAot=true` compiles a
+// This is not a functional sample - it exists so `dotnet publish -p:PublishAot=true` compiles a
 // program that instantiates the generic-heavy hot paths of DotNetQuery.Core (cache, observers,
 // mutations, infinite queries) and reports zero IL2xxx/IL3xxx trim/AOT warnings. Any warning fails
 // the build (TreatWarningsAsErrors) and thus CI.

@@ -1,6 +1,6 @@
 namespace DotNetQuery.DevTools.Cli;
 
-// Mirror of the shape produced by QueryDevTools.ExportJson() — the out-of-process contract this tool
+// Mirror of the shape produced by QueryDevTools.ExportJson() - the out-of-process contract this tool
 // consumes. Deserialized with JsonSerializerDefaults.Web (camelCase, case-insensitive).
 
 internal sealed record DevToolsExport(

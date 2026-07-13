@@ -1,6 +1,6 @@
 # DotNetQuery.Sample.ECommerce
 
-A console walkthrough of **optimistic updates with rollback** — the mutation feature cluster — with no
+A console walkthrough of **optimistic updates with rollback** - the mutation feature cluster - with no
 UI-framework noise. [Program.cs](Program.cs) adds items to a cart, and each add:
 
 1. **Optimistically** updates the cached cart *before* the server responds (instant UI feedback), keeping

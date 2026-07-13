@@ -20,7 +20,7 @@ public partial class MainPage : ContentPage
 		_connectivity = new MauiConnectivityBridge(connectivity);
 
 		// The MAUI adapter creates an INotifyPropertyChanged view over the query, kicks off the initial
-		// fetch, and marshals state changes onto the UI thread — bind straight to it.
+		// fetch, and marshals state changes onto the UI thread - bind straight to it.
 		_todos = client.CreateObservableQuery(TodosKey, service.GetTodosAsync);
 		BindingContext = _todos;
 	}

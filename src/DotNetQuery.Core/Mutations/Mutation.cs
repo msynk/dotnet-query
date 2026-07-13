@@ -6,7 +6,7 @@ namespace DotNetQuery;
 /// </summary>
 /// <remarks>
 /// A single instance tracks one shared observable state, so it is intended for sequential use (e.g.
-/// one form submission at a time) — overlapping concurrent calls on the same instance observe each
+/// one form submission at a time) - overlapping concurrent calls on the same instance observe each
 /// other's transitions. For independent parallel mutations, use the one-shot
 /// <see cref="IQueryClient.MutateAsync"/>, which creates a fresh instance per call.
 /// </remarks>

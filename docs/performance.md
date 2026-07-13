@@ -4,7 +4,7 @@ DotNetQuery is built for enterprise-scale apps: async-first, low-allocation, thr
 
 ## Let deduplication work for you
 
-Requesting the same key from many places is cheap — concurrent requests collapse into a single fetch. Don't hand-roll your own "is it already loading?" guards; call `FetchAsync` freely.
+Requesting the same key from many places is cheap - concurrent requests collapse into a single fetch. Don't hand-roll your own "is it already loading?" guards; call `FetchAsync` freely.
 
 ## Tune stale time to cut network traffic
 
@@ -40,11 +40,11 @@ Set `RetryCount = 0` for operations that shouldn't retry (e.g. non-idempotent re
 
 ## Immutable state, minimal notifications
 
-`QueryState<T>` is an immutable record updated with `with`. Observers are notified only for their own query, and notifications carry a single snapshot — there's no diffing storm. Keep your `StateChanged` handlers light and marshal to the UI thread once (the MVVM and Blazor adapters already do this).
+`QueryState<T>` is an immutable record updated with `with`. Observers are notified only for their own query, and notifications carry a single snapshot - there's no diffing storm. Keep your `StateChanged` handlers light and marshal to the UI thread once (the MVVM and Blazor adapters already do this).
 
 ## AOT and trimming
 
-`DotNetQuery.Core` is annotated `IsAotCompatible` and uses no reflection, no dynamic code, and nullable reference types throughout. It is safe under Native AOT and trimming. The `Persistence` and `DevTools` packages use reflection-based `System.Text.Json` and therefore opt out of the AOT guarantee — supply a `JsonSerializerContext` if you need AOT-safe serialization there.
+`DotNetQuery.Core` is annotated `IsAotCompatible` and uses no reflection, no dynamic code, and nullable reference types throughout. It is safe under Native AOT and trimming. The `Persistence` and `DevTools` packages use reflection-based `System.Text.Json` and therefore opt out of the AOT guarantee - supply a `JsonSerializerContext` if you need AOT-safe serialization there.
 
 ## Time is injectable
 

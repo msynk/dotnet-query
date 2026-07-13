@@ -36,7 +36,7 @@ Console.WriteLine($"Total history loaded across {afterSecond.Data.Pages.Count} p
 Console.WriteLine("=== Live messages (StreamIntoCacheAsync) ===");
 var liveKey = QueryKey.Create("chat", "live");
 
-// An observer prints each new message as the stream folds it into the cached list — exactly what a
+// An observer prints each new message as the stream folds it into the cached list - exactly what a
 // bound <Query> component or MVVM view would react to.
 using var observer = client.Watch<List<Message>>(liveKey);
 observer.StateChanged += state =>

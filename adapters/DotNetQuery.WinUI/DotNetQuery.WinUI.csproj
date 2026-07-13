@@ -13,7 +13,7 @@
     <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 
-  <!-- Exclude the WindowsAppSDK MSBuild targets (MSIX/PRI/Appx tasks) — they require full Visual Studio
+  <!-- Exclude the WindowsAppSDK MSBuild targets (MSIX/PRI/Appx tasks) - they require full Visual Studio
        tooling that the bare .NET SDK lacks. We only need the pre-generated DispatcherQueue projection
        from the package's lib assets, which remain referenced. -->
   <ItemGroup>

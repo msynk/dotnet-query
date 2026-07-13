@@ -28,15 +28,15 @@ builder.Services.AddScoped(sp =>
 ## Notes
 
 - All persisted queries are stored together under one `localStorage` key (default `dotnetquery:queries`)
-  as a JSON map — set a custom key via the constructor. Reads/writes take the whole map; this suits a
+  as a JSON map - set a custom key via the constructor. Reads/writes take the whole map; this suits a
   bounded set of registered queries persisted on shutdown and restored on startup.
-- Call it only where JS interop is available (e.g. after first render in WASM) — not during prerender.
+- Call it only where JS interop is available (e.g. after first render in WASM) - not during prerender.
 - Uses reflection-based `System.Text.Json`, so this package is **not** AOT/trim-safe.
 
 ## IndexedDB
 
 For datasets beyond `localStorage`'s ~5 MB quota, `IndexedDbQueryPersister` stores each query as its own
-record in an IndexedDB object store. It uses a small JS module shipped with the package — reference it once
+record in an IndexedDB object store. It uses a small JS module shipped with the package - reference it once
 from your Blazor host page:
 
 ```html

@@ -1,6 +1,6 @@
 // Minimal IndexedDB key/value store for DotNetQuery's IndexedDbQueryPersister.
 // The C# side serializes each PersistedQuery to a JSON string and this module stores/returns that string
-// keyed by the query key — so JS stays a dumb string store and all shaping happens in .NET.
+// keyed by the query key - so JS stays a dumb string store and all shaping happens in .NET.
 //
 // Reference it once from your Blazor host page:
 //   <script src="_content/DotNetQuery.Persistence.BlazorWasm/dotnetquery-indexeddb.js"></script>

@@ -7,7 +7,7 @@ namespace DotNetQuery.Wpf;
 /// WPF convenience factories for DotNetQuery MVVM bindings. Because
 /// <see cref="ObservableQuery{T}"/> and <see cref="ObservableMutation{TVariables, TData}"/> capture the
 /// current <see cref="SynchronizationContext"/> for UI-thread marshaling, create them on the WPF
-/// Dispatcher thread — these helpers assert that.
+/// Dispatcher thread - these helpers assert that.
 /// </summary>
 public static class WpfQueryExtensions
 {

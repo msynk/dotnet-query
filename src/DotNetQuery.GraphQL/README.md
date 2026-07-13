@@ -1,7 +1,7 @@
 # DotNetQuery.GraphQL
 
 GraphQL-over-HTTP transport conveniences for DotNetQuery. The core is transport-agnostic; these helpers
-turn a GraphQL endpoint + document into a query fetcher — POSTing `{ query, variables }`, unwrapping the
+turn a GraphQL endpoint + document into a query fetcher - POSTing `{ query, variables }`, unwrapping the
 `data` envelope, and surfacing any `errors` as a `GraphQLException`.
 
 ```csharp

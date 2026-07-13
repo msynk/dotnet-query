@@ -54,7 +54,7 @@ internal static class Program
 
         Console.WriteLine($"[verify] rendered visual tree text: [{string.Join(" | ", afterLoad)}]");
 
-        // A real rendered frame is a nice artifact but not the gate — capture is best-effort.
+        // A real rendered frame is a nice artifact but not the gate - capture is best-effort.
         try
         {
             var outPath = Path.Combine(AppContext.BaseDirectory, "avalonia-verify.png");

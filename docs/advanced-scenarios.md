@@ -5,7 +5,7 @@ Recipes for persistence, resource control, and testing beyond the basics.
 ## Persisting the cache across sessions
 
 `QueryPersistenceManager` bridges an `IQueryClient` and an `IQueryPersister`. Register the query keys
-you want persisted (this captures the data type in a closure — no reflection over open generics), then
+you want persisted (this captures the data type in a closure - no reflection over open generics), then
 persist on shutdown and restore on startup. Restored data is written back via `SetQueryData` and treated
 as fresh.
 
@@ -34,7 +34,7 @@ await manager.PersistAllAsync();   // on shutdown, or periodically
 await using var persister = SqliteQueryPersister.ForFile("cache.db");
 ```
 
-`SqliteQueryPersister` and `RedisQueryPersister` hold a connection open for their lifetime — **dispose
+`SqliteQueryPersister` and `RedisQueryPersister` hold a connection open for their lifetime - **dispose
 them** (`await using`) to release it. Implement your own provider by implementing the five
 `IQueryPersister` methods over `PersistedQuery(Key, Payload, UpdatedAt)`.
 
@@ -47,7 +47,7 @@ await client.FetchJsonAsync<Todo>(QueryKey.Create<Todo>(7), http, "todos/7");
 var fetcher = http.JsonFetcher<List<Todo>>("todos");   // reuse anywhere a fetcher is accepted
 ```
 
-`DotNetQuery.GraphQL` does the same for GraphQL endpoints — it POSTs `{ query, variables }`, unwraps the
+`DotNetQuery.GraphQL` does the same for GraphQL endpoints - it POSTs `{ query, variables }`, unwraps the
 `data` envelope, and raises a `GraphQLException` on `errors`:
 
 ```csharp
@@ -60,7 +60,7 @@ await client.FetchGraphQLAsync<UserResponse>(
 
 `StreamIntoCacheAsync` bridges any `IAsyncEnumerable<T>` into the cache: each emitted value is written
 under a key, so observers (the Blazor `<Query>` component, MVVM bindings, …) update live. It pairs
-directly with SignalR's `HubConnection.StreamAsync<T>`, a `Channel<T>` reader, or gRPC server streaming —
+directly with SignalR's `HubConnection.StreamAsync<T>`, a `Channel<T>` reader, or gRPC server streaming -
 the core stays transport-agnostic.
 
 ```csharp
@@ -76,17 +76,17 @@ _ = client.StreamIntoCacheAsync<List<Message>, Message>(
         cancellationToken);
 ```
 
-The returned task completes when the stream ends or the token cancels — run it in the background (or tie
+The returned task completes when the stream ends or the token cancels - run it in the background (or tie
 it to a component's lifetime) and dispose the token to stop.
 
 ## Building keys safely
 
-Derive hierarchical keys from a parent with `Append`, or compose them with the fluent builder — so a
+Derive hierarchical keys from a parent with `Append`, or compose them with the fluent builder - so a
 segment name lives in exactly one place:
 
 ```csharp
 var users  = QueryKey.Create("users");     // ["users"]
-var user42 = users.Append(42);             // ["users", 42] — users.IsPrefixOf(user42) is true
+var user42 = users.Append(42);             // ["users", 42] - users.IsPrefixOf(user42) is true
 var built  = QueryKey.Builder("users").Add(42).Add("posts").Build();
 ```
 
@@ -94,7 +94,7 @@ var built  = QueryKey.Builder("users").Add(42).Add("posts").Build();
 
 By default an in-flight fetch runs to completion even after its last observer unsubscribes, so the result
 still warms the cache. When a query is expensive and a result nobody asked for is wasteful, opt into
-cancellation — the shared fetch is aborted the moment the last observer leaves (for example, a component
+cancellation - the shared fetch is aborted the moment the last observer leaves (for example, a component
 disposed mid-fetch). The last good cached state is left intact.
 
 ```csharp
@@ -110,7 +110,7 @@ The fetcher must honor its `CancellationToken` for cancellation to actually stop
 ## Testing your queries
 
 The core takes a `TimeProvider`, so staleness, retries, and background refresh are fully deterministic
-under `Microsoft.Extensions.TimeProvider.Testing`'s `FakeTimeProvider` — advance time explicitly instead
+under `Microsoft.Extensions.TimeProvider.Testing`'s `FakeTimeProvider` - advance time explicitly instead
 of sleeping.
 
 ```csharp

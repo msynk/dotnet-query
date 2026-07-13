@@ -50,7 +50,7 @@ new MutationOptions<CreateTodo, Todo>
 }
 ```
 
-The value returned from `OnMutate` is threaded through the later callbacks as `ctx` — this is how you roll back an optimistic update. See [Optimistic Updates](optimistic-updates.md).
+The value returned from `OnMutate` is threaded through the later callbacks as `ctx` - this is how you roll back an optimistic update. See [Optimistic Updates](optimistic-updates.md).
 
 > **Concurrency:** a single `Mutation` instance tracks one shared observable state, so use it sequentially (one submission at a time). For independent parallel mutations, prefer the one-shot `client.MutateAsync(...)`, which spins up a fresh instance per call.
 
@@ -79,4 +79,4 @@ await client.InvalidateQueriesAsync(QueryKey.Create("todos"));
 
 ## Offline
 
-Wrap mutation invocations in an `OfflineMutationQueue` to defer and replay them when connectivity returns — see [Offline Mode](offline-mode.md).
+Wrap mutation invocations in an `OfflineMutationQueue` to defer and replay them when connectivity returns - see [Offline Mode](offline-mode.md).

@@ -129,7 +129,7 @@ public class ConcurrencyTests
         using var client = CreateClient();
 
         // The one-shot MutateAsync creates a fresh Mutation per call, so overlapping invocations are
-        // independent — each result reflects its own variables.
+        // independent - each result reflects its own variables.
         var results = await Task.WhenAll(
             Enumerable.Range(0, 128).Select(i => Task.Run(() =>
                 client.MutateAsync<int, int>((v, _) => Task.FromResult(v * 2), i))));

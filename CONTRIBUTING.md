@@ -19,11 +19,11 @@ dotnet build adapters/DotNetQuery.Maui -f net10.0-android      # needs the maui/
 
 Its target heads are environment-gated, so each builds where it can:
 
-- **Android** — `dotnet` CLI, VS, and CI.
-- **Windows** (`net10.0-windows10.0.19041.0`) — only under full Visual Studio MSBuild (the head is gated
+- **Android** - `dotnet` CLI, VS, and CI.
+- **Windows** (`net10.0-windows10.0.19041.0`) - only under full Visual Studio MSBuild (the head is gated
   on MSBuild runtime type `Full`, since the transitive WindowsAppSDK PRI/Appx tasks aren't in the bare
   SDK): `& "$(vswhere ... -find MSBuild\**\Bin\MSBuild.exe)" adapters/DotNetQuery.Maui -restore`.
-- **iOS / Mac Catalyst** — added when building on macOS.
+- **iOS / Mac Catalyst** - added when building on macOS.
 
 `DotNetQuery.WinUI` builds with the plain CLI because it excludes the WindowsAppSDK MSBuild targets (see
 its README).
@@ -33,7 +33,7 @@ its README).
 The shipped libraries enable `Microsoft.CodeAnalysis.PublicApiAnalyzers`. Every public member is
 recorded in a `PublicAPI.Shipped.txt` (released surface) / `PublicAPI.Unshipped.txt` (pending surface)
 pair next to each project. Any public API you add, remove, or change **fails the build** (warnings are
-errors) until the baseline is updated — this is intentional, so surface changes are always deliberate and
+errors) until the baseline is updated - this is intentional, so surface changes are always deliberate and
 reviewable.
 
 When you intentionally change public API, regenerate the affected project's baseline:
@@ -42,7 +42,7 @@ When you intentionally change public API, regenerate the affected project's base
 dotnet format analyzers <path-to-project> --diagnostics RS0016
 ```
 
-This appends new members to `PublicAPI.Unshipped.txt`. Review the diff — an unexpected entry means you
+This appends new members to `PublicAPI.Unshipped.txt`. Review the diff - an unexpected entry means you
 exposed something you didn't intend. On a release, move `Unshipped` entries into `Shipped.txt`.
 
 Analyzer-enabled projects: `DotNetQuery.Core`, `.DependencyInjection`, `.DevTools`, `.Persistence`,
@@ -61,7 +61,7 @@ See [benchmarks/DotNetQuery.Benchmarks/README.md](benchmarks/DotNetQuery.Benchma
 
 ## NativeAOT / trimming
 
-The core is `IsAotCompatible`. Verify with the harness — a clean publish emits zero IL2xxx/IL3xxx
+The core is `IsAotCompatible`. Verify with the harness - a clean publish emits zero IL2xxx/IL3xxx
 warnings and produces a native binary:
 
 ```bash

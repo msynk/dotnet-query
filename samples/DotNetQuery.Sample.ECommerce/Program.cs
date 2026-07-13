@@ -2,7 +2,7 @@ using DotNetQuery;
 using DotNetQuery.Sample.ECommerce;
 
 // Demonstrates optimistic updates with rollback: the cart updates instantly when you add an item, then
-// reconciles with the server — and if the server rejects the add, the optimistic change is rolled back.
+// reconciles with the server - and if the server rejects the add, the optimistic change is rolled back.
 // Deterministic and self-terminating so it doubles as an end-to-end smoke test (exit 0 == pass).
 
 using var client = new QueryClient(new QueryClientOptions

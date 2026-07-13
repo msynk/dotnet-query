@@ -7,7 +7,7 @@ namespace DotNetQuery.Maui;
 /// .NET MAUI convenience factories for DotNetQuery MVVM bindings. Because
 /// <see cref="ObservableQuery{T}"/> and <see cref="ObservableMutation{TVariables, TData}"/> capture the
 /// current <see cref="SynchronizationContext"/> for UI-thread marshaling, create them on the MAUI main
-/// thread — these helpers assert that.
+/// thread - these helpers assert that.
 /// </summary>
 public static class MauiQueryExtensions
 {

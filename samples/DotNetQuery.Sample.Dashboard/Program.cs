@@ -2,8 +2,8 @@ using DotNetQuery;
 using DotNetQuery.Sample.Dashboard;
 
 // A dashboard loads several widgets at once. This shows two DotNetQuery behaviors:
-//   1. request deduplication — concurrent requests for the same key share one fetch, and
-//   2. background refresh — an observed query auto-polls on an interval.
+//   1. request deduplication - concurrent requests for the same key share one fetch, and
+//   2. background refresh - an observed query auto-polls on an interval.
 // Deterministic and self-terminating so it doubles as an end-to-end smoke test (exit 0 == pass).
 
 using var client = new QueryClient(new QueryClientOptions { DefaultRetryCount = 0 });
@@ -15,7 +15,7 @@ var usersKey = QueryKey.Create("users", "active");
 var revenueKey = QueryKey.Create("revenue", "today");
 var ordersKey = QueryKey.Create("orders", "pending");
 
-// Four widget requests fired at once — but two of them ask for the same [users] key.
+// Four widget requests fired at once - but two of them ask for the same [users] key.
 var usersA = client.FetchAsync(usersKey, api.GetActiveUsersAsync);
 var usersB = client.FetchAsync(usersKey, api.GetActiveUsersAsync);
 var revenue = client.FetchAsync(revenueKey, api.GetRevenueAsync);

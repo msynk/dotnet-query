@@ -8,7 +8,7 @@ namespace DotNetQuery;
 /// <remarks>
 /// The source is transport-agnostic: it pairs directly with SignalR's
 /// <c>HubConnection.StreamAsync&lt;T&gt;(...)</c>, a <see cref="System.Threading.Channels.Channel{T}"/>
-/// reader, gRPC server streaming, or any async sequence — the core takes on no transport dependency.
+/// reader, gRPC server streaming, or any async sequence - the core takes on no transport dependency.
 /// </remarks>
 public static class QueryStreamExtensions
 {
@@ -37,7 +37,7 @@ public static class QueryStreamExtensions
     /// <summary>
     /// Folds each item emitted by <paramref name="source"/> into the cached value under
     /// <paramref name="key"/> via <paramref name="accumulate"/> (which receives the current cached value,
-    /// or <see langword="default"/> if none, and the new item). Ideal for appending to a live list — a
+    /// or <see langword="default"/> if none, and the new item). Ideal for appending to a live list - a
     /// chat feed, an activity log, incremental results. Completes when the stream ends or is cancelled.
     /// </summary>
     /// <typeparam name="T">The accumulated (cached) type.</typeparam>

@@ -1,7 +1,7 @@
 # DotNetQuery.WinUI
 
 WinUI 3 / Windows App SDK adapter for DotNetQuery. Dispatcher-aware factories over the MVVM bindings
-(`ObservableQuery` / `ObservableMutation`) for XAML data binding — mirrors the WPF and Avalonia adapters.
+(`ObservableQuery` / `ObservableMutation`) for XAML data binding - mirrors the WPF and Avalonia adapters.
 
 ```csharp
 using DotNetQuery.WinUI;
@@ -22,5 +22,5 @@ WinUI `DispatcherQueue`. The factories throw if called off the UI thread.
 
 This is a pure-C# library that uses only the `DispatcherQueue` projection from the Windows App SDK. It
 references `Microsoft.WindowsAppSDK` with `ExcludeAssets="build;buildTransitive;buildMultitargeting"` so
-it builds with the plain .NET CLI (`dotnet build`) — the excluded MSIX/PRI MSBuild tasks require full
+it builds with the plain .NET CLI (`dotnet build`) - the excluded MSIX/PRI MSBuild tasks require full
 Visual Studio tooling and aren't needed for a library with no XAML resources.

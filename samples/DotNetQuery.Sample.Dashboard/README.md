@@ -2,10 +2,10 @@
 
 A console showcase of two DotNetQuery behaviors a dashboard relies on, with no UI-framework noise:
 
-1. **Request deduplication** — [Program.cs](Program.cs) fires four widget requests at once, two of them
+1. **Request deduplication** - [Program.cs](Program.cs) fires four widget requests at once, two of them
    for the same `[users]` key; the server sees a single `users` call because concurrent requests for one
    key share a single in-flight fetch.
-2. **Background refresh** — an observed `[visitors]` query auto-polls on a `RefetchInterval`, so its value
+2. **Background refresh** - an observed `[visitors]` query auto-polls on a `RefetchInterval`, so its value
    updates in the background without any manual refetch.
 
 [DashboardApi](DashboardApi.cs) stands in for a metrics backend and counts its calls to prove the dedup.

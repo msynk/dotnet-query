@@ -19,7 +19,7 @@ dotnet build samples/DotNetQuery.Sample.Maui -f net10.0-android -t:Run
 
 Verified on a Pixel 7 (API 36) emulator: the list renders `fetch #1` on load, and tapping **Refetch**
 updates it to `fetch #2`. (On a software-GPU emulator `adb screencap` may come back blank even though the
-app renders — dump the view tree with `adb shell uiautomator dump` to see the actual on-screen text.)
+app renders - dump the view tree with `adb shell uiautomator dump` to see the actual on-screen text.)
 
 To target more platforms, add `net10.0-ios;net10.0-maccatalyst` (on a Mac) or
 `net10.0-windows10.0.19041.0` (with full Visual Studio MSBuild) to `<TargetFrameworks>`.

@@ -58,7 +58,7 @@ static async Task<string> GetExportJsonAsync(string[] args)
         return await File.ReadAllTextAsync(args[0]);
     }
 
-    Console.WriteLine("(no export given — generating a live demo export)\n");
+    Console.WriteLine("(no export given - generating a live demo export)\n");
     return await GenerateDemoExportAsync();
 }
 
@@ -71,7 +71,7 @@ static async Task<string> GenerateDemoExportAsync()
     });
     using var devtools = new QueryDevTools(client);
 
-    // An observed (active) query, a couple of plain fetches, a failure, a mutation, and an invalidation —
+    // An observed (active) query, a couple of plain fetches, a failure, a mutation, and an invalidation -
     // enough to populate every section of the dashboard.
     using var observer = client.Watch<string[]>(QueryKey.Create("users"));
     await client.FetchAsync(QueryKey.Create("users"), _ => Task.FromResult(new[] { "alice", "bob" }));

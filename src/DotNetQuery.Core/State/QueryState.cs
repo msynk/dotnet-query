@@ -31,7 +31,7 @@ public sealed record QueryState<T>
     public bool IsLoading => Status is QueryStatus.Loading;
 
     /// <summary>
-    /// Gets a value indicating whether the query has neither data nor an error yet — i.e. it is idle or
+    /// Gets a value indicating whether the query has neither data nor an error yet - i.e. it is idle or
     /// loading for the first time. Use this for a first-load spinner: it is stable across the brief
     /// <see cref="QueryStatus.Idle"/> → <see cref="QueryStatus.Loading"/> transition.
     /// </summary>

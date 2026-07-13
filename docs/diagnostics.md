@@ -24,7 +24,7 @@ Query events are **deduplication-accurate**: two callers of the same in-flight k
 
 ## OpenTelemetry
 
-Instrumentation uses BCL `ActivitySource` and `Meter` — no dependency on the OpenTelemetry SDK. Register them by name:
+Instrumentation uses BCL `ActivitySource` and `Meter` - no dependency on the OpenTelemetry SDK. Register them by name:
 
 ```csharp
 tracerProviderBuilder.AddSource(DotNetQueryDiagnostics.ActivitySourceName);   // "DotNetQuery"
@@ -33,8 +33,8 @@ meterProviderBuilder.AddMeter(DotNetQueryDiagnostics.MeterName);              //
 
 You get:
 
-- **Traces** — one span (`dotnetquery.query.fetch`) per fetch, tagged with the key, with OK/Error status.
-- **Metrics** — `dotnetquery.queries.started` / `.succeeded` / `.failed`, `dotnetquery.query.duration` (histogram), and mutation counters.
+- **Traces** - one span (`dotnetquery.query.fetch`) per fetch, tagged with the key, with OK/Error status.
+- **Metrics** - `dotnetquery.queries.started` / `.succeeded` / `.failed`, `dotnetquery.query.duration` (histogram), and mutation counters.
 
 ## DevTools
 

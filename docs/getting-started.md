@@ -30,7 +30,7 @@ using var client = new QueryClient(new QueryClientOptions
 
 ## Your first query
 
-A query is identified by a **key** and backed by a **fetcher** — any delegate that returns a `Task<T>`.
+A query is identified by a **key** and backed by a **fetcher** - any delegate that returns a `Task<T>`.
 
 ```csharp
 var result = await client.FetchAsync(
@@ -50,9 +50,9 @@ else if (result.IsError)
 }
 ```
 
-`FetchAsync` returns a `QueryResult<T>` — an immutable view with `Data`, `Error`, `Status`, and helpers such as `IsLoading`, `IsFetching`, `IsSuccess`, `IsError`. Call `result.EnsureData()` to get the data or throw.
+`FetchAsync` returns a `QueryResult<T>` - an immutable view with `Data`, `Error`, `Status`, and helpers such as `IsLoading`, `IsFetching`, `IsSuccess`, `IsError`. Call `result.EnsureData()` to get the data or throw.
 
-> **Tip:** for a first-load spinner, prefer `IsPending` (true while idle *or* loading) over `IsLoading` — it's stable across the brief `Idle → Loading` transition, so the spinner shows on the very first render.
+> **Tip:** for a first-load spinner, prefer `IsPending` (true while idle *or* loading) over `IsLoading` - it's stable across the brief `Idle → Loading` transition, so the spinner shows on the very first render.
 
 ## Query keys
 
@@ -79,5 +79,5 @@ In Blazor, use the [`<Query>` component](../README.md#blazor-query-component); i
 
 ## Next
 
-- [Caching](caching.md) — control freshness and invalidation
-- [Mutations](mutations.md) — write data back
+- [Caching](caching.md) - control freshness and invalidation
+- [Mutations](mutations.md) - write data back

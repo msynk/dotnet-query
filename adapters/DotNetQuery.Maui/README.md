@@ -27,7 +27,7 @@ The project's target heads are selected by build environment so each builds wher
 | Head | Built by | Notes |
 | --- | --- | --- |
 | `net10.0-android` | `dotnet` CLI, VS, and CI | always on |
-| `net10.0-windows10.0.19041.0` | **full Visual Studio MSBuild** on Windows | added only under MSBuild runtime type `Full` — the transitive WindowsAppSDK PRI/Appx tasks aren't in the bare .NET SDK, so `dotnet build` (runtime type `Core`) skips this head |
+| `net10.0-windows10.0.19041.0` | **full Visual Studio MSBuild** on Windows | added only under MSBuild runtime type `Full` - the transitive WindowsAppSDK PRI/Appx tasks aren't in the bare .NET SDK, so `dotnet build` (runtime type `Core`) skips this head |
 | `net10.0-ios;net10.0-maccatalyst` | a Mac | added when building on macOS |
 
 So `dotnet build` / CI build Android only (no breakage), while `MSBuild.exe` from Visual Studio also

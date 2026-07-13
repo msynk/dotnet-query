@@ -2,7 +2,7 @@ namespace DotNetQuery;
 
 /// <summary>
 /// A small fluent builder for constructing a <see cref="QueryKey"/> segment by segment. Useful for
-/// defining keys in one place — for example a typed key factory — so segment names are not repeated
+/// defining keys in one place - for example a typed key factory - so segment names are not repeated
 /// across call sites. Start one with <see cref="QueryKey.Builder(object?[])"/>.
 /// </summary>
 /// <remarks>

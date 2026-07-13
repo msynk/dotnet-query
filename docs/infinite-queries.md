@@ -1,6 +1,6 @@
 # Infinite Queries
 
-An infinite query accumulates *pages* of data — for "load more" lists, feeds, and cursor-based APIs. It supports forward, backward, and bidirectional pagination.
+An infinite query accumulates *pages* of data - for "load more" lists, feeds, and cursor-based APIs. It supports forward, backward, and bidirectional pagination.
 
 ## Creating one
 
@@ -50,7 +50,7 @@ new InfiniteQueryOptions<int, Page>
 
 ## Sliding window
 
-Set `MaxPages` to cap memory — fetching in one direction drops a page from the opposite end.
+Set `MaxPages` to cap memory - fetching in one direction drops a page from the opposite end.
 
 ```csharp
 new InfiniteQueryOptions<int, Page> { /* ... */ MaxPages = 3 }

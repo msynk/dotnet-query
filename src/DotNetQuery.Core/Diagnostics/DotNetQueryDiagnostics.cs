@@ -13,7 +13,7 @@ namespace DotNetQuery;
 /// tracerProviderBuilder.AddSource(DotNetQueryDiagnostics.ActivitySourceName);
 /// meterProviderBuilder.AddMeter(DotNetQueryDiagnostics.MeterName);
 /// </code>
-/// No dependency on the OpenTelemetry SDK is required — these are BCL types.
+/// No dependency on the OpenTelemetry SDK is required - these are BCL types.
 /// </remarks>
 public static class DotNetQueryDiagnostics
 {

@@ -7,7 +7,7 @@ namespace DotNetQuery.WinUI;
 /// WinUI 3 convenience factories for DotNetQuery MVVM bindings. Because
 /// <see cref="ObservableQuery{T}"/> and <see cref="ObservableMutation{TVariables, TData}"/> capture the
 /// current <see cref="SynchronizationContext"/> for UI-thread marshaling, create them on the WinUI
-/// UI thread — these helpers assert that.
+/// UI thread - these helpers assert that.
 /// </summary>
 public static class WinUIQueryExtensions
 {

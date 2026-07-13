@@ -26,7 +26,7 @@ await manager.PersistAllAsync();   // on shutdown / periodically
 
 The integration tests connect to the endpoint in the `DOTNETQUERY_REDIS` environment variable
 (default `localhost:6379`) and **skip** when no server is reachable. To exercise them, start a Redis
-server first — the simplest is Docker:
+server first - the simplest is Docker:
 
 ```bash
 docker run --rm -p 6379:6379 redis:7-alpine

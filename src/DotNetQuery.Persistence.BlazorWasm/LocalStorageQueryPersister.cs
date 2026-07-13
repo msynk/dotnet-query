@@ -10,8 +10,8 @@ namespace DotNetQuery.Persistence;
 /// </summary>
 /// <remarks>
 /// All persisted queries are kept together under a single <c>localStorage</c> entry (a JSON map keyed by
-/// query key), so the whole set is read/written per operation. This suits the intended use — persisting a
-/// bounded set of registered queries on shutdown and restoring them on startup — and needs no key
+/// query key), so the whole set is read/written per operation. This suits the intended use - persisting a
+/// bounded set of registered queries on shutdown and restoring them on startup - and needs no key
 /// enumeration. Access is serialized with a semaphore to keep the read-modify-write of the map consistent.
 /// </remarks>
 public sealed class LocalStorageQueryPersister : IQueryPersister

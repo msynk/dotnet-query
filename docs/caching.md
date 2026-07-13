@@ -1,6 +1,6 @@
 # Caching
 
-DotNetQuery caches every query by key. Understanding two time windows — **stale time** and **cache time** — is most of what you need.
+DotNetQuery caches every query by key. Understanding two time windows - **stale time** and **cache time** - is most of what you need.
 
 ## Stale time
 
@@ -16,7 +16,7 @@ await client.FetchAsync(key, fetcher, new QueryOptions
 - **Fresh** (within stale time): served from cache, no network call.
 - **Stale** (past stale time): a refetch runs; existing data is still returned while the refetch is in flight (status `Refetching`).
 
-The default is `QueryClientOptions.DefaultStaleTime` (zero — always stale, so every access revalidates).
+The default is `QueryClientOptions.DefaultStaleTime` (zero - always stale, so every access revalidates).
 
 ## Cache time
 
@@ -30,7 +30,7 @@ A background garbage collector sweeps expired inactive entries on `QueryClientOp
 
 ## Deduplication
 
-Concurrent requests for the same key share a single in-flight fetch. Ten callers, one network call, one result delivered to all — and one caller cancelling does not cancel the shared work.
+Concurrent requests for the same key share a single in-flight fetch. Ten callers, one network call, one result delivered to all - and one caller cancelling does not cancel the shared work.
 
 ## Invalidation
 

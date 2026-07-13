@@ -1,14 +1,14 @@
 # Optimistic Updates
 
-An optimistic update applies the expected result to the cache *before* the server confirms it, so the UI feels instant — then rolls back if the request fails.
+An optimistic update applies the expected result to the cache *before* the server confirms it, so the UI feels instant - then rolls back if the request fails.
 
 ## The pattern
 
 Use the three mutation callbacks together:
 
-- **`OnMutate`** — snapshot the current value, apply the optimistic change, and return the snapshot as context.
-- **`OnError`** — restore the snapshot from context (rollback).
-- **`OnSettled`** — optionally invalidate to reconcile with the server's truth.
+- **`OnMutate`** - snapshot the current value, apply the optimistic change, and return the snapshot as context.
+- **`OnError`** - restore the snapshot from context (rollback).
+- **`OnSettled`** - optionally invalidate to reconcile with the server's truth.
 
 ```csharp
 await client.MutateAsync<Todo, Todo>(
@@ -61,6 +61,6 @@ Threading the previous value through the callback `context` (rather than a captu
 
 ## Tips
 
-- Keep optimistic state minimal — snapshot only what you change.
+- Keep optimistic state minimal - snapshot only what you change.
 - Always pair an optimistic `OnMutate` with a rollback `OnError`.
 - Prefer an `OnSettled` invalidation so the client eventually converges on server truth even if your optimistic guess was slightly off.
