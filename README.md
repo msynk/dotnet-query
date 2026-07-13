@@ -2,7 +2,7 @@
 
 Server-state management for the .NET ecosystem - the native, idiomatic counterpart to TanStack Query. DotNetQuery makes fetching, caching, synchronizing, and invalidating remote data effortless, with a framework-agnostic core built around `Task`, `CancellationToken`, immutable data, and Dependency Injection.
 
-> **Status: path to 1.0 🚧** - All P1 release-readiness work is done: a BenchmarkDotNet suite, a verified NativeAOT publish, GitHub Actions CI, SourceLink, and a **frozen public API surface** (PublicApiAnalyzers baselines). Breadth has landed too - **SQLite / Redis / Blazor-WASM persistence**, an **HTTP/JSON transport** package, **WinUI and MAUI adapters**, structured query-key builders, and an opt-in cancellation policy. See the [roadmap](#roadmap).
+> **Status: path to 1.0 🚧** - P1 release-readiness is complete (a BenchmarkDotNet suite, a verified NativeAOT publish, GitHub Actions CI, SourceLink, and a **frozen public API surface** via PublicApiAnalyzers baselines), and the breadth has largely landed: persistence across in-memory / file-system / **SQLite / Redis / Blazor-WASM (`localStorage` + IndexedDB)**; **HTTP/JSON and GraphQL** transport plus real-time **`StreamIntoCacheAsync`** streaming; **Blazor, MVVM, WPF, WinUI, Avalonia, and MAUI** adapters; structured query keys; an opt-in cancellation policy; seven runnable samples; and a standalone DevTools CLI. See the [roadmap](#roadmap).
 
 ## Packages
 
@@ -105,6 +105,36 @@ await persistence.RestoreAllAsync();   // on startup
 await persistence.PersistAllAsync();   // on shutdown / periodically
 ```
 
+Providers: in-memory and file-system (`DotNetQuery.Persistence`), SQLite, Redis, and browser
+`localStorage`/IndexedDB (`DotNetQuery.Persistence.BlazorWasm`).
+
+### HTTP & GraphQL fetchers
+
+The core is transport-agnostic; thin helpers turn an `HttpClient` into a fetcher.
+
+```csharp
+// HTTP/JSON (DotNetQuery.Http)
+await queryClient.FetchJsonAsync<Todo>(QueryKey.Create<Todo>(7), http, "todos/7");
+
+// GraphQL-over-HTTP (DotNetQuery.GraphQL) - POSTs { query, variables }, unwraps `data`, throws on `errors`
+await queryClient.FetchGraphQLAsync<UserResponse>(
+    QueryKey.Create<UserResponse>(7), http, "graphql",
+    "query($id:Int!){ user(id:$id){ id name } }", new { id = 7 });
+```
+
+### Real-time streaming (SignalR, channels, gRPC)
+
+`StreamIntoCacheAsync` bridges any `IAsyncEnumerable<T>` into the cache, so observers update live.
+
+```csharp
+// Fold a live message stream into a growing list (e.g. a chat feed):
+_ = queryClient.StreamIntoCacheAsync<List<Message>, Message>(
+    QueryKey.Create("chat", roomId),
+    hub.StreamAsync<Message>("Messages", roomId),        // SignalR hub stream
+    (messages, incoming) => [.. messages ?? [], incoming],
+    cancellationToken);
+```
+
 ### Diagnostics & OpenTelemetry
 
 ```csharp
@@ -165,16 +195,19 @@ string snapshot = devtools.ExportJson();  // export the whole diagnostic state
 The **`tools/DotNetQuery.DevTools.Cli`** console app is a standalone, out-of-process inspector that renders
 an `ExportJson()` dashboard from a file or stdin - `dotnet run --project tools/DotNetQuery.DevTools.Cli -- export.json`.
 
-## What v0.1 gives you
+## What you get
 
-- **Query keys** - immutable, hierarchical, structurally-equal `QueryKey` with prefix matching for partial invalidation.
+- **Query keys** - immutable, hierarchical, structurally-equal `QueryKey` with prefix matching for partial invalidation; derive children with `Append` or the fluent `QueryKeyBuilder`.
 - **Deduplication** - concurrent requests for the same key share a single in-flight fetch; per-caller cancellation never cancels shared work.
 - **Caching & staleness** - fresh data is served without a round-trip (`StaleTime`); inactive entries are garbage collected (`CacheTime`).
 - **Retries** - constant, exponential, and exponential-with-jitter back-off strategies, or a custom delegate.
 - **Invalidation** - mark a key hierarchy stale and automatically refetch active queries.
+- **Mutations** - optimistic updates with rollback, lifecycle callbacks, retries, and an offline replay queue.
+- **Infinite queries** - offset/cursor/bidirectional pagination with a sliding window.
 - **Observers** - subscribe to per-query state changes with immediate snapshots; only affected subscribers are notified.
+- **Transport & real-time** - HTTP/JSON and GraphQL fetcher helpers, plus `StreamIntoCacheAsync` to push any `IAsyncEnumerable<T>` (SignalR/channels/gRPC) into the cache.
 - **DI-first** - singleton `IQueryClient`, `TimeProvider`-based for fully deterministic tests.
-- **AOT/trimming-friendly** - no reflection, nullable reference types throughout, `TreatWarningsAsErrors`.
+- **AOT/trimming-friendly** - the core has no reflection, nullable reference types throughout, `TreatWarningsAsErrors`, and a verified NativeAOT publish.
 
 ## Documentation
 
@@ -196,11 +229,11 @@ dotnet build
 dotnet test
 ```
 
-130 tests cover the stack end to end - 121 core (including concurrency/stress tests and
+143 tests cover the stack end to end - 134 core (including concurrency/stress tests and
 **91% line coverage**) plus 9 bUnit component tests for the Blazor adapter. Run with
 coverage via `dotnet test --collect:"XPlat Code Coverage"`. A `DotNetQuery.Benchmarks` (BenchmarkDotNet)
-suite and a `DotNetQuery.AotHarness` (verified NativeAOT publish) round out the quality gates; see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+suite and a `DotNetQuery.AotHarness` (verified NativeAOT publish) round out the quality gates, and CI runs
+six end-to-end sample smoke tests; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The portable libraries multi-target **net8.0 and net10.0**, so they run on .NET 8 (LTS) and later; the
 platform-specific adapters (WPF, WinUI, MAUI) target their respective frameworks. The libraries are
@@ -220,7 +253,7 @@ See [ROADMAP.md](ROADMAP.md) for the detailed path to 1.0 (remaining work, prior
 - **v0.5** ✅ DevTools model, cache inspector, diagnostics export
 - **v0.6** ✅ Blazor adapter, visual DevTools panel, runnable sample
 - **v0.7** ✅ MVVM binding layer, WPF adapter
-- **path to 1.0** 🚧 ✅ Benchmarks, NativeAOT, CI, SourceLink, **API freeze**; ✅ SQLite/Redis/Blazor-WASM persistence, HTTP transport, WinUI + MAUI adapters, structured keys, cancellation policy; remaining: more samples, IndexedDB, additional MAUI heads
+- **path to 1.0** 🚧 ✅ Benchmarks, NativeAOT, CI, SourceLink, **API freeze**; ✅ SQLite/Redis/Blazor-WASM (localStorage + IndexedDB) persistence, HTTP + GraphQL transport, real-time streaming, WinUI + MAUI (Android/Windows) adapters, structured keys, cancellation policy, seven samples, DevTools CLI; remaining: MAUI iOS/macCatalyst heads (need a Mac)
 
 ## License
 
