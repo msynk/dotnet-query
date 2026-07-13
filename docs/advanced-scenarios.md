@@ -28,6 +28,7 @@ await manager.PersistAllAsync();   // on shutdown, or periodically
 | `SqliteQueryPersister` | `DotNetQuery.Persistence.Sqlite` | durable single-file store, many queries |
 | `RedisQueryPersister` | `DotNetQuery.Persistence.Redis` | shared / server-side caches |
 | `LocalStorageQueryPersister` | `DotNetQuery.Persistence.BlazorWasm` | Blazor WebAssembly (survives reloads) |
+| `IndexedDbQueryPersister` | `DotNetQuery.Persistence.BlazorWasm` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
 
 ```csharp
 await using var persister = SqliteQueryPersister.ForFile("cache.db");

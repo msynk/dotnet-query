@@ -13,7 +13,7 @@ Server-state management for the .NET ecosystem — the native, idiomatic counter
 | `DotNetQuery.Persistence` | Pluggable cache persistence (in-memory + file-system providers). |
 | `DotNetQuery.Persistence.Sqlite` | SQLite cache persistence (Microsoft.Data.Sqlite). |
 | `DotNetQuery.Persistence.Redis` | Redis cache persistence (StackExchange.Redis) for shared/server-side caches. |
-| `DotNetQuery.Persistence.BlazorWasm` | Browser `localStorage` persistence for Blazor WebAssembly. |
+| `DotNetQuery.Persistence.BlazorWasm` | Browser `localStorage` and IndexedDB persistence for Blazor WebAssembly. |
 | `DotNetQuery.Http` | HTTP/JSON transport conveniences: `HttpClient` → query fetchers, fetch-JSON-into-cache. |
 | `DotNetQuery.GraphQL` | GraphQL-over-HTTP transport: query fetchers that POST a document + variables and unwrap the `data` envelope. |
 | `DotNetQuery.DevTools` | Framework-agnostic cache inspection, live event log, manual actions, JSON export. |
@@ -25,7 +25,7 @@ Server-state management for the .NET ecosystem — the native, idiomatic counter
 | `DotNetQuery.Avalonia` | Avalonia adapter: cross-platform dispatcher-aware factories over the MVVM bindings. |
 | `DotNetQuery.Maui` | .NET MAUI adapter: dispatcher factories + a connectivity bridge for offline pause/resume. |
 
-The **`samples/TodoApp`** Blazor Server app demonstrates the full stack — fetching, caching, mutations, invalidation, and the live DevTools panel — end to end. Run it with `dotnet run --project samples/TodoApp`. The **`samples/DotNetQuery.Sample.Maui`** app demonstrates the MAUI adapter (`ObservableQuery` binding + connectivity bridge) on Android — see its [README](samples/DotNetQuery.Sample.Maui/README.md). The **`samples/DotNetQuery.Sample.Avalonia`** app demonstrates the Avalonia adapter and ships a headless-render self-check (`dotnet run --project samples/DotNetQuery.Sample.Avalonia -- verify`) that runs as an end-to-end smoke test in CI. The **`samples/DotNetQuery.Sample.Chat`** console app combines infinite-query history pagination with real-time `StreamIntoCacheAsync` streaming, and the **`samples/DotNetQuery.Sample.OfflineFirst`** console app walks through persist → restart-offline → restore → offline mutation queue → reconnect-replay. Both run as CI smoke tests.
+The **`samples/TodoApp`** Blazor Server app demonstrates the full stack — fetching, caching, mutations, invalidation, and the live DevTools panel — end to end. Run it with `dotnet run --project samples/TodoApp`. The **`samples/DotNetQuery.Sample.Maui`** app demonstrates the MAUI adapter (`ObservableQuery` binding + connectivity bridge) on Android — see its [README](samples/DotNetQuery.Sample.Maui/README.md). The **`samples/DotNetQuery.Sample.Avalonia`** app demonstrates the Avalonia adapter and ships a headless-render self-check (`dotnet run --project samples/DotNetQuery.Sample.Avalonia -- verify`) that runs as an end-to-end smoke test in CI. The **`samples/DotNetQuery.Sample.Chat`** console app combines infinite-query history pagination with real-time `StreamIntoCacheAsync` streaming, and the **`samples/DotNetQuery.Sample.OfflineFirst`** console app walks through persist → restart-offline → restore → offline mutation queue → reconnect-replay; the **`samples/DotNetQuery.Sample.ECommerce`** console app demonstrates optimistic cart updates with rollback; and the **`samples/DotNetQuery.Sample.Dashboard`** console app shows request deduplication and background refresh. These run as CI smoke tests.
 
 ## Quick start
 
@@ -161,6 +161,9 @@ var stats = devtools.GetStats();          // status distribution, fetch/mutation
 await devtools.RefetchAsync(key);         // manual actions
 string snapshot = devtools.ExportJson();  // export the whole diagnostic state
 ```
+
+The **`tools/DotNetQuery.DevTools.Cli`** console app is a standalone, out-of-process inspector that renders
+an `ExportJson()` dashboard from a file or stdin — `dotnet run --project tools/DotNetQuery.DevTools.Cli -- export.json`.
 
 ## What v0.1 gives you
 

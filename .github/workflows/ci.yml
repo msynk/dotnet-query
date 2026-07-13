@@ -47,6 +47,15 @@ jobs:
       - name: OfflineFirst sample end-to-end smoke test (persist + offline queue + reconnect)
         run: dotnet run --project samples/DotNetQuery.Sample.OfflineFirst -c Release --no-build
 
+      - name: DevTools CLI smoke test (renders a DevTools export)
+        run: dotnet run --project tools/DotNetQuery.DevTools.Cli -c Release --no-build
+
+      - name: ECommerce sample end-to-end smoke test (optimistic updates + rollback)
+        run: dotnet run --project samples/DotNetQuery.Sample.ECommerce -c Release --no-build
+
+      - name: Dashboard sample end-to-end smoke test (dedup + background refresh)
+        run: dotnet run --project samples/DotNetQuery.Sample.Dashboard -c Release --no-build
+
       - name: Pack
         run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts
 

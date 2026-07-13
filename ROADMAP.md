@@ -1,6 +1,6 @@
 # DotNetQuery — Path to 1.0
 
-Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 16 NuGet packages, five verified samples (Blazor Server, MAUI/Android, Avalonia, Chat, OfflineFirst), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
+Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 16 NuGet packages, seven verified samples (Blazor Server, MAUI/Android, Avalonia, Chat, OfflineFirst, ECommerce, Dashboard), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
 
 ## Done
 
@@ -9,7 +9,7 @@ Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (
 - **Infinite queries** — offset/cursor/bidirectional, sliding window, cache-integrated invalidation.
 - **Background sync** — interval, manual, focus/reconnect/resume triggers, dependency invalidation.
 - **Offline** — connectivity-aware pause/resume, offline mutation queue.
-- **Persistence** — pluggable `IQueryPersister`; in-memory, file-system, SQLite, Redis, and Blazor-WASM `localStorage` providers.
+- **Persistence** — pluggable `IQueryPersister`; in-memory, file-system, SQLite, Redis, and Blazor-WASM (`localStorage` + IndexedDB) providers.
 - **Diagnostics** — event stream + OpenTelemetry `ActivitySource`/`Meter`; DevTools model + Blazor panel.
 - **Adapters** — Blazor (`<Query>` + browser signals), MVVM, WPF, WinUI, Avalonia, MAUI.
 - **Transport** — `DotNetQuery.Http` (HTTP/JSON fetchers) and `DotNetQuery.GraphQL` (GraphQL-over-HTTP); plus `StreamIntoCacheAsync` in Core to push any `IAsyncEnumerable<T>` (SignalR/channels/gRPC streaming) into the cache in real time.
@@ -42,17 +42,18 @@ WinUI and MAUI adapters, all landed (see **Done**). Remaining threads:
 
 | Item | Notes | Est. |
 | --- | --- | --- |
-| **IndexedDB persistence** | Blazor WASM provider for datasets beyond `localStorage`'s ~5 MB quota; needs a bundled JS module for the async cursor API. | M |
-| **MAUI iOS/macCatalyst/Windows heads** | Adapter targets `net10.0-android` today (CLI-verified). Add the other heads in a Mac / full-VS build environment — no code changes (Essentials-only). | S |
+| **MAUI iOS/macCatalyst heads** | The adapter now builds `net10.0-android` (CLI/VS/CI) and `net10.0-windows10.0.19041.0` (full VS MSBuild, verified). The Apple heads are wired to build on macOS — no code changes (Essentials-only), just need a Mac build host. | S |
+
+_Landed this milestone: **MAUI Windows head** (`net10.0-windows10.0.19041.0`, verified with VS MSBuild; gated on the `Full` MSBuild runtime so `dotnet build`/CI stay Android-only). **IndexedDB persistence** (`IndexedDbQueryPersister` in `DotNetQuery.Persistence.BlazorWasm`, with a bundled JS static-web-asset module; C# logic tested against a fake `IJSRuntime`, browser side runs the shipped module)._
 
 ### P3 — Samples & docs depth
 
 | Item | Notes | Est. |
 | --- | --- | --- |
-| **More samples** | ✅ **MAUI** (emulator-verified), **Chat** (infinite + streaming), and **OfflineFirst** (persist/restore + offline queue + reconnect) done — the last two are CI smoke tests. Remaining brief ideas: Dashboard, ECommerce. | S |
+| **More samples** | ✅ **Done** — MAUI (emulator-verified), Chat (infinite + streaming), OfflineFirst (persist/offline queue/reconnect), ECommerce (optimistic updates + rollback), and Dashboard (dedup + background refresh); the four console samples are CI smoke tests. | — |
 | **Avalonia sample** | ✅ **Done** — `samples/DotNetQuery.Sample.Avalonia`, with a headless-render self-check (`-- verify`) that runs as an end-to-end smoke test in CI. | M |
 | **Advanced guides** | ✅ **Done** — [advanced-scenarios.md](docs/advanced-scenarios.md) covers persistence, cancellation policies, and testing your queries. Could still expand offline recipes further. | S |
-| **Standalone DevTools app** | Optional out-of-process inspector consuming the `ExportJson` model. | L |
+| **Standalone DevTools app** | ✅ **Done** — `tools/DotNetQuery.DevTools.Cli`, an out-of-process console inspector that renders a `QueryDevTools.ExportJson()` dashboard (file/stdin/demo; CI smoke test). | S |
 
 ### P4 — Optional integrations
 

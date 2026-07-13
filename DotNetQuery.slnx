@@ -18,6 +18,8 @@
     <Project Path="samples/DotNetQuery.Sample.Avalonia/DotNetQuery.Sample.Avalonia.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Chat/DotNetQuery.Sample.Chat.csproj" />
     <Project Path="samples/DotNetQuery.Sample.OfflineFirst/DotNetQuery.Sample.OfflineFirst.csproj" />
+    <Project Path="samples/DotNetQuery.Sample.ECommerce/DotNetQuery.Sample.ECommerce.csproj" />
+    <Project Path="samples/DotNetQuery.Sample.Dashboard/DotNetQuery.Sample.Dashboard.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/DotNetQuery.Core/DotNetQuery.Core.csproj" />
@@ -29,6 +31,9 @@
     <Project Path="src/DotNetQuery.Persistence.BlazorWasm/DotNetQuery.Persistence.BlazorWasm.csproj" />
     <Project Path="src/DotNetQuery.Http/DotNetQuery.Http.csproj" />
     <Project Path="src/DotNetQuery.GraphQL/DotNetQuery.GraphQL.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/DotNetQuery.DevTools.Cli/DotNetQuery.DevTools.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />

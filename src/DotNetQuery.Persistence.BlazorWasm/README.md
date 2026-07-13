@@ -1,8 +1,9 @@
 # DotNetQuery.Persistence.BlazorWasm
 
-Browser `localStorage` cache persistence for DotNetQuery in **Blazor WebAssembly**, so cached data
-survives page reloads. Implemented as an [`IQueryPersister`](../DotNetQuery.Persistence/IQueryPersister.cs)
-over `IJSRuntime`. It also works on Blazor Server (JS interop is remoted, with the usual latency).
+Browser cache persistence for DotNetQuery in **Blazor WebAssembly**, so cached data survives page
+reloads. Two [`IQueryPersister`](../DotNetQuery.Persistence/IQueryPersister.cs) providers over
+`IJSRuntime`: `LocalStorageQueryPersister` and `IndexedDbQueryPersister`. Both also work on Blazor Server
+(JS interop is remoted, with the usual latency).
 
 ```csharp
 @inject IJSRuntime JS
@@ -34,5 +35,21 @@ builder.Services.AddScoped(sp =>
 
 ## IndexedDB
 
-For large datasets beyond `localStorage`'s ~5 MB quota, an IndexedDB provider is a planned follow-up — it
-needs a bundled JS module for the async cursor API, so it is not included here yet.
+For datasets beyond `localStorage`'s ~5 MB quota, `IndexedDbQueryPersister` stores each query as its own
+record in an IndexedDB object store. It uses a small JS module shipped with the package — reference it once
+from your Blazor host page:
+
+```html
+<script src="_content/DotNetQuery.Persistence.BlazorWasm/dotnetquery-indexeddb.js"></script>
+```
+
+```csharp
+var persister = new IndexedDbQueryPersister(JS);            // defaults: db "dotnetquery", store "queries"
+var manager = new QueryPersistenceManager(Client, persister)
+    .Register<List<Todo>>(QueryKey.Create("todos"));
+await manager.RestoreAllAsync();
+await manager.PersistAllAsync();
+```
+
+Unlike the localStorage provider (which keeps all queries in one JSON blob), IndexedDB stores each query as
+a separate keyed record, so it scales to many/large queries.

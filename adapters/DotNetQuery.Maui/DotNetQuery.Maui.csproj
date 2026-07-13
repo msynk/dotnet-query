@@ -3,12 +3,20 @@
   <PropertyGroup>
     <PackageId>DotNetQuery.Maui</PackageId>
     <Description>.NET MAUI adapter for DotNetQuery: dispatcher-aware MVVM binding factories plus a connectivity bridge that drives offline pause/resume from Connectivity.Current.</Description>
-    <!-- Verified head that builds with the .NET CLI on this machine. Add the others in their build
-         environments: net10.0-ios;net10.0-maccatalyst on a Mac, and net10.0-windows10.0.19041.0 with
-         full Visual Studio MSBuild (the WinUI PRI/Appx tasks aren't in the bare .NET SDK). -->
+    <!-- Android builds everywhere (incl. the bare .NET CLI and CI). -->
     <TargetFrameworks>net10.0-android</TargetFrameworks>
+    <!-- The Windows head pulls WindowsAppSDK, whose PRI/Appx MSBuild tasks live only in full Visual
+         Studio MSBuild (runtime type "Full"), not the bare dotnet CLI (runtime type "Core"). Gate on
+         both so `dotnet build`/CI still work (Android only) while VS builds the Windows head too. -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows')) and '$(MSBuildRuntimeType)' == 'Full'">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+    <!-- iOS / Mac Catalyst require an Apple build host; include them on macOS. -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
     <UseMauiEssentials>true</UseMauiEssentials>
     <IsAotCompatible>false</IsAotCompatible>
+    <!-- This is a library (AnyCPU); the consuming app supplies the platform RID. Downgrade the WIN2D0001
+         MSBuild warning from the transitive Win2D reference the Windows head pulls in. -->
+    <Win2DWarnNoPlatform>true</Win2DWarnNoPlatform>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);WIN2D0001</MSBuildWarningsAsMessages>
     <!-- No Android resources in this library; skip the generated public Resource designer so the public
          API surface is identical across target heads. -->
     <AndroidGenerateResourceDesigner>false</AndroidGenerateResourceDesigner>

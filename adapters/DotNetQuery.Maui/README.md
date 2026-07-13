@@ -22,16 +22,17 @@ Register the client with `AddDotNetQuery()` (from `DotNetQuery.DependencyInjecti
 
 ## Target frameworks
 
-The committed project targets **`net10.0-android`** — the head that builds with the .NET CLI on a
-Windows/Linux dev box and in CI. To ship the other platforms, add their TFMs in the appropriate build
-environment:
+The project's target heads are selected by build environment so each builds where it can:
 
-- `net10.0-ios;net10.0-maccatalyst` — build on a Mac.
-- `net10.0-windows10.0.19041.0` — build with full Visual Studio MSBuild (the transitive WinUI PRI/Appx
-  MSBuild tasks aren't in the bare .NET SDK).
+| Head | Built by | Notes |
+| --- | --- | --- |
+| `net10.0-android` | `dotnet` CLI, VS, and CI | always on |
+| `net10.0-windows10.0.19041.0` | **full Visual Studio MSBuild** on Windows | added only under MSBuild runtime type `Full` — the transitive WindowsAppSDK PRI/Appx tasks aren't in the bare .NET SDK, so `dotnet build` (runtime type `Core`) skips this head |
+| `net10.0-ios;net10.0-maccatalyst` | a Mac | added when building on macOS |
 
-The adapter uses only **MAUI Essentials** (`MainThread`, `Connectivity`), which supports every MAUI
-platform, so enabling the additional heads needs no code changes.
+So `dotnet build` / CI build Android only (no breakage), while `MSBuild.exe` from Visual Studio also
+builds the Windows head, and a Mac build adds the Apple heads. The adapter uses only **MAUI Essentials**
+(`MainThread`, `Connectivity`), which supports every MAUI platform, so no code changes are needed per head.
 
 ## Focus / resume
 

@@ -17,9 +17,16 @@ and per-OS tooling). Build it directly:
 dotnet build adapters/DotNetQuery.Maui -f net10.0-android      # needs the maui/android workloads
 ```
 
-Add `net10.0-ios;net10.0-maccatalyst` (on a Mac) or `net10.0-windows10.0.19041.0` (with full Visual
-Studio MSBuild) to its `TargetFrameworks` in the right environment. `DotNetQuery.WinUI` builds with the
-plain CLI because it excludes the WindowsAppSDK MSBuild targets (see its README).
+Its target heads are environment-gated, so each builds where it can:
+
+- **Android** — `dotnet` CLI, VS, and CI.
+- **Windows** (`net10.0-windows10.0.19041.0`) — only under full Visual Studio MSBuild (the head is gated
+  on MSBuild runtime type `Full`, since the transitive WindowsAppSDK PRI/Appx tasks aren't in the bare
+  SDK): `& "$(vswhere ... -find MSBuild\**\Bin\MSBuild.exe)" adapters/DotNetQuery.Maui -restore`.
+- **iOS / Mac Catalyst** — added when building on macOS.
+
+`DotNetQuery.WinUI` builds with the plain CLI because it excludes the WindowsAppSDK MSBuild targets (see
+its README).
 
 ## Public API surface is frozen
 

@@ -1,5 +1,14 @@
 #nullable enable
+const DotNetQuery.Persistence.IndexedDbQueryPersister.DefaultDatabaseName = "dotnetquery" -> string!
+const DotNetQuery.Persistence.IndexedDbQueryPersister.DefaultStoreName = "queries" -> string!
 const DotNetQuery.Persistence.LocalStorageQueryPersister.DefaultStorageKey = "dotnetquery:queries" -> string!
+DotNetQuery.Persistence.IndexedDbQueryPersister
+DotNetQuery.Persistence.IndexedDbQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IndexedDbQueryPersister.IndexedDbQueryPersister(Microsoft.JSInterop.IJSRuntime! jsRuntime, string? databaseName = null, string? storeName = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.IndexedDbQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.IndexedDbQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.IndexedDbQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IndexedDbQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 DotNetQuery.Persistence.LocalStorageQueryPersister
 DotNetQuery.Persistence.LocalStorageQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 DotNetQuery.Persistence.LocalStorageQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
