@@ -55,6 +55,29 @@ await client.FetchGraphQLAsync<UserResponse>(
     "query($id:Int!){ user(id:$id){ id name } }", new { id = 7 });
 ```
 
+## Real-time updates (SignalR, channels, gRPC streaming)
+
+`StreamIntoCacheAsync` bridges any `IAsyncEnumerable<T>` into the cache: each emitted value is written
+under a key, so observers (the Blazor `<Query>` component, MVVM bindings, …) update live. It pairs
+directly with SignalR's `HubConnection.StreamAsync<T>`, a `Channel<T>` reader, or gRPC server streaming —
+the core stays transport-agnostic.
+
+```csharp
+// Replace the cached value with each emission (e.g. a live gauge):
+_ = client.StreamIntoCacheAsync(QueryKey.Create("price", "BTC"),
+        hub.StreamAsync<decimal>("PriceStream", "BTC"), cancellationToken);
+
+// Or fold each item into a growing list (e.g. a chat feed):
+_ = client.StreamIntoCacheAsync<List<Message>, Message>(
+        QueryKey.Create("chat", roomId),
+        hub.StreamAsync<Message>("Messages", roomId),
+        (messages, incoming) => [.. messages ?? [], incoming],
+        cancellationToken);
+```
+
+The returned task completes when the stream ends or the token cancels — run it in the background (or tie
+it to a component's lifetime) and dispose the token to stop.
+
 ## Building keys safely
 
 Derive hierarchical keys from a parent with `Append`, or compose them with the fluent builder — so a

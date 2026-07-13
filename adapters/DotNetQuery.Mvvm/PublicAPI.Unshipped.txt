@@ -18,6 +18,7 @@ DotNetQuery.Mvvm.ObservableQuery<T>.HasData.get -> bool
 DotNetQuery.Mvvm.ObservableQuery<T>.IsError.get -> bool
 DotNetQuery.Mvvm.ObservableQuery<T>.IsFetching.get -> bool
 DotNetQuery.Mvvm.ObservableQuery<T>.IsLoading.get -> bool
+DotNetQuery.Mvvm.ObservableQuery<T>.IsPending.get -> bool
 DotNetQuery.Mvvm.ObservableQuery<T>.IsSuccess.get -> bool
 DotNetQuery.Mvvm.ObservableQuery<T>.ObservableQuery(DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null) -> void
 DotNetQuery.Mvvm.ObservableQuery<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?

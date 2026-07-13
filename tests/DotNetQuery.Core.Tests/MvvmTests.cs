@@ -35,7 +35,9 @@ public class MvvmTests
         var changed = new List<string>();
         ((INotifyPropertyChanged)oq).PropertyChanged += (_, e) => { lock (changed) { changed.Add(e.PropertyName!); } };
 
-        Assert.True(oq.IsLoading);
+        // A brand-new query is Idle→Loading (the loading transition is deferred one scheduler hop), so
+        // IsLoading is racy here; IsPending covers both and is deterministically true from construction.
+        Assert.True(oq.IsPending);
         gate.SetResult(7);
         await WaitUntilAsync(() => oq.Status == QueryStatus.Success);
 

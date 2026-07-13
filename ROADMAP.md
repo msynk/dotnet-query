@@ -1,6 +1,6 @@
 # DotNetQuery — Path to 1.0
 
-Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 16 NuGet packages, three verified samples (Blazor Server + MAUI/Android + Avalonia), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
+Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (91% core coverage), 16 NuGet packages, four verified samples (Blazor Server + MAUI/Android + Avalonia + Chat console), a BenchmarkDotNet suite, a verified NativeAOT publish, a GitHub Actions CI pipeline, and a frozen public API surface.** All P1 items are complete; P2/P3/P4 breadth is largely landed. This document tracks what remains before a formal 1.0 tag.
 
 ## Done
 
@@ -12,7 +12,7 @@ Status as of this milestone: **feature-complete core, 5 UI adapters, 130 tests (
 - **Persistence** — pluggable `IQueryPersister`; in-memory, file-system, SQLite, Redis, and Blazor-WASM `localStorage` providers.
 - **Diagnostics** — event stream + OpenTelemetry `ActivitySource`/`Meter`; DevTools model + Blazor panel.
 - **Adapters** — Blazor (`<Query>` + browser signals), MVVM, WPF, WinUI, Avalonia, MAUI.
-- **Transport** — `DotNetQuery.Http`: `HttpClient` → fetcher helpers and fetch-JSON-into-cache conveniences.
+- **Transport** — `DotNetQuery.Http` (HTTP/JSON fetchers) and `DotNetQuery.GraphQL` (GraphQL-over-HTTP); plus `StreamIntoCacheAsync` in Core to push any `IAsyncEnumerable<T>` (SignalR/channels/gRPC streaming) into the cache in real time.
 - **Query keys** — hierarchical `QueryKey.Append` and a fluent `QueryKeyBuilder` for safe, DRY key construction.
 - **Infra** — DI integration, multi-target net8.0/net10.0, NuGet packaging with symbols + SourceLink, 9 doc guides.
 - **Tests** — unit, integration, concurrency/stress, bUnit component; 91% core line coverage.
@@ -49,7 +49,7 @@ WinUI and MAUI adapters, all landed (see **Done**). Remaining threads:
 
 | Item | Notes | Est. |
 | --- | --- | --- |
-| **More samples** | ✅ **MAUI sample done** (`samples/DotNetQuery.Sample.Maui`, emulator-verified: fetch → refetch). Remaining brief ideas: Dashboard, ECommerce, Chat (infinite + SignalR), OfflineFirst. | M |
+| **More samples** | ✅ **MAUI** (`Sample.Maui`, emulator-verified) and **Chat** (`Sample.Chat`, infinite history + real-time `StreamIntoCacheAsync`, CI smoke test) done. Remaining brief ideas: Dashboard, ECommerce, OfflineFirst. | S |
 | **Avalonia sample** | ✅ **Done** — `samples/DotNetQuery.Sample.Avalonia`, with a headless-render self-check (`-- verify`) that runs as an end-to-end smoke test in CI. | M |
 | **Advanced guides** | ✅ **Done** — [advanced-scenarios.md](docs/advanced-scenarios.md) covers persistence, cancellation policies, and testing your queries. Could still expand offline recipes further. | S |
 | **Standalone DevTools app** | Optional out-of-process inspector consuming the `ExportJson` model. | L |
@@ -58,7 +58,7 @@ WinUI and MAUI adapters, all landed (see **Done**). Remaining threads:
 
 | Item | Notes |
 | --- | --- |
-| Transport helpers | ✅ **HTTP/JSON** (`DotNetQuery.Http`) and **GraphQL** (`DotNetQuery.GraphQL`) done. gRPC (already a `Task<T>`, so little to add) and SignalR (real-time push into the cache) remain as optional follow-ups. |
+| Transport helpers | ✅ **HTTP/JSON** (`DotNetQuery.Http`), **GraphQL** (`DotNetQuery.GraphQL`), and **real-time streaming** (`QueryStreamExtensions.StreamIntoCacheAsync`, which bridges any `IAsyncEnumerable<T>` — SignalR `StreamAsync`, channels, gRPC streaming — into the cache) all done. gRPC unary calls are already a `Task<T>`, so need no helper. |
 | ~~Query cancellation-on-unmount policies~~ | ✅ **Done** — `CancelInFlightWhenUnobserved` (per-query and client default). |
 | ~~Structured query-key builders~~ | ✅ **Done** — `QueryKey.Append` + fluent `QueryKeyBuilder`. A compile-time source generator remains a possible future. |
 

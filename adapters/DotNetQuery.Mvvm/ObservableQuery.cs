@@ -56,6 +56,13 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
     /// <summary>Gets a value indicating whether the query is loading for the first time.</summary>
     public bool IsLoading => _state.IsLoading;
 
+    /// <summary>
+    /// Gets a value indicating whether the query has no data yet (it is idle awaiting, or loading, its
+    /// first result). Prefer binding first-load spinners to this rather than <see cref="IsLoading"/>,
+    /// which is briefly <see langword="false"/> for a brand-new query before the loading transition.
+    /// </summary>
+    public bool IsPending => _state.IsPending;
+
     /// <summary>Gets a value indicating whether a fetch is currently in flight.</summary>
     public bool IsFetching => _state.IsFetching;
 
@@ -91,6 +98,7 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
         Raise(nameof(Error));
         Raise(nameof(Status));
         Raise(nameof(IsLoading));
+        Raise(nameof(IsPending));
         Raise(nameof(IsFetching));
         Raise(nameof(IsSuccess));
         Raise(nameof(IsError));

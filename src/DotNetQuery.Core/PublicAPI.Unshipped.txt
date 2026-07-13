@@ -525,3 +525,6 @@ virtual DotNetQuery.RetryDelayStrategy.Invoke(int attempt, System.Exception! err
 ~override DotNetQuery.NextPageParam<T>.ToString() -> string
 ~override DotNetQuery.QueryResult<T>.Equals(object obj) -> bool
 ~override DotNetQuery.QueryResult<T>.ToString() -> string
+DotNetQuery.QueryStreamExtensions
+static DotNetQuery.QueryStreamExtensions.StreamIntoCacheAsync<T, TItem>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Collections.Generic.IAsyncEnumerable<TItem>! source, System.Func<T?, TItem, T>! accumulate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static DotNetQuery.QueryStreamExtensions.StreamIntoCacheAsync<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

@@ -41,6 +41,9 @@ jobs:
       - name: Avalonia adapter end-to-end smoke test (headless render)
         run: dotnet run --project samples/DotNetQuery.Sample.Avalonia -c Release --no-build -- verify
 
+      - name: Chat sample end-to-end smoke test (infinite query + streaming)
+        run: dotnet run --project samples/DotNetQuery.Sample.Chat -c Release --no-build
+
       - name: Pack
         run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts
 
