@@ -35,11 +35,11 @@ public class MvvmTests
         var changed = new List<string>();
         ((INotifyPropertyChanged)oq).PropertyChanged += (_, e) => { lock (changed) { changed.Add(e.PropertyName!); } };
 
-        // A brand-new query is Idle→Loading (the loading transition is deferred one scheduler hop), so
-        // IsLoading is racy here; IsPending covers both and is deterministically true from construction.
+        // The Loading transition happens synchronously when the fetch starts.
+        Assert.True(oq.IsLoading);
         Assert.True(oq.IsPending);
         gate.SetResult(7);
-        await WaitUntilAsync(() => oq.Status == QueryStatus.Success);
+        await WaitUntilAsync(() => { lock (changed) { return changed.Contains(nameof(ObservableQuery<int>.HasData)); } });
 
         Assert.Equal(7, oq.Data);
         Assert.True(oq.IsSuccess);
@@ -80,5 +80,41 @@ public class MvvmTests
             Assert.Contains(nameof(ObservableMutation<int, string>.IsPending), changed);
             Assert.Contains(nameof(ObservableMutation<int, string>.Status), changed);
         }
+    }
+
+    [Fact]
+    public async Task ObservableQuery_ChangeQuery_switches_keys_and_can_keep_previous_data()
+    {
+        using var client = CreateClient();
+        var page2 = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var oq = new ObservableQuery<string>(client, new QueryDefinition<string>(QueryKey.Create("page", 1), _ => Task.FromResult("one")));
+        await WaitUntilAsync(() => oq.Data == "one");
+
+        oq.ChangeQuery(new QueryDefinition<string>(QueryKey.Create("page", 2), _ => page2.Task), keepPreviousData: true);
+
+        Assert.Equal(QueryKey.Create("page", 2), oq.Key);
+        Assert.Equal("one", oq.Data);
+        Assert.True(oq.IsPlaceholderData);
+        Assert.False(oq.IsPending);
+
+        page2.SetResult("two");
+        await WaitUntilAsync(() => oq.Data == "two");
+        Assert.False(oq.IsPlaceholderData);
+        Assert.Equal(0, client.Cache.Describe(QueryKey.Create("page", 1))!.ObserverCount);
+    }
+
+    [Fact]
+    public async Task ObservableQuery_with_ThrowOnError_does_not_leak_unobserved_exceptions()
+    {
+        using var client = CreateClient();
+        using var oq = new ObservableQuery<int>(
+            client,
+            QueryKey.Create("throwing"),
+            _ => Task.FromException<int>(new InvalidOperationException("bad")),
+            new QueryOptions { ThrowOnError = true });
+
+        await WaitUntilAsync(() => oq.IsError);
+        Assert.Equal("bad", oq.Error!.Message);
+        Assert.True(oq.IsLoadingError);
     }
 }

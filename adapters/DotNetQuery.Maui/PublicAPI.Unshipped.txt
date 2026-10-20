@@ -5,4 +5,5 @@ DotNetQuery.Maui.MauiConnectivityBridge.MauiConnectivityBridge(DotNetQuery.Conne
 DotNetQuery.Maui.MauiConnectivityBridge.MauiConnectivityBridge(DotNetQuery.ConnectivityProvider! provider, Microsoft.Maui.Networking.IConnectivity! connectivity) -> void
 DotNetQuery.Maui.MauiQueryExtensions
 static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableMutation<TVariables, TData>(this DotNetQuery.IQueryClient! client, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>!
+static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryDefinition<T>! query) -> DotNetQuery.Mvvm.ObservableQuery<T>!
 static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null) -> DotNetQuery.Mvvm.ObservableQuery<T>!

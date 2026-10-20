@@ -17,7 +17,7 @@
     <Product>DotNetQuery</Product>
     <Authors>DotNetQuery</Authors>
     <Company>DotNetQuery</Company>
-    <VersionPrefix>0.7.0</VersionPrefix>
+    <VersionPrefix>0.8.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright (c) DotNetQuery contributors</Copyright>
     <PackageProjectUrl>https://github.com/dotnetquery/dotnetquery</PackageProjectUrl>
@@ -40,9 +40,8 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <ItemGroup Label="SourceLink">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
+  <!-- SourceLink ships in the .NET 8+ SDK (no package reference needed); the separate
+       Microsoft.SourceLink.GitHub 8.0.0 package pulls in a vulnerable Microsoft.Build.Tasks.Git (NU1902). -->
 
   <!-- Public API surface lock. Shipped libraries opt in with <EnablePublicApiAnalyzer>true; the
        analyzer then flags any addition/removal/change to the public API that is not recorded in the

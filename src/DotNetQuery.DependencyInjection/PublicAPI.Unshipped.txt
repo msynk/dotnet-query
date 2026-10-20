@@ -1,5 +1,7 @@
 #nullable enable
 Microsoft.Extensions.DependencyInjection.DotNetQueryServiceCollectionExtensions
-Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder
-Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Microsoft.Extensions.DependencyInjection.DotNetQueryServiceCollectionExtensions.AddDotNetQuery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime clientLifetime, System.Action<DotNetQuery.QueryClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
 static Microsoft.Extensions.DependencyInjection.DotNetQueryServiceCollectionExtensions.AddDotNetQuery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<DotNetQuery.QueryClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder
+Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder.ClientLifetime.get -> Microsoft.Extensions.DependencyInjection.ServiceLifetime
+Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

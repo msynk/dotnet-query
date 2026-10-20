@@ -4,6 +4,11 @@ namespace DotNetQuery;
 /// The central orchestrator of DotNetQuery: owns the query cache and coordinates fetching,
 /// deduplication, caching, invalidation and observation of server state.
 /// </summary>
+/// <remarks>
+/// Prefer describing each query once as a <see cref="QueryDefinition{T}"/> (key + fetcher + options) and
+/// using the definition-based extension methods in <see cref="QueryDefinitionExtensions"/>, so a key is
+/// always paired with the same data type and fetcher.
+/// </remarks>
 public interface IQueryClient : IDisposable
 {
     /// <summary>Gets the underlying query cache.</summary>
@@ -25,7 +30,8 @@ public interface IQueryClient : IDisposable
     /// <param name="options">Optional per-query overrides.</param>
     /// <param name="forceRefetch">
     /// When <see langword="true"/>, ignores staleness and re-invokes <paramref name="fetcher"/> even if
-    /// the cached data is still fresh (existing in-flight fetches are still deduplicated). Useful when the
+    /// the cached data is still fresh, cancelling an in-flight fetch for the key so the result reflects the
+    /// latest inputs (callers awaiting the cancelled fetch receive the new result). Useful when the
     /// fetcher's captured inputs have changed while the key stayed the same.
     /// </param>
     /// <param name="cancellationToken">Cancels this caller's wait without cancelling shared work.</param>
@@ -49,8 +55,31 @@ public interface IQueryClient : IDisposable
     /// <summary>Gets the current cached state for a query without triggering a fetch.</summary>
     QueryResult<T> GetQueryData<T>(QueryKey key);
 
-    /// <summary>Imperatively sets the cached data for a query, notifying observers.</summary>
+    /// <summary>
+    /// Imperatively sets the cached data for a query, marking it fresh and notifying observers. Note that an
+    /// in-flight fetch for the key will overwrite it when it completes - call
+    /// <see cref="CancelQueriesAsync(QueryKey, CancellationToken)"/> first for optimistic updates.
+    /// </summary>
     void SetQueryData<T>(QueryKey key, T data);
+
+    /// <summary>
+    /// Atomically replaces the cached data for a query with the result of <paramref name="updater"/>, which
+    /// receives the current data (or <see langword="default"/> when there is none). Marks the data fresh and
+    /// notifies observers. Returns the new data.
+    /// </summary>
+    /// <remarks>
+    /// The updater runs while the entry is locked: keep it fast and side-effect free, and treat the current
+    /// value as immutable (return a new instance rather than mutating it).
+    /// </remarks>
+    T SetQueryData<T>(QueryKey key, Func<T?, T> updater);
+
+    /// <summary>
+    /// Seeds the cache with data produced elsewhere - a server prerender, a persisted cache, a parent
+    /// component - keeping its original <paramref name="dataUpdatedAt"/> so staleness is computed correctly.
+    /// The data is applied only if the cache has no data for the key or holds older data.
+    /// </summary>
+    /// <returns><see langword="true"/> if the data was applied.</returns>
+    bool HydrateQueryData<T>(QueryKey key, T data, DateTimeOffset dataUpdatedAt);
 
     /// <summary>
     /// Creates a live observer for a query. The observer receives an immediate snapshot and every
@@ -71,6 +100,19 @@ public interface IQueryClient : IDisposable
     Task InvalidateQueriesAsync(Func<QueryKey, bool> predicate, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Cancels the in-flight fetch of every query whose key is prefixed by <paramref name="key"/>, restoring
+    /// each query's previous state. Await it at the start of an optimistic update so a pending refetch cannot
+    /// overwrite the optimistic data. Completes once the cancelled fetches have settled.
+    /// </summary>
+    Task CancelQueriesAsync(QueryKey key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cancels the in-flight fetch of every query whose key matches <paramref name="predicate"/>, restoring
+    /// each query's previous state.
+    /// </summary>
+    Task CancelQueriesAsync(Func<QueryKey, bool> predicate, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a reusable, observable mutation bound to <paramref name="mutationFn"/>. Invoke it via
     /// <see cref="Mutation{TVariables, TData}.MutateAsync"/>.
     /// </summary>
@@ -88,9 +130,10 @@ public interface IQueryClient : IDisposable
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Creates a reusable, observable infinite (paginated) query bound to a page fetcher. The query is
-    /// registered under <paramref name="key"/> so that <see cref="InvalidateQueriesAsync(QueryKey, CancellationToken)"/>
-    /// refetches it. Dispose the returned query to unregister it.
+    /// Creates an observable infinite (paginated) query bound to a page fetcher. Its pages live in the cache
+    /// under <paramref name="key"/> as an <see cref="InfiniteData{TParam, TPage}"/>, so they are deduplicated,
+    /// invalidated, inspected, persisted and hydrated like any other query, and shared by every infinite
+    /// query created for the same key. Dispose the returned query to stop observing it.
     /// </summary>
     /// <typeparam name="TParam">The page-parameter type (offset, cursor, etc.).</typeparam>
     /// <typeparam name="TPage">The page type.</typeparam>
@@ -103,8 +146,9 @@ public interface IQueryClient : IDisposable
         InfiniteQueryOptions<TParam, TPage> options);
 
     /// <summary>
-    /// Forces a refetch of a single query by key using its last-known fetcher, regardless of staleness
-    /// or observers. No-op if the query has never been fetched.
+    /// Forces a refetch of a single query by key using its last-known fetcher, regardless of staleness,
+    /// observers, or <see cref="QueryOptions.Enabled"/>, cancelling an in-flight fetch first. Never throws for
+    /// fetch failures (they are captured in the query state). No-op if the query has never been fetched.
     /// </summary>
     Task RefetchQueryAsync(QueryKey key, CancellationToken cancellationToken = default);
 

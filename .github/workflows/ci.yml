@@ -56,6 +56,14 @@ jobs:
       - name: Dashboard sample end-to-end smoke test (dedup + background refresh)
         run: dotnet run --project samples/DotNetQuery.Sample.Dashboard -c Release --no-build
 
+      - name: TodoApp smoke test (Blazor prerender with persisted query state)
+        shell: bash
+        run: |
+          dotnet run --project samples/TodoApp -c Release --no-build --urls http://localhost:5199 > todoapp.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf http://localhost:5199/ -o page.html && break; sleep 1; done
+          grep -q "Learn DotNetQuery" page.html || { cat todoapp.log; exit 1; }
+          grep -q "Blazor-Server-Component-State" page.html || { cat todoapp.log; exit 1; }
+
       - name: Pack
         run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts
 

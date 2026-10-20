@@ -1,15 +1,21 @@
 // Browser-signal bridge for DotNetQuery.Blazor.
 // Forwards focus / connectivity / visibility events to the .NET BrowserSignalService.
-
-let handlers = null;
+// Each call to register() returns its own handle, so several circuits/apps in one page never clobber
+// each other's listeners.
 
 export function register(dotNetRef) {
-    const onFocus = () => dotNetRef.invokeMethodAsync('OnFocus');
-    const onOnline = () => dotNetRef.invokeMethodAsync('OnConnectivityChanged', true);
-    const onOffline = () => dotNetRef.invokeMethodAsync('OnConnectivityChanged', false);
+    const invoke = (method, ...args) => {
+        dotNetRef.invokeMethodAsync(method, ...args).catch(() => {
+            // The .NET side is gone (circuit closed); the handle's dispose() cleans up.
+        });
+    };
+
+    const onFocus = () => invoke('OnFocus');
+    const onOnline = () => invoke('OnConnectivityChanged', true);
+    const onOffline = () => invoke('OnConnectivityChanged', false);
     const onVisibility = () => {
         if (document.visibilityState === 'visible') {
-            dotNetRef.invokeMethodAsync('OnResume');
+            invoke('OnResume');
         }
     };
 
@@ -18,20 +24,15 @@ export function register(dotNetRef) {
     window.addEventListener('offline', onOffline);
     document.addEventListener('visibilitychange', onVisibility);
 
-    handlers = { onFocus, onOnline, onOffline, onVisibility };
-
     // Report the initial connectivity state.
-    dotNetRef.invokeMethodAsync('OnConnectivityChanged', navigator.onLine);
-}
+    invoke('OnConnectivityChanged', navigator.onLine);
 
-export function unregister() {
-    if (!handlers) {
-        return;
-    }
-
-    window.removeEventListener('focus', handlers.onFocus);
-    window.removeEventListener('online', handlers.onOnline);
-    window.removeEventListener('offline', handlers.onOffline);
-    document.removeEventListener('visibilitychange', handlers.onVisibility);
-    handlers = null;
+    return {
+        dispose() {
+            window.removeEventListener('focus', onFocus);
+            window.removeEventListener('online', onOnline);
+            window.removeEventListener('offline', onOffline);
+            document.removeEventListener('visibilitychange', onVisibility);
+        },
+    };
 }

@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
     <ProjectReference Include="..\..\src\DotNetQuery.DependencyInjection\DotNetQuery.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\DotNetQuery.Persistence\DotNetQuery.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery.Http\DotNetQuery.Http.csproj" />
   </ItemGroup>
 
 </Project>

@@ -29,19 +29,6 @@ public readonly record struct NextPageParam<T>(bool HasValue, T Value)
     public static NextPageParam<T> None => default;
 }
 
-/// <summary>
-/// Non-generic handle allowing the <see cref="IQueryClient"/> to invalidate infinite queries by key
-/// without knowing their page/parameter types.
-/// </summary>
-internal interface IInvalidatableInfiniteQuery
-{
-    /// <summary>The key identifying the infinite query.</summary>
-    QueryKey Key { get; }
-
-    /// <summary>Refetches every currently loaded page, in order.</summary>
-    Task RefetchAllAsync(CancellationToken cancellationToken);
-}
-
 /// <summary>Factory helpers for <see cref="NextPageParam{T}"/> with type inference.</summary>
 public static class NextPageParam
 {

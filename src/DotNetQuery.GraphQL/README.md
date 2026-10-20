@@ -33,4 +33,7 @@ var result = await client.FetchGraphQLAsync<UserResponse>(
   `InvalidOperationException`.
 - `T` is the shape of the `data` object. Pass a `JsonSerializerOptions` to control naming/converters; the
   default is `JsonSerializerDefaults.Web` (camelCase).
-- Uses reflection-based `System.Text.Json`, so this package is **not** AOT/trim-safe.
+- **Trimming / NativeAOT:** the `JsonTypeInfo<T>` overloads (`GraphQLFetcher`, `FetchGraphQLAsync`,
+  `GraphQLQuery`) take variables as a `JsonObject` and deserialize `data` with source-generated metadata, so
+  they are trim- and AOT-safe. The `object? variables` / `JsonSerializerOptions` overloads use reflection
+  and are annotated `[RequiresUnreferencedCode]`.

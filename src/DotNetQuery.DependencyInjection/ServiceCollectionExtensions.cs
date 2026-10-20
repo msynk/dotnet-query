@@ -9,16 +9,47 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class DotNetQueryServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers a singleton <see cref="IQueryClient"/> and its default options.
+    /// Registers a singleton <see cref="IQueryClient"/> (one cache for the whole app) and its default
+    /// options. Right for desktop, mobile, Blazor WebAssembly and other single-user hosts.
     /// </summary>
+    /// <remarks>
+    /// In multi-user server hosts (Blazor Server / interactive server rendering) a singleton cache is
+    /// shared by every user - use <see cref="AddDotNetQuery(IServiceCollection, ServiceLifetime, Action{QueryClientOptions})"/>
+    /// with <see cref="ServiceLifetime.Scoped"/> (or <c>AddDotNetQueryBlazor</c>, which does so) instead.
+    /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Optional callback to customize the client-wide defaults.</param>
     /// <returns>A <see cref="IDotNetQueryBuilder"/> for further configuration.</returns>
     public static IDotNetQueryBuilder AddDotNetQuery(
         this IServiceCollection services,
+        Action<QueryClientOptions>? configure = null) =>
+        AddDotNetQuery(services, ServiceLifetime.Singleton, configure);
+
+    /// <summary>
+    /// Registers an <see cref="IQueryClient"/> with the given <paramref name="clientLifetime"/>, together with
+    /// its focus/online/resume signal managers and connectivity provider (which share that lifetime), and the
+    /// client-wide default options.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="clientLifetime">
+    /// <see cref="ServiceLifetime.Singleton"/> for one cache per app, or <see cref="ServiceLifetime.Scoped"/> for
+    /// one cache per scope - per user circuit in Blazor Server, so cached data is never shared between users.
+    /// </param>
+    /// <param name="configure">Optional callback to customize the client-wide defaults.</param>
+    /// <returns>A <see cref="IDotNetQueryBuilder"/> for further configuration.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="clientLifetime"/> is <see cref="ServiceLifetime.Transient"/>.</exception>
+    public static IDotNetQueryBuilder AddDotNetQuery(
+        this IServiceCollection services,
+        ServiceLifetime clientLifetime,
         Action<QueryClientOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
+        if (clientLifetime is ServiceLifetime.Transient)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(clientLifetime),
+                "A transient query client would give every consumer its own empty cache. Use Singleton or Scoped.");
+        }
 
         var options = new QueryClientOptions();
         configure?.Invoke(options);
@@ -26,41 +57,50 @@ public static class DotNetQueryServiceCollectionExtensions
         services.TryAddSingleton(options);
         services.TryAddSingleton(TimeProvider.System);
 
-        // Signal managers are adapter-driven; register defaults so adapters can inject and raise them.
-        services.TryAddSingleton<FocusManager>();
-        services.TryAddSingleton<OnlineManager>();
-        services.TryAddSingleton<ResumeManager>();
-        services.TryAddSingleton<IFocusManager>(sp => sp.GetRequiredService<FocusManager>());
-        services.TryAddSingleton<IOnlineManager>(sp => sp.GetRequiredService<OnlineManager>());
-        services.TryAddSingleton<IResumeManager>(sp => sp.GetRequiredService<ResumeManager>());
+        // Signal managers are adapter-driven; register defaults so adapters can inject and raise them. They
+        // share the client's lifetime so one user's browser events never drive another user's cache.
+        services.TryAdd(ServiceDescriptor.Describe(typeof(FocusManager), typeof(FocusManager), clientLifetime));
+        services.TryAdd(ServiceDescriptor.Describe(typeof(OnlineManager), typeof(OnlineManager), clientLifetime));
+        services.TryAdd(ServiceDescriptor.Describe(typeof(ResumeManager), typeof(ResumeManager), clientLifetime));
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IFocusManager), sp => sp.GetRequiredService<FocusManager>(), clientLifetime));
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IOnlineManager), sp => sp.GetRequiredService<OnlineManager>(), clientLifetime));
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IResumeManager), sp => sp.GetRequiredService<ResumeManager>(), clientLifetime));
 
         // Connectivity for offline pause/resume; adapters update it from native network APIs.
-        services.TryAddSingleton<ConnectivityProvider>();
-        services.TryAddSingleton<IConnectivityProvider>(sp => sp.GetRequiredService<ConnectivityProvider>());
+        services.TryAdd(ServiceDescriptor.Describe(typeof(ConnectivityProvider), typeof(ConnectivityProvider), clientLifetime));
+        services.TryAdd(ServiceDescriptor.Describe(typeof(IConnectivityProvider), sp => sp.GetRequiredService<ConnectivityProvider>(), clientLifetime));
 
-        services.TryAddSingleton<IQueryClient>(sp => new QueryClient(
-            sp.GetRequiredService<QueryClientOptions>(),
-            sp.GetRequiredService<TimeProvider>(),
-            sp.GetRequiredService<IFocusManager>(),
-            sp.GetRequiredService<IOnlineManager>(),
-            sp.GetRequiredService<IResumeManager>(),
-            sp.GetRequiredService<IConnectivityProvider>()));
+        services.TryAdd(ServiceDescriptor.Describe(
+            typeof(IQueryClient),
+            sp => new QueryClient(
+                sp.GetRequiredService<QueryClientOptions>(),
+                sp.GetRequiredService<TimeProvider>(),
+                sp.GetRequiredService<IFocusManager>(),
+                sp.GetRequiredService<IOnlineManager>(),
+                sp.GetRequiredService<IResumeManager>(),
+                sp.GetRequiredService<IConnectivityProvider>()),
+            clientLifetime));
 
-        return new DotNetQueryBuilder(services);
+        return new DotNetQueryBuilder(services, clientLifetime);
     }
 }
 
 /// <summary>
-/// Fluent builder returned by <see cref="DotNetQueryServiceCollectionExtensions.AddDotNetQuery"/>,
+/// Fluent builder returned by <see cref="DotNetQueryServiceCollectionExtensions.AddDotNetQuery(IServiceCollection, Action{QueryClientOptions})"/>,
 /// enabling adapters and extensions to attach their own registrations.
 /// </summary>
 public interface IDotNetQueryBuilder
 {
     /// <summary>The underlying service collection.</summary>
     IServiceCollection Services { get; }
+
+    /// <summary>The lifetime the <see cref="IQueryClient"/> was registered with.</summary>
+    ServiceLifetime ClientLifetime { get; }
 }
 
-internal sealed class DotNetQueryBuilder(IServiceCollection services) : IDotNetQueryBuilder
+internal sealed class DotNetQueryBuilder(IServiceCollection services, ServiceLifetime clientLifetime) : IDotNetQueryBuilder
 {
     public IServiceCollection Services { get; } = services;
+
+    public ServiceLifetime ClientLifetime { get; } = clientLifetime;
 }

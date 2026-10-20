@@ -19,26 +19,98 @@ DotNetQuery.Persistence.IQueryPersister.LoadAllAsync(System.Threading.Cancellati
 DotNetQuery.Persistence.IQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
 DotNetQuery.Persistence.IQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 DotNetQuery.Persistence.IQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.PendingMutation
+DotNetQuery.Persistence.PendingMutation.<Clone>$() -> DotNetQuery.Persistence.PendingMutation!
+DotNetQuery.Persistence.PendingMutation.Deconstruct(out string! Id, out string! MutationKey, out System.DateTimeOffset EnqueuedAt) -> void
+DotNetQuery.Persistence.PendingMutation.EnqueuedAt.get -> System.DateTimeOffset
+DotNetQuery.Persistence.PendingMutation.EnqueuedAt.init -> void
+DotNetQuery.Persistence.PendingMutation.Equals(DotNetQuery.Persistence.PendingMutation? other) -> bool
+override DotNetQuery.Persistence.PendingMutation.Equals(object? obj) -> bool
+override DotNetQuery.Persistence.PendingMutation.GetHashCode() -> int
+DotNetQuery.Persistence.PendingMutation.Id.get -> string!
+DotNetQuery.Persistence.PendingMutation.Id.init -> void
+DotNetQuery.Persistence.PendingMutation.MutationKey.get -> string!
+DotNetQuery.Persistence.PendingMutation.MutationKey.init -> void
+static DotNetQuery.Persistence.PendingMutation.operator !=(DotNetQuery.Persistence.PendingMutation? left, DotNetQuery.Persistence.PendingMutation? right) -> bool
+static DotNetQuery.Persistence.PendingMutation.operator ==(DotNetQuery.Persistence.PendingMutation? left, DotNetQuery.Persistence.PendingMutation? right) -> bool
+DotNetQuery.Persistence.PendingMutation.PendingMutation(string! Id, string! MutationKey, System.DateTimeOffset EnqueuedAt) -> void
+override DotNetQuery.Persistence.PendingMutation.ToString() -> string!
 DotNetQuery.Persistence.PersistedQuery
 DotNetQuery.Persistence.PersistedQuery.<Clone>$() -> DotNetQuery.Persistence.PersistedQuery!
 DotNetQuery.Persistence.PersistedQuery.Deconstruct(out string! Key, out string! Payload, out System.DateTimeOffset UpdatedAt) -> void
 DotNetQuery.Persistence.PersistedQuery.Equals(DotNetQuery.Persistence.PersistedQuery? other) -> bool
+override DotNetQuery.Persistence.PersistedQuery.Equals(object? obj) -> bool
+override DotNetQuery.Persistence.PersistedQuery.GetHashCode() -> int
 DotNetQuery.Persistence.PersistedQuery.Key.get -> string!
 DotNetQuery.Persistence.PersistedQuery.Key.init -> void
+static DotNetQuery.Persistence.PersistedQuery.operator !=(DotNetQuery.Persistence.PersistedQuery? left, DotNetQuery.Persistence.PersistedQuery? right) -> bool
+static DotNetQuery.Persistence.PersistedQuery.operator ==(DotNetQuery.Persistence.PersistedQuery? left, DotNetQuery.Persistence.PersistedQuery? right) -> bool
 DotNetQuery.Persistence.PersistedQuery.Payload.get -> string!
 DotNetQuery.Persistence.PersistedQuery.Payload.init -> void
 DotNetQuery.Persistence.PersistedQuery.PersistedQuery(string! Key, string! Payload, System.DateTimeOffset UpdatedAt) -> void
+override DotNetQuery.Persistence.PersistedQuery.ToString() -> string!
 DotNetQuery.Persistence.PersistedQuery.UpdatedAt.get -> System.DateTimeOffset
 DotNetQuery.Persistence.PersistedQuery.UpdatedAt.init -> void
+DotNetQuery.Persistence.PersistedQueryJson
+static DotNetQuery.Persistence.PersistedQueryJson.Deserialize(string! json, System.Text.Json.JsonSerializerOptions? options = null) -> DotNetQuery.Persistence.PersistedQuery?
+static DotNetQuery.Persistence.PersistedQueryJson.DeserializeMap(string! json, System.Text.Json.JsonSerializerOptions? options = null) -> System.Collections.Generic.Dictionary<string!, DotNetQuery.Persistence.PersistedQuery!>!
+static DotNetQuery.Persistence.PersistedQueryJson.Serialize(DotNetQuery.Persistence.PersistedQuery! query, System.Text.Json.JsonSerializerOptions? options = null) -> string!
+static DotNetQuery.Persistence.PersistedQueryJson.SerializeMap(System.Collections.Generic.IDictionary<string!, DotNetQuery.Persistence.PersistedQuery!>! map, System.Text.Json.JsonSerializerOptions? options = null) -> string!
+DotNetQuery.Persistence.PersistentMutationQueue
+DotNetQuery.Persistence.PersistentMutationQueue.Dispose() -> void
+DotNetQuery.Persistence.PersistentMutationQueue.EnqueueAsync<TVariables>(string! mutationKey, TVariables variables, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.PersistentMutationQueue.FlushAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.PersistentMutationQueue.MutationFailed -> System.Action<DotNetQuery.Persistence.PendingMutation!, System.Exception!>?
+DotNetQuery.Persistence.PersistentMutationQueue.Pending.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PendingMutation!>!
+DotNetQuery.Persistence.PersistentMutationQueue.PendingChanged -> System.Action?
+DotNetQuery.Persistence.PersistentMutationQueue.PendingCount.get -> int
+DotNetQuery.Persistence.PersistentMutationQueue.PersistentMutationQueue(DotNetQuery.Persistence.IQueryPersister! store, DotNetQuery.IConnectivityProvider! connectivity, DotNetQuery.Persistence.PersistentMutationQueueOptions? options = null) -> void
+DotNetQuery.Persistence.PersistentMutationQueue.RegisterHandler<TVariables>(string! mutationKey, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! handler) -> DotNetQuery.Persistence.PersistentMutationQueue!
+DotNetQuery.Persistence.PersistentMutationQueue.RegisterHandler<TVariables>(string! mutationKey, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! handler, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TVariables>! typeInfo) -> DotNetQuery.Persistence.PersistentMutationQueue!
+DotNetQuery.Persistence.PersistentMutationQueue.RestoreAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+DotNetQuery.Persistence.PersistentMutationQueueOptions
+DotNetQuery.Persistence.PersistentMutationQueueOptions.<Clone>$() -> DotNetQuery.Persistence.PersistentMutationQueueOptions!
+DotNetQuery.Persistence.PersistentMutationQueueOptions.Equals(DotNetQuery.Persistence.PersistentMutationQueueOptions? other) -> bool
+override DotNetQuery.Persistence.PersistentMutationQueueOptions.Equals(object? obj) -> bool
+override DotNetQuery.Persistence.PersistentMutationQueueOptions.GetHashCode() -> int
+DotNetQuery.Persistence.PersistentMutationQueueOptions.JsonOptions.get -> System.Text.Json.JsonSerializerOptions?
+DotNetQuery.Persistence.PersistentMutationQueueOptions.JsonOptions.init -> void
+static DotNetQuery.Persistence.PersistentMutationQueueOptions.operator !=(DotNetQuery.Persistence.PersistentMutationQueueOptions? left, DotNetQuery.Persistence.PersistentMutationQueueOptions? right) -> bool
+static DotNetQuery.Persistence.PersistentMutationQueueOptions.operator ==(DotNetQuery.Persistence.PersistentMutationQueueOptions? left, DotNetQuery.Persistence.PersistentMutationQueueOptions? right) -> bool
+DotNetQuery.Persistence.PersistentMutationQueueOptions.PersistentMutationQueueOptions() -> void
+DotNetQuery.Persistence.PersistentMutationQueueOptions.TimeProvider.get -> System.TimeProvider?
+DotNetQuery.Persistence.PersistentMutationQueueOptions.TimeProvider.init -> void
+override DotNetQuery.Persistence.PersistentMutationQueueOptions.ToString() -> string!
 DotNetQuery.Persistence.QueryPersistenceManager
+DotNetQuery.Persistence.QueryPersistenceManager.Dispose() -> void
+DotNetQuery.Persistence.QueryPersistenceManager.Error -> System.Action<DotNetQuery.QueryKey!, System.Exception!>?
+DotNetQuery.Persistence.QueryPersistenceManager.FlushAutoPersistAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 DotNetQuery.Persistence.QueryPersistenceManager.PersistAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 DotNetQuery.Persistence.QueryPersistenceManager.PersistAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.QueryPersistenceManager.QueryPersistenceManager(DotNetQuery.IQueryClient! client, DotNetQuery.Persistence.IQueryPersister! persister, DotNetQuery.Persistence.QueryPersistenceOptions! options) -> void
 DotNetQuery.Persistence.QueryPersistenceManager.QueryPersistenceManager(DotNetQuery.IQueryClient! client, DotNetQuery.Persistence.IQueryPersister! persister, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.QueryPersistenceManager.Register<T>(DotNetQuery.QueryDefinition<T>! query) -> DotNetQuery.Persistence.QueryPersistenceManager!
+DotNetQuery.Persistence.QueryPersistenceManager.Register<T>(DotNetQuery.QueryDefinition<T>! query, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> DotNetQuery.Persistence.QueryPersistenceManager!
 DotNetQuery.Persistence.QueryPersistenceManager.Register<T>(DotNetQuery.QueryKey! key) -> DotNetQuery.Persistence.QueryPersistenceManager!
+DotNetQuery.Persistence.QueryPersistenceManager.Register<T>(DotNetQuery.QueryKey! key, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> DotNetQuery.Persistence.QueryPersistenceManager!
+DotNetQuery.Persistence.QueryPersistenceManager.RegisteredKeys.get -> System.Collections.Generic.IReadOnlyCollection<DotNetQuery.QueryKey!>!
 DotNetQuery.Persistence.QueryPersistenceManager.RestoreAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 DotNetQuery.Persistence.QueryPersistenceManager.RestoreAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
-override DotNetQuery.Persistence.PersistedQuery.Equals(object? obj) -> bool
-override DotNetQuery.Persistence.PersistedQuery.GetHashCode() -> int
-override DotNetQuery.Persistence.PersistedQuery.ToString() -> string!
-static DotNetQuery.Persistence.PersistedQuery.operator !=(DotNetQuery.Persistence.PersistedQuery? left, DotNetQuery.Persistence.PersistedQuery? right) -> bool
-static DotNetQuery.Persistence.PersistedQuery.operator ==(DotNetQuery.Persistence.PersistedQuery? left, DotNetQuery.Persistence.PersistedQuery? right) -> bool
+DotNetQuery.Persistence.QueryPersistenceManager.StartAutoPersist(System.TimeSpan? delay = null) -> System.IDisposable!
+DotNetQuery.Persistence.QueryPersistenceOptions
+DotNetQuery.Persistence.QueryPersistenceOptions.<Clone>$() -> DotNetQuery.Persistence.QueryPersistenceOptions!
+DotNetQuery.Persistence.QueryPersistenceOptions.Buster.get -> string?
+DotNetQuery.Persistence.QueryPersistenceOptions.Buster.init -> void
+DotNetQuery.Persistence.QueryPersistenceOptions.Equals(DotNetQuery.Persistence.QueryPersistenceOptions? other) -> bool
+override DotNetQuery.Persistence.QueryPersistenceOptions.Equals(object? obj) -> bool
+override DotNetQuery.Persistence.QueryPersistenceOptions.GetHashCode() -> int
+DotNetQuery.Persistence.QueryPersistenceOptions.JsonOptions.get -> System.Text.Json.JsonSerializerOptions?
+DotNetQuery.Persistence.QueryPersistenceOptions.JsonOptions.init -> void
+DotNetQuery.Persistence.QueryPersistenceOptions.MaxAge.get -> System.TimeSpan?
+DotNetQuery.Persistence.QueryPersistenceOptions.MaxAge.init -> void
+static DotNetQuery.Persistence.QueryPersistenceOptions.operator !=(DotNetQuery.Persistence.QueryPersistenceOptions? left, DotNetQuery.Persistence.QueryPersistenceOptions? right) -> bool
+static DotNetQuery.Persistence.QueryPersistenceOptions.operator ==(DotNetQuery.Persistence.QueryPersistenceOptions? left, DotNetQuery.Persistence.QueryPersistenceOptions? right) -> bool
+DotNetQuery.Persistence.QueryPersistenceOptions.QueryPersistenceOptions() -> void
+DotNetQuery.Persistence.QueryPersistenceOptions.TimeProvider.get -> System.TimeProvider?
+DotNetQuery.Persistence.QueryPersistenceOptions.TimeProvider.init -> void
+override DotNetQuery.Persistence.QueryPersistenceOptions.ToString() -> string!

@@ -1,100 +1,294 @@
 @implements IDisposable
 @inject IQueryClient QueryClient
 
-<div class="dnq-devtools">
-    <header class="dnq-header">
-        <strong>DotNetQuery DevTools</strong>
-        <span class="dnq-stats">
-            @_stats.TotalQueries queries · @_stats.ActiveQueries active · @_stats.StaleQueries stale ·
-            @_stats.FetchesSucceeded ok / @_stats.FetchesFailed failed ·
-            avg @_stats.AverageQueryDurationMs.ToString("0.0")ms
-        </span>
-        <button class="dnq-btn" @onclick="Refresh">Refresh</button>
-        <button class="dnq-btn" @onclick="() => _devtools!.ClearLog()">Clear log</button>
-    </header>
-
-    <table class="dnq-table">
-        <thead>
-            <tr>
-                <th>Key</th><th>Status</th><th>Type</th><th>Obs</th><th>Fetches</th><th>Stale</th><th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var q in _queries)
+@if (Floating && !_open)
+{
+    <button class="dnq-fab" title="Open DotNetQuery DevTools" @onclick="Toggle">
+        DNQ <span class="dnq-fab-count">@_stats.TotalQueries</span>
+        @if (_stats.FetchingQueries > 0)
+        {
+            <span class="dnq-fab-busy" aria-label="fetching"></span>
+        }
+    </button>
+}
+else
+{
+    <div class="dnq-devtools @(Floating ? "dnq-floating" : null)">
+        <header class="dnq-header">
+            <strong>DotNetQuery DevTools</strong>
+            <span class="dnq-stats">
+                @_stats.TotalQueries queries · @_stats.ActiveQueries active · @_stats.StaleQueries stale · @_stats.FetchingQueries fetching ·
+                @_stats.FetchesSucceeded ok / @_stats.FetchesFailed failed / @_stats.FetchesCancelled cancelled ·
+                @_stats.MutationsStarted mutations (@_stats.PendingMutations pending, @_stats.MutationsFailed failed) ·
+                avg @_stats.AverageQueryDurationMs.ToString("0.0")ms
+            </span>
+            <button class="dnq-btn" @onclick="Refresh">Refresh</button>
+            <button class="dnq-btn" @onclick="ClearLog">Clear log</button>
+            @if (Floating)
             {
-                <tr>
-                    <td><code>@q.Key</code></td>
-                    <td><span class="dnq-status dnq-@q.Status.ToString().ToLowerInvariant()">@q.Status</span></td>
-                    <td>@q.DataTypeName</td>
-                    <td>@q.ObserverCount</td>
-                    <td>@q.FetchCount</td>
-                    <td>@(q.IsStale ? "yes" : "no")</td>
-                    <td>
-                        <button class="dnq-btn" @onclick="() => Refetch(q.Key)">Refetch</button>
-                        <button class="dnq-btn" @onclick="() => Invalidate(q.Key)">Invalidate</button>
-                        <button class="dnq-btn" @onclick="() => Remove(q.Key)">Remove</button>
-                    </td>
-                </tr>
+                <button class="dnq-btn" title="Close" @onclick="Toggle">✕</button>
             }
-        </tbody>
-    </table>
+        </header>
 
-    <details open>
-        <summary>Event log (@_events.Count)</summary>
-        <ul class="dnq-log">
-            @foreach (var e in _recent)
+        <nav class="dnq-tabs">
+            <button class="dnq-tab @(_tab == Tab.Queries ? "dnq-active" : null)" @onclick="() => _tab = Tab.Queries">Queries (@_queries.Count)</button>
+            <button class="dnq-tab @(_tab == Tab.Mutations ? "dnq-active" : null)" @onclick="() => _tab = Tab.Mutations">Mutations (@_mutations.Count)</button>
+            <button class="dnq-tab @(_tab == Tab.Events ? "dnq-active" : null)" @onclick="() => _tab = Tab.Events">Events (@_events.Count)</button>
+            @if (_tab == Tab.Queries)
             {
-                <li>@Describe(e)</li>
+                <input class="dnq-filter" placeholder="Filter keys…" @bind="_filter" @bind:event="oninput" />
             }
-        </ul>
-    </details>
-</div>
+        </nav>
+
+        @switch (_tab)
+        {
+            case Tab.Queries:
+                <div class="dnq-split">
+                    <table class="dnq-table">
+                        <thead>
+                            <tr>
+                                <th>Key</th><th>Status</th><th>Type</th><th>Obs</th><th>Fetches</th><th>Stale</th><th>Updated</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in FilteredQueries)
+                            {
+                                <tr class="@(Equals(q.Key, _selected) ? "dnq-selected" : null)" @onclick="() => Select(q.Key)">
+                                    <td><code>@q.Key</code></td>
+                                    <td><span class="dnq-status dnq-@q.Status.ToString().ToLowerInvariant()">@q.Status</span></td>
+                                    <td>@q.DataTypeName</td>
+                                    <td>@q.ObserverCount</td>
+                                    <td>@q.FetchCount</td>
+                                    <td>@(q.IsStale ? "yes" : "no")</td>
+                                    <td>@Ago(q.DataUpdatedAt)</td>
+                                    <td @onclick:stopPropagation="true">
+                                        <button class="dnq-btn" @onclick="() => Refetch(q.Key)">Refetch</button>
+                                        <button class="dnq-btn" @onclick="() => Invalidate(q.Key)">Invalidate</button>
+                                        @if (q.Status is QueryStatus.Loading or QueryStatus.Refetching)
+                                        {
+                                            <button class="dnq-btn" @onclick="() => Cancel(q.Key)">Cancel</button>
+                                        }
+                                        <button class="dnq-btn dnq-danger" @onclick="() => Remove(q.Key)">Remove</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (SelectedQuery is { } selected)
+                    {
+                        <section class="dnq-details">
+                            <h4><code>@selected.Key</code></h4>
+                            <dl>
+                                <dt>Status</dt><dd>@selected.Status@(selected.FailureCount > 0 ? $" (failures: {selected.FailureCount})" : null)</dd>
+                                <dt>Data type</dt><dd>@selected.DataTypeName</dd>
+                                <dt>Updated</dt><dd>@(selected.DataUpdatedAt?.ToLocalTime().ToString("HH:mm:ss.fff") ?? "-") (@Ago(selected.DataUpdatedAt))</dd>
+                                <dt>Stale time</dt><dd>@Duration(selected.StaleTime)</dd>
+                                <dt>Cache time</dt><dd>@Duration(selected.CacheTime)</dd>
+                                <dt>Observers</dt><dd>@selected.ObserverCount</dd>
+                                @if (selected.ErrorMessage is { } error)
+                                {
+                                    <dt>Error</dt><dd class="dnq-error-text">@error</dd>
+                                }
+                            </dl>
+                            <pre class="dnq-json">@(_preview ?? "(no data)")</pre>
+                        </section>
+                    }
+                </div>
+                break;
+
+            case Tab.Mutations:
+                <table class="dnq-table">
+                    <thead>
+                        <tr><th>#</th><th>Key</th><th>Status</th><th>Submitted</th><th>Duration</th><th>Failures</th><th>Variables</th><th>Error</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in _mutations)
+                        {
+                            <tr>
+                                <td>@m.MutationId</td>
+                                <td><code>@(m.MutationKey?.ToString() ?? "-")</code></td>
+                                <td><span class="dnq-status dnq-m-@m.Status.ToString().ToLowerInvariant()">@m.Status</span></td>
+                                <td>@m.SubmittedAt.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                                <td>@(m.Duration is { } d ? $"{d.TotalMilliseconds:0.0}ms" : "…")</td>
+                                <td>@m.FailureCount</td>
+                                <td><code class="dnq-inline-json">@Truncate(QueryDevTools.Preview(m.Variables), 120)</code></td>
+                                <td class="dnq-error-text">@m.ErrorMessage</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                break;
+
+            default:
+                <ul class="dnq-log">
+                    @foreach (var e in _events.Reverse().Take(100))
+                    {
+                        <li>@Describe(e)</li>
+                    }
+                </ul>
+                break;
+        }
+    </div>
+}
 
 @code {
+    private enum Tab { Queries, Mutations, Events }
+
     private QueryDevTools? _devtools;
     private IReadOnlyList<QueryDescriptor> _queries = [];
     private IReadOnlyList<DotNetQueryEvent> _events = [];
+    private IReadOnlyList<MutationRecord> _mutations = [];
     private QueryDevToolsStats _stats = EmptyStats;
-    private IEnumerable<DotNetQueryEvent> _recent => _events.Reverse().Take(50);
+    private Tab _tab = Tab.Queries;
+    private string _filter = string.Empty;
+    private QueryKey? _selected;
+    private string? _preview;
+    private bool _open;
+    private int _refreshScheduled;
+    private bool _disposed;
 
     /// <summary>How many recent events to retain in the log.</summary>
     [Parameter] public int EventLogCapacity { get; set; } = 500;
 
+    /// <summary>How many mutations to retain in the history.</summary>
+    [Parameter] public int MutationHistoryCapacity { get; set; } = 100;
+
+    /// <summary>
+    /// Renders the panel as a floating overlay behind a corner toggle button (like browser devtools) instead
+    /// of inline. Default <see langword="false"/>.
+    /// </summary>
+    [Parameter] public bool Floating { get; set; }
+
+    /// <summary>Whether a floating panel starts open.</summary>
+    [Parameter] public bool InitiallyOpen { get; set; }
+
+    /// <summary>Minimum time between live refreshes, so bursts of cache activity cause one re-render. Default 150 ms.</summary>
+    [Parameter] public TimeSpan RefreshThrottle { get; set; } = TimeSpan.FromMilliseconds(150);
+
+    private IEnumerable<QueryDescriptor> FilteredQueries => string.IsNullOrWhiteSpace(_filter)
+        ? _queries
+        : _queries.Where(q => q.Key.ToString().Contains(_filter, StringComparison.OrdinalIgnoreCase));
+
+    private QueryDescriptor? SelectedQuery => _selected is null ? null : _queries.FirstOrDefault(q => q.Key == _selected);
+
     protected override void OnInitialized()
     {
-        _devtools = new QueryDevTools(QueryClient, EventLogCapacity);
+        _open = InitiallyOpen;
+        _devtools = new QueryDevTools(QueryClient, EventLogCapacity, MutationHistoryCapacity);
         _devtools.Changed += OnChanged;
         Refresh();
     }
 
-    private void OnChanged() => InvokeAsync(Refresh);
+    private void OnChanged()
+    {
+        // Coalesce bursts: at most one pending refresh at a time.
+        if (_disposed || Interlocked.Exchange(ref _refreshScheduled, 1) == 1)
+        {
+            return;
+        }
+
+        _ = RefreshLaterAsync();
+    }
+
+    private async Task RefreshLaterAsync()
+    {
+        try
+        {
+            await Task.Delay(RefreshThrottle);
+            Volatile.Write(ref _refreshScheduled, 0);
+            if (!_disposed)
+            {
+                await InvokeAsync(Refresh);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Renderer gone.
+        }
+    }
 
     private void Refresh()
     {
-        if (_devtools is null)
+        if (_devtools is null || _disposed)
         {
             return;
         }
 
         _queries = _devtools.InspectQueries();
         _events = _devtools.RecentEvents();
+        _mutations = _devtools.RecentMutations();
         _stats = _devtools.GetStats();
+        _preview = _selected is null ? null : _devtools.PreviewData(_selected);
         StateHasChanged();
     }
 
+    private void Toggle()
+    {
+        _open = !_open;
+        Refresh();
+    }
+
+    private void Select(QueryKey key)
+    {
+        _selected = Equals(_selected, key) ? null : key;
+        Refresh();
+    }
+
+    private void ClearLog() => _devtools!.ClearLog();
+
     private async Task Refetch(QueryKey key) { await _devtools!.RefetchAsync(key); Refresh(); }
+
     private async Task Invalidate(QueryKey key) { await _devtools!.InvalidateAsync(key); Refresh(); }
-    private void Remove(QueryKey key) { _devtools!.RemoveQuery(key); Refresh(); }
+
+    private async Task Cancel(QueryKey key) { await _devtools!.CancelAsync(key); Refresh(); }
+
+    private void Remove(QueryKey key)
+    {
+        _devtools!.RemoveQuery(key);
+        if (Equals(_selected, key))
+        {
+            _selected = null;
+        }
+
+        Refresh();
+    }
+
+    private static string Ago(DateTimeOffset? at)
+    {
+        if (at is not { } time)
+        {
+            return "-";
+        }
+
+        var elapsed = DateTimeOffset.UtcNow - time;
+        return elapsed.TotalSeconds < 1 ? "just now"
+            : elapsed.TotalMinutes < 1 ? $"{elapsed.TotalSeconds:0}s ago"
+            : elapsed.TotalHours < 1 ? $"{elapsed.TotalMinutes:0}m ago"
+            : $"{elapsed.TotalHours:0}h ago";
+    }
+
+    private static string Duration(TimeSpan? value) => value switch
+    {
+        null => "-",
+        { } v when v == TimeSpan.MaxValue => "∞",
+        { } v when v == TimeSpan.Zero => "0 (always stale)",
+        { } v => v.TotalSeconds < 60 ? $"{v.TotalSeconds:0.#}s" : $"{v.TotalMinutes:0.#}m",
+    };
+
+    private static string Truncate(string value, int max) => value.Length <= max ? value : value[..(max - 1)] + "…";
 
     private static string Describe(DotNetQueryEvent e) => e switch
     {
-        QueryStartedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ▶ started {q.Key}",
-        QueryCompletedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ✔ completed {q.Key} ({q.Duration.TotalMilliseconds:0.0}ms)",
-        QueryFailedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ✖ failed {q.Key}: {q.Error.Message}",
-        QueryInvalidatedEvent q => $"{e.Timestamp:HH:mm:ss.fff}  ↻ invalidated {string.Join(", ", q.Keys)}",
-        MutationStartedEvent => $"{e.Timestamp:HH:mm:ss.fff}  ▶ mutation started",
-        MutationCompletedEvent m => $"{e.Timestamp:HH:mm:ss.fff}  {(m.Succeeded ? "✔" : "✖")} mutation completed ({m.Duration.TotalMilliseconds:0.0}ms)",
-        _ => $"{e.Timestamp:HH:mm:ss.fff}  {e.GetType().Name}",
+        QueryStartedEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ▶ started {q.Key}",
+        QueryCompletedEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ✔ completed {q.Key} ({q.Duration.TotalMilliseconds:0.0}ms)",
+        QueryFailedEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ✖ failed {q.Key} after {q.FailureCount} attempt(s): {q.Error.Message}",
+        QueryCancelledEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⦸ cancelled {q.Key} ({q.Duration.TotalMilliseconds:0.0}ms)",
+        QueryInvalidatedEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ↻ invalidated {string.Join(", ", q.Keys)}",
+        QueryObserverErrorEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⚠ observer of {q.Key} threw: {q.Error.Message}",
+        MutationStartedEvent m => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ▶ mutation #{m.MutationId} {m.MutationKey} started",
+        MutationCompletedEvent m => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  {(m.Succeeded ? "✔" : "✖")} mutation #{m.MutationId} {m.MutationKey} ({m.Duration.TotalMilliseconds:0.0}ms){(m.Error is null ? null : ": " + m.Error.Message)}",
+        _ => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  {e.GetType().Name}",
     };
 
     private static readonly QueryDevToolsStats EmptyStats = new()
@@ -107,6 +301,7 @@
 
     public void Dispose()
     {
+        _disposed = true;
         if (_devtools is not null)
         {
             _devtools.Changed -= OnChanged;

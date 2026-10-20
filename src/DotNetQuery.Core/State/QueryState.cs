@@ -37,17 +37,35 @@ public sealed record QueryState<T>
     /// </summary>
     public bool IsPending => Status is QueryStatus.Idle or QueryStatus.Loading;
 
-    /// <summary>Gets a value indicating whether the query has data from a successful fetch.</summary>
-    public bool IsSuccess => Status is QueryStatus.Success or QueryStatus.Refetching && Data is not null;
+    /// <summary>
+    /// Gets a value indicating whether the query holds data from a successful fetch (including while it
+    /// refetches in the background). A successful fetch that produced <see langword="null"/> still counts.
+    /// </summary>
+    public bool IsSuccess => Status is QueryStatus.Success or QueryStatus.Refetching && HasData;
 
     /// <summary>Gets a value indicating whether the most recent fetch failed.</summary>
     public bool IsError => Status is QueryStatus.Error;
+
+    /// <summary>
+    /// Gets a value indicating whether the first fetch failed, so there is no data to show alongside the
+    /// error.
+    /// </summary>
+    public bool IsLoadingError => IsError && !HasData;
+
+    /// <summary>
+    /// Gets a value indicating whether a refetch failed while previously fetched <see cref="Data"/> is still
+    /// available - typically rendered as the data plus a non-blocking error notice.
+    /// </summary>
+    public bool IsRefetchError => IsError && HasData;
 
     /// <summary>Gets a value indicating whether the query is paused.</summary>
     public bool IsPaused => Status is QueryStatus.Paused;
 
     /// <summary>Gets a value indicating whether the query currently holds usable data.</summary>
     public bool HasData => DataUpdatedAt is not null;
+
+    /// <summary>Gets a value indicating whether the query already has data and is fetching fresh data in the background.</summary>
+    public bool IsRefetching => Status is QueryStatus.Refetching;
 
     /// <summary>The initial idle state for a query that has not yet run.</summary>
     public static QueryState<T> Idle { get; } = new() { Status = QueryStatus.Idle };

@@ -12,11 +12,17 @@ public sealed record QueryDescriptor
     /// <summary>The lifecycle status of the query.</summary>
     public required QueryStatus Status { get; init; }
 
-    /// <summary>The CLR type name of the query's data.</summary>
+    /// <summary>The name of the query's data type (generic arguments included, e.g. <c>List&lt;Todo&gt;</c>).</summary>
     public required string DataTypeName { get; init; }
 
     /// <summary>Whether the entry currently holds fetched data.</summary>
     public required bool HasData { get; init; }
+
+    /// <summary>
+    /// The entry's current data (a live reference, not a copy), for inspection tooling. Treat it as
+    /// read-only. <see langword="null"/> when the entry has no data.
+    /// </summary>
+    public object? Data { get; init; }
 
     /// <summary>Whether the entry's data is considered stale and would refetch on next access.</summary>
     public required bool IsStale { get; init; }
@@ -42,9 +48,12 @@ public sealed record QueryDescriptor
     /// <summary>When the last error occurred.</summary>
     public DateTimeOffset? ErrorUpdatedAt { get; init; }
 
-    /// <summary>When the entry was last observed or fetched.</summary>
+    /// <summary>When the entry was last observed, fetched, or written.</summary>
     public required DateTimeOffset LastActivityAt { get; init; }
 
     /// <summary>The retention window applied once the entry becomes inactive.</summary>
     public required TimeSpan CacheTime { get; init; }
+
+    /// <summary>The freshness window of the most recent fetch, or <see langword="null"/> if never fetched.</summary>
+    public TimeSpan? StaleTime { get; init; }
 }

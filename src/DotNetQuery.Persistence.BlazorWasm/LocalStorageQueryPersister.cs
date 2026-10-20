@@ -21,7 +21,7 @@ public sealed class LocalStorageQueryPersister : IQueryPersister
 
     private readonly IJSRuntime _js;
     private readonly string _storageKey;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions? _jsonOptions;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     /// <summary>Creates a persister over <paramref name="jsRuntime"/>.</summary>
@@ -32,7 +32,7 @@ public sealed class LocalStorageQueryPersister : IQueryPersister
     {
         _js = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
         _storageKey = storageKey ?? DefaultStorageKey;
-        _jsonOptions = jsonOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _jsonOptions = jsonOptions;
     }
 
     /// <inheritdoc />
@@ -124,13 +124,20 @@ public sealed class LocalStorageQueryPersister : IQueryPersister
             return new Dictionary<string, PersistedQuery>(StringComparer.Ordinal);
         }
 
-        return JsonSerializer.Deserialize<Dictionary<string, PersistedQuery>>(json, _jsonOptions)
-            ?? new Dictionary<string, PersistedQuery>(StringComparer.Ordinal);
+        try
+        {
+            return PersistedQueryJson.DeserializeMap(json, _jsonOptions);
+        }
+        catch (JsonException)
+        {
+            // Corrupt or incompatible map (e.g. written by an older version): start over rather than fail.
+            return new Dictionary<string, PersistedQuery>(StringComparer.Ordinal);
+        }
     }
 
     private async Task WriteMapAsync(Dictionary<string, PersistedQuery> map, CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(map, _jsonOptions);
+        var json = PersistedQueryJson.SerializeMap(map, _jsonOptions);
         await _js.InvokeVoidAsync("localStorage.setItem", cancellationToken, _storageKey, json).ConfigureAwait(false);
     }
 }

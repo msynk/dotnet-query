@@ -2,53 +2,109 @@
 @inject IQueryClient QueryClient
 @inject TodoApi Api
 
+<PageTitle>DotNetQuery · Todos</PageTitle>
+
 <h1>Todos</h1>
-<p style="color:#666">Fetched, cached, and kept in sync by DotNetQuery.</p>
+<p style="color:#666">
+    Fetched, cached, deduplicated and kept in sync by DotNetQuery. Data fetched during prerendering is
+    hydrated into the interactive circuit, switching filters keeps the previous list on screen while the
+    next one loads, and adding or toggling a todo updates the list optimistically (try adding "fail" to see
+    the rollback).
+</p>
 
-@* Enables focus/reconnect refetching via the browser signal bridge. *@
-<DotNetQueryBrowserSignals />
-
-<Query TData="List<Todo>" Key="_todosKey" Fetcher="ct => Api.GetAllAsync(ct)" Context="result">
-    @if (result.IsLoading)
+<nav style="display:flex; gap:8px; margin-bottom:1rem;">
+    @foreach (var filter in Enum.GetValues<TodoFilter>())
     {
+        <button @onclick="() => _filter = filter" disabled="@(_filter == filter)">@filter</button>
+    }
+</nav>
+
+<Query Definition="TodoQueries.List(Api, _filter)" KeepPreviousData="true">
+    <Loading>
         <p>Loading…</p>
-    }
-    else if (result.IsError)
-    {
-        <p style="color:#c00">Error: @result.Error?.Message</p>
-    }
-    else
-    {
-        <ul style="list-style:none; padding:0;">
-            @foreach (var todo in result.Data ?? new())
+    </Loading>
+    <Error Context="error">
+        <p style="color:#c00">Could not load todos: @error.Message</p>
+    </Error>
+    <ChildContent Context="todos">
+        <ul style="list-style:none; padding:0; opacity:@(todos.IsPlaceholderData ? "0.5" : "1")">
+            @foreach (var todo in todos.Data ?? [])
             {
                 <li style="padding:4px 0;">
                     <label style="@(todo.Done ? "text-decoration:line-through;color:#999" : "")">
-                        <input type="checkbox" checked="@todo.Done" @onchange="() => ToggleAsync(todo)" />
-                        @todo.Title
+                        <input type="checkbox" checked="@todo.Done" disabled="@(todo.Id < 0)" @onchange="() => ToggleAsync(todo)" />
+                        @todo.Title @(todo.Id < 0 ? "(saving…)" : null)
                     </label>
                 </li>
             }
         </ul>
-        @if (result.IsFetching)
+        @if (todos.IsFetching)
         {
             <small style="color:#999">refreshing…</small>
         }
-    }
+        @if (todos.IsRefetchError)
+        {
+            <small style="color:#c00">Showing cached data - refresh failed: @todos.Error?.Message</small>
+        }
+    </ChildContent>
 </Query>
 
-<div style="margin-top:1rem; display:flex; gap:8px;">
+<form style="margin-top:1rem; display:flex; gap:8px;" @onsubmit="AddAsync">
     <input @bind="_newTitle" @bind:event="oninput" placeholder="New todo" style="flex:1; padding:4px;" />
-    <button @onclick="AddAsync" disabled="@_isAdding">Add</button>
-</div>
+    <button type="submit" disabled="@(_add?.CurrentState.IsPending == true)">Add</button>
+</form>
+@if (_add?.CurrentState is { IsError: true } failed)
+{
+    <p style="color:#c00">@failed.Error?.Message (rolled back)</p>
+}
 
-<hr style="margin:2rem 0;" />
-<QueryDevToolsPanel />
+<QueryDevToolsPanel Floating="true" />
 
 @code {
-    private readonly QueryKey _todosKey = QueryKey.Create("todos");
+    private TodoFilter _filter = TodoFilter.All;
     private string _newTitle = string.Empty;
-    private bool _isAdding;
+    private Mutation<string, Todo>? _add;
+    private Mutation<Todo, Todo>? _toggle;
+
+    protected override void OnInitialized()
+    {
+        // Optimistically append the new todo to every cached list it belongs in; roll back on failure and
+        // reconcile with the server either way once the mutation settles.
+        _add = QueryClient.CreateMutation<string, Todo>(
+            (title, ct) => Api.AddAsync(title, ct),
+            new MutationOptions<string, Todo>
+            {
+                MutationKey = QueryKey.Create("todos", "add"),
+                ThrowOnError = false,
+                OptimisticUpdates =
+                [
+                    OptimisticUpdate.Create<string, List<Todo>>(TodoQueries.List(Api, TodoFilter.All).Key, Append),
+                    OptimisticUpdate.Create<string, List<Todo>>(TodoQueries.List(Api, TodoFilter.Open).Key, Append),
+                ],
+                Invalidates = [TodoQueries.All],
+            });
+        _add.StateChanged += _ => InvokeAsync(StateHasChanged);
+
+        _toggle = QueryClient.CreateMutation<Todo, Todo>(
+            (todo, ct) => Api.ToggleAsync(todo.Id, ct),
+            new MutationOptions<Todo, Todo>
+            {
+                MutationKey = QueryKey.Create("todos", "toggle"),
+                ThrowOnError = false,
+                OptimisticUpdates =
+                [
+                    OptimisticUpdate.Create<Todo, List<Todo>>(TodoQueries.List(Api, TodoFilter.All).Key, Toggle),
+                    OptimisticUpdate.Create<Todo, List<Todo>>(TodoQueries.List(Api, TodoFilter.Open).Key, Toggle),
+                    OptimisticUpdate.Create<Todo, List<Todo>>(TodoQueries.List(Api, TodoFilter.Done).Key, Toggle),
+                ],
+                Invalidates = [TodoQueries.All],
+            });
+    }
+
+    private static List<Todo> Append(List<Todo>? todos, string title) => [.. todos ?? [], new Todo(-1, title, false)];
+
+    private static List<Todo> Toggle(List<Todo>? todos, Todo toggled) =>
+        (todos ?? []).Select(t => t.Id == toggled.Id ? t with { Done = !t.Done } : t).ToList();
 
     private async Task AddAsync()
     {
@@ -57,30 +113,10 @@
             return;
         }
 
-        _isAdding = true;
-        try
-        {
-            await QueryClient.MutateAsync<string, Todo>(
-                (title, ct) => Api.AddAsync(title, ct),
-                _newTitle,
-                new MutationOptions<string, Todo> { ThrowOnError = false });
-
-            _newTitle = string.Empty;
-            await QueryClient.InvalidateQueriesAsync(_todosKey); // refetch the list
-        }
-        finally
-        {
-            _isAdding = false;
-        }
+        var title = _newTitle;
+        _newTitle = string.Empty;
+        await _add!.MutateAsync(title);
     }
 
-    private async Task ToggleAsync(Todo todo)
-    {
-        await QueryClient.MutateAsync<int, Todo>(
-            (id, ct) => Api.ToggleAsync(id, ct),
-            todo.Id,
-            new MutationOptions<int, Todo> { ThrowOnError = false });
-
-        await QueryClient.InvalidateQueriesAsync(_todosKey);
-    }
+    private Task ToggleAsync(Todo todo) => _toggle!.MutateAsync(todo);
 }

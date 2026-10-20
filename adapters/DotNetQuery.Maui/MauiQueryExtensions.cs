@@ -25,6 +25,15 @@ public static class MauiQueryExtensions
     }
 
     /// <summary>
+    /// Creates an <see cref="ObservableQuery{T}"/> for a query definition. Must be called on the MAUI main thread.
+    /// </summary>
+    public static ObservableQuery<T> CreateObservableQuery<T>(this IQueryClient client, QueryDefinition<T> query)
+    {
+        EnsureUiThread();
+        return new ObservableQuery<T>(client, query);
+    }
+
+    /// <summary>
     /// Creates an <see cref="ObservableMutation{TVariables, TData}"/> for data binding. Must be called on
     /// the MAUI main thread.
     /// </summary>

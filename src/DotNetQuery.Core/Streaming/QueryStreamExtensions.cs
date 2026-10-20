@@ -39,6 +39,8 @@ public static class QueryStreamExtensions
     /// <paramref name="key"/> via <paramref name="accumulate"/> (which receives the current cached value,
     /// or <see langword="default"/> if none, and the new item). Ideal for appending to a live list - a
     /// chat feed, an activity log, incremental results. Completes when the stream ends or is cancelled.
+    /// <paramref name="accumulate"/> runs atomically with respect to other cache writes for the key: keep it
+    /// fast and return a new value rather than mutating the current one.
     /// </summary>
     /// <typeparam name="T">The accumulated (cached) type.</typeparam>
     /// <typeparam name="TItem">The type of each streamed item.</typeparam>
@@ -56,8 +58,9 @@ public static class QueryStreamExtensions
 
         await foreach (var item in source.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
-            var current = client.GetQueryData<T>(key).Data;
-            client.SetQueryData(key, accumulate(current, item));
+            // Atomic read-modify-write, so concurrent writers (another stream, an optimistic update)
+            // cannot interleave and lose items.
+            client.SetQueryData<T>(key, current => accumulate(current, item));
         }
     }
 }

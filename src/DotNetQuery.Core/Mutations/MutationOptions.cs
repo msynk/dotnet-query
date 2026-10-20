@@ -11,9 +11,33 @@ namespace DotNetQuery;
 /// <see cref="OnSuccess"/> or <see cref="OnError"/> → <see cref="OnSettled"/> (always).
 /// The value returned from <see cref="OnMutate"/> is threaded through the remaining callbacks as the
 /// <c>context</c> argument, enabling rollback of an optimistic update inside <see cref="OnError"/>.
+/// For the common cases, prefer the declarative <see cref="OptimisticUpdates"/> (applied, and rolled back
+/// on failure, automatically) and <see cref="Invalidates"/> (refetched once the mutation settles).
 /// </remarks>
 public sealed record MutationOptions<TVariables, TData>
 {
+    /// <summary>
+    /// An optional key identifying the kind of mutation (for example <c>["todos", "add"]</c>). Reported in
+    /// diagnostics events and shown by the DevTools mutation history.
+    /// </summary>
+    public QueryKey? MutationKey { get; init; }
+
+    /// <summary>
+    /// Declarative optimistic updates, created with <see cref="OptimisticUpdate.Create{TVariables, TData}"/>.
+    /// Before the mutation runs, each one cancels in-flight fetches for its key, snapshots the cached data,
+    /// and writes the optimistic value; if the mutation fails (or is cancelled) every snapshot is restored
+    /// in reverse order. Combine with <see cref="Invalidates"/> so the server's truth replaces the optimistic
+    /// value once the mutation settles.
+    /// </summary>
+    public IReadOnlyList<OptimisticUpdate<TVariables>>? OptimisticUpdates { get; init; }
+
+    /// <summary>
+    /// Query keys (prefix-matched) to invalidate once the mutation settles - after success or failure, so
+    /// a failed optimistic update is also reconciled with the server. The mutation remains pending until the
+    /// resulting refetches of active queries complete.
+    /// </summary>
+    public IReadOnlyList<QueryKey>? Invalidates { get; init; }
+
     /// <summary>Maximum number of automatic retries after a failed mutation. Defaults to 0.</summary>
     public int RetryCount { get; init; }
 

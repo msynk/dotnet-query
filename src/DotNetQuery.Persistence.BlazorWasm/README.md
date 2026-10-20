@@ -31,7 +31,9 @@ builder.Services.AddScoped(sp =>
   as a JSON map - set a custom key via the constructor. Reads/writes take the whole map; this suits a
   bounded set of registered queries persisted on shutdown and restored on startup.
 - Call it only where JS interop is available (e.g. after first render in WASM) - not during prerender.
-- Uses reflection-based `System.Text.Json`, so this package is **not** AOT/trim-safe.
+- Trim/AOT-safe: envelopes are serialized with source-generated JSON. Register queries with
+  `manager.Register(key, AppJson.Default.MyType)` (a `JsonTypeInfo<T>`) to keep payloads trim-safe too.
+- Corrupt or incompatible stored data is skipped rather than failing the restore.
 
 ## IndexedDB
 

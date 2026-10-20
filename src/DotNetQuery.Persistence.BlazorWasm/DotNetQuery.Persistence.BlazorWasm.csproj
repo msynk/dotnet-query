@@ -5,8 +5,8 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.Persistence.BlazorWasm</PackageId>
     <Description>Browser cache persistence for DotNetQuery in Blazor WebAssembly: IJSRuntime-backed IQueryPersister providers over localStorage and IndexedDB that survive page reloads. Also usable from Blazor Server (via JS interop).</Description>
-    <!-- Uses reflection-based System.Text.Json; opt out of AOT/trim guarantees. -->
-    <IsAotCompatible>false</IsAotCompatible>
+    <!-- Trim/AOT-safe: persisted envelopes use source-generated JSON (PersistedQueryJson). -->
+    <IsAotCompatible>true</IsAotCompatible>
     <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 

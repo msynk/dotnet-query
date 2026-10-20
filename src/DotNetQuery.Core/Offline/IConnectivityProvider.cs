@@ -20,20 +20,30 @@ public interface IConnectivityProvider
 /// </summary>
 public sealed class ConnectivityProvider : IConnectivityProvider
 {
-    private volatile int _isOnline = 1;
+    private readonly object _gate = new();
+    private volatile bool _isOnline = true;
 
     /// <inheritdoc />
-    public bool IsOnline => _isOnline == 1;
+    public bool IsOnline => _isOnline;
 
     /// <inheritdoc />
     public event Action<bool>? ConnectivityChanged;
 
-    /// <summary>Updates the current connectivity state, raising <see cref="ConnectivityChanged"/> on a transition.</summary>
+    /// <summary>
+    /// Updates the current connectivity state, raising <see cref="ConnectivityChanged"/> on a transition.
+    /// Transitions are serialized, so subscribers always observe them in order and the last value raised is
+    /// the current state, even when the platform reports changes from several threads.
+    /// </summary>
     public void SetOnline(bool online)
     {
-        var next = online ? 1 : 0;
-        if (Interlocked.Exchange(ref _isOnline, next) != next)
+        lock (_gate)
         {
+            if (_isOnline == online)
+            {
+                return;
+            }
+
+            _isOnline = online;
             ConnectivityChanged?.Invoke(online);
         }
     }

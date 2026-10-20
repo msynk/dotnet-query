@@ -4,16 +4,25 @@ namespace DotNetQuery.Mvvm;
 
 /// <summary>
 /// An <see cref="INotifyPropertyChanged"/> view of a mutation, for data binding in XAML UI frameworks.
-/// Wraps a <see cref="Mutation{TVariables, TData}"/> and marshals change notifications onto the UI
-/// thread captured at construction.
+/// Wraps a <see cref="Mutation{TVariables, TData}"/> and marshals state changes onto the UI thread captured
+/// at construction.
 /// </summary>
 /// <typeparam name="TVariables">The type of the variables passed to the mutation.</typeparam>
 /// <typeparam name="TData">The type of data returned by the mutation.</typeparam>
-public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChanged
+public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChanged, IDisposable
 {
+    private static readonly string[] PropertyNames =
+    [
+        nameof(Data), nameof(Error), nameof(Status), nameof(Variables), nameof(IsIdle), nameof(IsPending),
+        nameof(IsSuccess), nameof(IsError), nameof(FailureCount),
+    ];
+
     private readonly Mutation<TVariables, TData> _mutation;
     private readonly SynchronizationContext? _syncContext;
+    private readonly object _applyGate = new();
     private MutationState<TVariables, TData> _state;
+    private long _sequence;
+    private long _applied;
 
     /// <summary>Creates an observable mutation bound to a mutation function.</summary>
     public ObservableMutation(
@@ -42,6 +51,12 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
     /// <summary>Gets the lifecycle status of the mutation.</summary>
     public MutationStatus Status => _state.Status;
 
+    /// <summary>Gets the variables of the most recent run, if any.</summary>
+    public TVariables? Variables => _state.Variables;
+
+    /// <summary>Gets a value indicating whether the mutation has not run (or was reset).</summary>
+    public bool IsIdle => _state.IsIdle;
+
     /// <summary>Gets a value indicating whether the mutation is currently running.</summary>
     public bool IsPending => _state.IsPending;
 
@@ -50,6 +65,9 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
 
     /// <summary>Gets a value indicating whether the mutation failed.</summary>
     public bool IsError => _state.IsError;
+
+    /// <summary>Gets the number of failed attempts in the most recent run.</summary>
+    public int FailureCount => _state.FailureCount;
 
     /// <summary>Runs the mutation with the supplied variables.</summary>
     public Task<MutationResult<TVariables, TData>> MutateAsync(TVariables variables, CancellationToken cancellationToken = default) =>
@@ -60,25 +78,44 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
 
     private void OnStateChanged(MutationState<TVariables, TData> state)
     {
-        _state = state;
+        var sequence = Interlocked.Increment(ref _sequence);
         if (_syncContext is null || _syncContext == SynchronizationContext.Current)
         {
-            RaiseAll();
+            Apply(state, sequence);
         }
         else
         {
-            _syncContext.Post(static self => ((ObservableMutation<TVariables, TData>)self!).RaiseAll(), this);
+            _syncContext.Post(
+                static s =>
+                {
+                    var (self, state, sequence) = ((ObservableMutation<TVariables, TData>, MutationState<TVariables, TData>, long))s!;
+                    self.Apply(state, sequence);
+                },
+                (this, state, sequence));
         }
     }
 
-    private void RaiseAll()
+    // Applied on the UI thread together with the notifications, so bound values match the notification;
+    // a notification overtaken by a newer one is dropped.
+    private void Apply(MutationState<TVariables, TData> state, long sequence)
     {
+        lock (_applyGate)
+        {
+            if (sequence <= _applied)
+            {
+                return;
+            }
+
+            _applied = sequence;
+            _state = state;
+        }
+
         foreach (var name in PropertyNames)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
 
-    private static readonly string[] PropertyNames =
-        [nameof(Data), nameof(Error), nameof(Status), nameof(IsPending), nameof(IsSuccess), nameof(IsError)];
+    /// <summary>Stops forwarding state changes.</summary>
+    public void Dispose() => _mutation.StateChanged -= OnStateChanged;
 }

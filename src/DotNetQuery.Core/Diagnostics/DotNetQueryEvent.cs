@@ -40,6 +40,21 @@ public sealed record QueryFailedEvent : DotNetQueryEvent
     public required TimeSpan Duration { get; init; }
 }
 
+/// <summary>
+/// Raised when an in-flight fetch is cancelled before it settles - superseded by a newer fetch (for example
+/// an invalidation), cancelled via <see cref="IQueryClient.CancelQueriesAsync(QueryKey, CancellationToken)"/>,
+/// abandoned by its last observer, removed from the cache, or paused because connectivity was lost.
+/// The query's previous state is restored.
+/// </summary>
+public sealed record QueryCancelledEvent : DotNetQueryEvent
+{
+    /// <summary>The key of the query whose fetch was cancelled.</summary>
+    public required QueryKey Key { get; init; }
+
+    /// <summary>How long the fetch ran before it was cancelled.</summary>
+    public required TimeSpan Duration { get; init; }
+}
+
 /// <summary>Raised when queries are invalidated.</summary>
 public sealed record QueryInvalidatedEvent : DotNetQueryEvent
 {
@@ -47,17 +62,49 @@ public sealed record QueryInvalidatedEvent : DotNetQueryEvent
     public required IReadOnlyList<QueryKey> Keys { get; init; }
 }
 
+/// <summary>
+/// Raised when a subscriber's state-change handler throws. The exception is isolated so it can neither
+/// fail the fetch nor prevent other subscribers from being notified.
+/// </summary>
+public sealed record QueryObserverErrorEvent : DotNetQueryEvent
+{
+    /// <summary>The key of the observed query.</summary>
+    public required QueryKey Key { get; init; }
+
+    /// <summary>The exception thrown by the handler.</summary>
+    public required Exception Error { get; init; }
+}
+
 /// <summary>Raised when a mutation begins.</summary>
-public sealed record MutationStartedEvent : DotNetQueryEvent;
+public sealed record MutationStartedEvent : DotNetQueryEvent
+{
+    /// <summary>A client-unique, monotonically increasing identifier for this mutation run.</summary>
+    public long MutationId { get; init; }
+
+    /// <summary>The optional key identifying the kind of mutation (see <see cref="MutationOptions{TVariables, TData}.MutationKey"/>).</summary>
+    public QueryKey? MutationKey { get; init; }
+
+    /// <summary>The variables the mutation was invoked with.</summary>
+    public object? Variables { get; init; }
+}
 
 /// <summary>Raised when a mutation completes (successfully or not).</summary>
 public sealed record MutationCompletedEvent : DotNetQueryEvent
 {
+    /// <summary>The identifier of the mutation run, matching its <see cref="MutationStartedEvent.MutationId"/>.</summary>
+    public long MutationId { get; init; }
+
+    /// <summary>The optional key identifying the kind of mutation.</summary>
+    public QueryKey? MutationKey { get; init; }
+
     /// <summary>Whether the mutation succeeded.</summary>
     public required bool Succeeded { get; init; }
 
     /// <summary>The error, when the mutation failed.</summary>
     public Exception? Error { get; init; }
+
+    /// <summary>The number of failed attempts.</summary>
+    public int FailureCount { get; init; }
 
     /// <summary>How long the mutation took.</summary>
     public required TimeSpan Duration { get; init; }

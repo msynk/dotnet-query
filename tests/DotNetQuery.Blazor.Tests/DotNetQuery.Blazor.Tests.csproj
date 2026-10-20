@@ -13,6 +13,8 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="bunit" Version="1.40.0" />
+    <!-- Lift bUnit's transitive AngleSharp past the version flagged by GHSA-pgww-w46g-26qg (NU1902). -->
+    <PackageReference Include="AngleSharp" Version="1.8.1" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
   </ItemGroup>

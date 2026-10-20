@@ -4,8 +4,8 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.GraphQL</PackageId>
     <Description>GraphQL-over-HTTP transport conveniences for DotNetQuery: build query fetchers that POST a GraphQL document (with variables) and unwrap the data envelope, or fetch straight into the cache. The core stays transport-agnostic; this is ergonomics.</Description>
-    <!-- System.Net.Http.Json uses reflection-based System.Text.Json; opt out of AOT/trim guarantees. -->
-    <IsAotCompatible>false</IsAotCompatible>
+    <!-- Trim/AOT-safe via the JsonTypeInfo<T> overloads; reflection-based overloads are annotated. -->
+    <IsAotCompatible>true</IsAotCompatible>
     <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 

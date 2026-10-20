@@ -4,8 +4,8 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.Persistence.Redis</PackageId>
     <Description>Redis cache persistence for DotNetQuery: a StackExchange.Redis-backed IQueryPersister that stores query data in a single Redis hash, for shared/server-side durable caching.</Description>
-    <!-- Uses reflection-based System.Text.Json; opt out of AOT/trim guarantees. -->
-    <IsAotCompatible>false</IsAotCompatible>
+    <!-- Trim/AOT-safe: persisted envelopes use source-generated JSON (PersistedQueryJson). -->
+    <IsAotCompatible>true</IsAotCompatible>
     <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
   </PropertyGroup>
 

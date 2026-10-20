@@ -6,7 +6,8 @@ namespace DotNetQuery.DevTools.Cli;
 internal sealed record DevToolsExport(
     StatsDto Stats,
     QueryDto[] Queries,
-    EventDto[] Events);
+    EventDto[] Events,
+    MutationDto[]? Mutations = null);
 
 internal sealed record StatsDto(
     int TotalQueries,
@@ -18,7 +19,11 @@ internal sealed record StatsDto(
     long FetchesFailed,
     long MutationsStarted,
     long MutationsCompleted,
-    double AverageQueryDurationMs);
+    double AverageQueryDurationMs,
+    int FetchingQueries = 0,
+    long FetchesCancelled = 0,
+    long MutationsFailed = 0,
+    int PendingMutations = 0);
 
 internal sealed record QueryDto(
     string Key,
@@ -32,7 +37,17 @@ internal sealed record QueryDto(
     string? ErrorMessage,
     DateTimeOffset? DataUpdatedAt,
     DateTimeOffset? LastActivityAt,
-    double CacheTimeSeconds);
+    double CacheTimeSeconds,
+    double? StaleTimeSeconds = null);
+
+internal sealed record MutationDto(
+    long MutationId,
+    string? MutationKey,
+    string Status,
+    DateTimeOffset SubmittedAt,
+    double? DurationMs,
+    int FailureCount,
+    string? ErrorMessage);
 
 internal sealed record EventDto(
     string Type,

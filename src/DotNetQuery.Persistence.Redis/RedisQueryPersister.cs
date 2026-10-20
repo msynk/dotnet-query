@@ -20,7 +20,7 @@ public sealed class RedisQueryPersister : IQueryPersister, IDisposable, IAsyncDi
     private readonly IConnectionMultiplexer _connection;
     private readonly bool _ownsConnection;
     private readonly RedisKey _hashKey;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions? _jsonOptions;
     private int _disposed;
 
     /// <summary>
@@ -53,7 +53,7 @@ public sealed class RedisQueryPersister : IQueryPersister, IDisposable, IAsyncDi
         _connection = connection;
         _ownsConnection = ownsConnection;
         _hashKey = hashKey ?? DefaultHashKey;
-        _jsonOptions = jsonOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _jsonOptions = jsonOptions;
     }
 
     private IDatabase Database => _connection.GetDatabase();
@@ -63,7 +63,7 @@ public sealed class RedisQueryPersister : IQueryPersister, IDisposable, IAsyncDi
     {
         ArgumentNullException.ThrowIfNull(query);
         cancellationToken.ThrowIfCancellationRequested();
-        var payload = JsonSerializer.Serialize(query, _jsonOptions);
+        var payload = PersistedQueryJson.Serialize(query, _jsonOptions);
         await Database.HashSetAsync(_hashKey, query.Key, payload).ConfigureAwait(false);
     }
 
@@ -73,7 +73,7 @@ public sealed class RedisQueryPersister : IQueryPersister, IDisposable, IAsyncDi
         ArgumentNullException.ThrowIfNull(key);
         cancellationToken.ThrowIfCancellationRequested();
         var value = await Database.HashGetAsync(_hashKey, key).ConfigureAwait(false);
-        return value.IsNullOrEmpty ? null : JsonSerializer.Deserialize<PersistedQuery>((string)value!, _jsonOptions);
+        return value.IsNullOrEmpty ? null : PersistedQueryJson.Deserialize((string)value!, _jsonOptions);
     }
 
     /// <inheritdoc />
@@ -84,10 +84,21 @@ public sealed class RedisQueryPersister : IQueryPersister, IDisposable, IAsyncDi
         var results = new List<PersistedQuery>(entries.Length);
         foreach (var entry in entries)
         {
-            if (!entry.Value.IsNullOrEmpty &&
-                JsonSerializer.Deserialize<PersistedQuery>((string)entry.Value!, _jsonOptions) is { } query)
+            if (entry.Value.IsNullOrEmpty)
             {
-                results.Add(query);
+                continue;
+            }
+
+            try
+            {
+                if (PersistedQueryJson.Deserialize((string)entry.Value!, _jsonOptions) is { } query)
+                {
+                    results.Add(query);
+                }
+            }
+            catch (JsonException)
+            {
+                // Skip corrupt or incompatible records instead of failing the whole restore.
             }
         }
 

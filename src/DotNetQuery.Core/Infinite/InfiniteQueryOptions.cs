@@ -34,9 +34,21 @@ public sealed record InfiniteQueryOptions<TParam, TPage>
     /// </summary>
     public int? MaxPages { get; init; }
 
-    /// <summary>Maximum number of automatic retries after a failed page fetch. Defaults to 0.</summary>
+    /// <summary>
+    /// Maximum number of automatic retries after a failed fetch. Defaults to 0. Ignored when
+    /// <see cref="QueryOptions"/> specifies <see cref="DotNetQuery.QueryOptions.RetryCount"/>.
+    /// </summary>
     public int RetryCount { get; init; }
 
-    /// <summary>Strategy computing the delay between retries. Defaults to no delay.</summary>
+    /// <summary>
+    /// Strategy computing the delay between retries. Defaults to no delay. Ignored when
+    /// <see cref="QueryOptions"/> specifies <see cref="DotNetQuery.QueryOptions.RetryDelay"/>.
+    /// </summary>
     public RetryDelayStrategy? RetryDelay { get; init; }
+
+    /// <summary>
+    /// Caching and background behavior for the cached pages (stale time, cache time, refetch triggers,
+    /// interval, enabled, ...). Unset properties fall back to the client defaults.
+    /// </summary>
+    public QueryOptions? QueryOptions { get; init; }
 }

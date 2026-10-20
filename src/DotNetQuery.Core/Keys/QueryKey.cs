@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Globalization;
 using System.Text;
 
 namespace DotNetQuery;
@@ -7,10 +8,18 @@ namespace DotNetQuery;
 /// An immutable, hierarchical, hashable identifier for a query.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A <see cref="QueryKey"/> is an ordered sequence of segments (for example
 /// <c>["users", 42]</c>). Keys are compared structurally, cache a stable hash code,
 /// and support hierarchical matching via <see cref="IsPrefixOf"/> so that a broad key
 /// such as <c>["users"]</c> can invalidate every more specific key beneath it.
+/// </para>
+/// <para>
+/// Segments should be immutable values with value equality: strings, numbers, enums, <see cref="Guid"/>s,
+/// dates, records, or tuples. List segments (arrays, <see cref="List{T}"/> and any other
+/// <see cref="IList"/>) are snapshotted and compared element by element, so <c>Create("todos", new[] { 1, 2 })</c>
+/// equals a second key built from a different array with the same elements.
+/// </para>
 /// </remarks>
 public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
 {
@@ -39,25 +48,30 @@ public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
             throw new ArgumentException("A query key must contain at least one segment.", nameof(segments));
         }
 
-        // Defensive copy so callers cannot mutate the key after construction.
+        // Defensive, normalizing copy so callers cannot mutate the key after construction.
         var copy = new object?[segments.Length];
-        Array.Copy(segments, copy, segments.Length);
+        for (var i = 0; i < segments.Length; i++)
+        {
+            copy[i] = Normalize(segments[i]);
+        }
+
         return new QueryKey(copy);
     }
 
     /// <summary>
-    /// Creates a query key that begins with the runtime type name of <typeparamref name="T"/>,
-    /// followed by the supplied segments (for example <c>Create&lt;User&gt;("profile", id)</c>).
+    /// Creates a query key that begins with the name of <typeparamref name="T"/> (generic arguments
+    /// included, for example <c>"List&lt;Todo&gt;"</c>), followed by the supplied segments
+    /// (for example <c>Create&lt;User&gt;("profile", id)</c>).
     /// </summary>
     /// <typeparam name="T">The entity type whose name prefixes the key.</typeparam>
     /// <param name="segments">Additional ordered segments appended after the type name.</param>
     public static QueryKey Create<T>(params object?[] segments)
     {
         var withType = new object?[(segments?.Length ?? 0) + 1];
-        withType[0] = typeof(T).Name;
-        if (segments is { Length: > 0 })
+        withType[0] = TypeKeyName<T>.Value;
+        for (var i = 0; i < (segments?.Length ?? 0); i++)
         {
-            Array.Copy(segments, 0, withType, 1, segments.Length);
+            withType[i + 1] = Normalize(segments![i]);
         }
 
         return new QueryKey(withType);
@@ -78,7 +92,11 @@ public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
 
         var combined = new object?[_segments.Length + segments.Length];
         Array.Copy(_segments, combined, _segments.Length);
-        Array.Copy(segments, 0, combined, _segments.Length, segments.Length);
+        for (var i = 0; i < segments.Length; i++)
+        {
+            combined[_segments.Length + i] = Normalize(segments[i]);
+        }
+
         return new QueryKey(combined);
     }
 
@@ -86,13 +104,13 @@ public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
     public static QueryKeyBuilder Builder(params object?[] segments) => new(segments);
 
     /// <summary>
-    /// Starts a fluent <see cref="QueryKeyBuilder"/> seeded with the runtime type name of
-    /// <typeparamref name="T"/>, followed by any supplied segments (mirrors <see cref="Create{T}"/>).
+    /// Starts a fluent <see cref="QueryKeyBuilder"/> seeded with the name of <typeparamref name="T"/>,
+    /// followed by any supplied segments (mirrors <see cref="Create{T}"/>).
     /// </summary>
     public static QueryKeyBuilder Builder<T>(params object?[] segments)
     {
         var seed = new object?[(segments?.Length ?? 0) + 1];
-        seed[0] = typeof(T).Name;
+        seed[0] = TypeKeyName<T>.Value;
         if (segments is { Length: > 0 })
         {
             Array.Copy(segments, 0, seed, 1, segments.Length);
@@ -159,29 +177,16 @@ public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
     /// <inheritdoc />
     public override int GetHashCode() => _hashCode;
 
-    /// <summary>Returns a stable, human-readable representation such as <c>["users", 42]</c>.</summary>
+    /// <summary>
+    /// Returns a stable, culture-invariant, human-readable representation such as <c>["users", 42]</c>.
+    /// String segments are quoted and escaped, so distinct keys produce distinct strings; the form is
+    /// suitable as a persistence or hydration key.
+    /// </summary>
     public override string ToString()
     {
-        var sb = new StringBuilder("[");
-        for (var i = 0; i < _segments.Length; i++)
-        {
-            if (i > 0)
-            {
-                sb.Append(", ");
-            }
-
-            var segment = _segments[i];
-            if (segment is string s)
-            {
-                sb.Append('"').Append(s).Append('"');
-            }
-            else
-            {
-                sb.Append(segment?.ToString() ?? "null");
-            }
-        }
-
-        return sb.Append(']').ToString();
+        var sb = new StringBuilder();
+        AppendTo(sb, _segments);
+        return sb.ToString();
     }
 
     /// <inheritdoc />
@@ -204,5 +209,159 @@ public sealed class QueryKey : IEquatable<QueryKey>, IReadOnlyList<object?>
         }
 
         return hash.ToHashCode();
+    }
+
+    // Lists compare by reference by default, which would silently split the cache; snapshot them into a
+    // structurally-equal segment instead. Strings are IEnumerable but are values, so they pass through.
+    private static object? Normalize(object? segment) => segment switch
+    {
+        null or string or QueryKey or ListSegment => segment,
+        IList list => ListSegment.From(list),
+        _ => segment,
+    };
+
+    private static void AppendTo(StringBuilder sb, IReadOnlyList<object?> segments)
+    {
+        sb.Append('[');
+        for (var i = 0; i < segments.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(", ");
+            }
+
+            AppendSegment(sb, segments[i]);
+        }
+
+        sb.Append(']');
+    }
+
+    private static void AppendSegment(StringBuilder sb, object? segment)
+    {
+        switch (segment)
+        {
+            case null:
+                sb.Append("null");
+                break;
+            case string s:
+                sb.Append('"');
+                foreach (var c in s)
+                {
+                    if (c is '"' or '\\')
+                    {
+                        sb.Append('\\');
+                    }
+
+                    sb.Append(c);
+                }
+
+                sb.Append('"');
+                break;
+            case bool b:
+                sb.Append(b ? "true" : "false");
+                break;
+            case ListSegment list:
+                AppendTo(sb, list.Items);
+                break;
+            case QueryKey key:
+                AppendTo(sb, key._segments);
+                break;
+            case DateTime dt:
+                sb.Append(dt.ToString("O", CultureInfo.InvariantCulture));
+                break;
+            case DateTimeOffset dto:
+                sb.Append(dto.ToString("O", CultureInfo.InvariantCulture));
+                break;
+            case IFormattable formattable:
+                sb.Append(formattable.ToString(null, CultureInfo.InvariantCulture));
+                break;
+            default:
+                sb.Append(segment.ToString() ?? "null");
+                break;
+        }
+    }
+
+    /// <summary>An immutable, structurally-equal snapshot of a list segment.</summary>
+    private sealed class ListSegment : IEquatable<ListSegment>
+    {
+        private readonly int _hashCode;
+
+        private ListSegment(object?[] items)
+        {
+            Items = items;
+            _hashCode = ComputeHashCode(items);
+        }
+
+        public object?[] Items { get; }
+
+        public static ListSegment From(IList list)
+        {
+            var items = new object?[list.Count];
+            for (var i = 0; i < items.Length; i++)
+            {
+                items[i] = Normalize(list[i]);
+            }
+
+            return new ListSegment(items);
+        }
+
+        public bool Equals(ListSegment? other)
+        {
+            if (other is null || other._hashCode != _hashCode || other.Items.Length != Items.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < Items.Length; i++)
+            {
+                if (!Equals(Items[i], other.Items[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj) => obj is ListSegment other && Equals(other);
+
+        public override int GetHashCode() => _hashCode;
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            AppendTo(sb, Items);
+            return sb.ToString();
+        }
+    }
+}
+
+/// <summary>Caches a readable, generic-aware name for <typeparamref name="T"/> (e.g. <c>List&lt;Todo&gt;</c>).</summary>
+internal static class TypeKeyName<T>
+{
+    public static readonly string Value = Format(typeof(T));
+
+    private static string Format(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return type.Name;
+        }
+
+        var name = type.Name;
+        var tick = name.IndexOf('`', StringComparison.Ordinal);
+        var sb = new StringBuilder(tick >= 0 ? name[..tick] : name).Append('<');
+        var args = type.GetGenericArguments();
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(',');
+            }
+
+            sb.Append(Format(args[i]));
+        }
+
+        return sb.Append('>').ToString();
     }
 }

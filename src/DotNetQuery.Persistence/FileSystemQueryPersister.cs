@@ -6,18 +6,23 @@ namespace DotNetQuery.Persistence;
 /// A file-system <see cref="IQueryPersister"/> that stores each query as a JSON file in a directory.
 /// Suitable for desktop and mobile apps (WPF, WinUI, MAUI, Avalonia).
 /// </summary>
+/// <remarks>
+/// Writes are atomic (a temporary file is written and then moved into place), so a crash mid-write never
+/// leaves a truncated entry behind. Unreadable files - for example from an older, incompatible version -
+/// are skipped when loading instead of failing the whole restore.
+/// </remarks>
 public sealed class FileSystemQueryPersister : IQueryPersister
 {
     private const string Extension = ".dnq.json";
     private readonly string _directory;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions? _jsonOptions;
 
     /// <summary>Creates a persister rooted at <paramref name="directory"/>, creating it if needed.</summary>
     public FileSystemQueryPersister(string directory, JsonSerializerOptions? jsonOptions = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         _directory = directory;
-        _jsonOptions = jsonOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _jsonOptions = jsonOptions;
         Directory.CreateDirectory(_directory);
     }
 
@@ -26,21 +31,30 @@ public sealed class FileSystemQueryPersister : IQueryPersister
     {
         ArgumentNullException.ThrowIfNull(query);
         var path = PathForKey(query.Key);
-        var json = JsonSerializer.Serialize(query, _jsonOptions);
-        await File.WriteAllTextAsync(path, json, cancellationToken).ConfigureAwait(false);
+        var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        var json = PersistedQueryJson.Serialize(query, _jsonOptions);
+        try
+        {
+            await File.WriteAllTextAsync(temp, json, cancellationToken).ConfigureAwait(false);
+            File.Move(temp, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temp))
+            {
+                File.Delete(temp);
+            }
+        }
     }
 
     /// <inheritdoc />
     public async Task<PersistedQuery?> LoadAsync(string key, CancellationToken cancellationToken = default)
     {
-        var path = PathForKey(key);
-        if (!File.Exists(path))
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(key);
+        var query = await ReadAsync(PathForKey(key), cancellationToken).ConfigureAwait(false);
 
-        var json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-        return JsonSerializer.Deserialize<PersistedQuery>(json, _jsonOptions);
+        // Guard against a (vanishingly unlikely) file-name hash collision.
+        return query is not null && string.Equals(query.Key, key, StringComparison.Ordinal) ? query : null;
     }
 
     /// <inheritdoc />
@@ -50,8 +64,7 @@ public sealed class FileSystemQueryPersister : IQueryPersister
         foreach (var path in Directory.EnumerateFiles(_directory, "*" + Extension))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            if (JsonSerializer.Deserialize<PersistedQuery>(json, _jsonOptions) is { } query)
+            if (await ReadAsync(path, cancellationToken).ConfigureAwait(false) is { } query)
             {
                 results.Add(query);
             }
@@ -63,6 +76,7 @@ public sealed class FileSystemQueryPersister : IQueryPersister
     /// <inheritdoc />
     public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(key);
         var path = PathForKey(key);
         if (File.Exists(path))
         {
@@ -81,6 +95,28 @@ public sealed class FileSystemQueryPersister : IQueryPersister
         }
 
         return Task.CompletedTask;
+    }
+
+    private async Task<PersistedQuery?> ReadAsync(string path, CancellationToken cancellationToken)
+    {
+        string json;
+        try
+        {
+            json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null; // removed concurrently
+        }
+
+        try
+        {
+            return PersistedQueryJson.Deserialize(json, _jsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null; // corrupt or incompatible entry: skip it
+        }
     }
 
     private string PathForKey(string key) => Path.Combine(_directory, HashFileName(key) + Extension);

@@ -1,4 +1,5 @@
 #nullable enable
 DotNetQuery.WinUI.WinUIQueryExtensions
 static DotNetQuery.WinUI.WinUIQueryExtensions.CreateObservableMutation<TVariables, TData>(this DotNetQuery.IQueryClient! client, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>!
+static DotNetQuery.WinUI.WinUIQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryDefinition<T>! query) -> DotNetQuery.Mvvm.ObservableQuery<T>!
 static DotNetQuery.WinUI.WinUIQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null) -> DotNetQuery.Mvvm.ObservableQuery<T>!

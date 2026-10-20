@@ -1,15 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.DevTools.Blazor</PackageId>
-    <Description>Blazor visual DevTools panel for DotNetQuery: renders the cache inspector, live event log, and manual actions.</Description>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Description>Blazor visual DevTools panel for DotNetQuery: inline or floating cache inspector with data previews, mutation history, live event log, and manual refetch/invalidate/cancel/remove actions.</Description>
+    <!-- Razor-generated component classes carry no XML docs; their parameters do. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
   </ItemGroup>
 

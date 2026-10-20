@@ -1,16 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.Blazor</PackageId>
-    <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component, component-scoped observers, and browser focus/online signal wiring.</Description>
-    <!-- Razor-generated code and component nullability don't fit doc/AOT/warnings-as-errors defaults. -->
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component (loading/error templates, keep-previous-data pagination, prerender hydration), hook-style UseQuery/UseMutation/UseInfiniteQuery for components, per-circuit client registration, and browser focus/online/visibility signal wiring.</Description>
+    <!-- Razor-generated component classes carry no XML docs; their parameters do. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
   </ItemGroup>
 

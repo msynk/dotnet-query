@@ -6,10 +6,16 @@ namespace DotNetQuery;
 /// </summary>
 public sealed class QueryClientOptions
 {
-    /// <summary>Default freshness window for fetched data. Defaults to zero (always stale).</summary>
+    /// <summary>
+    /// Default freshness window for fetched data. Defaults to zero (always stale). Use
+    /// <see cref="Timeout.InfiniteTimeSpan"/> for data that never goes stale on its own.
+    /// </summary>
     public TimeSpan DefaultStaleTime { get; set; } = TimeSpan.Zero;
 
-    /// <summary>Default retention window for inactive queries. Defaults to 5 minutes.</summary>
+    /// <summary>
+    /// Default retention window for inactive queries. Defaults to 5 minutes. Use
+    /// <see cref="Timeout.InfiniteTimeSpan"/> to never garbage-collect inactive queries.
+    /// </summary>
     public TimeSpan DefaultCacheTime { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>Default number of automatic retries after a failed fetch. Defaults to 3.</summary>
@@ -46,17 +52,24 @@ public sealed class QueryClientOptions
     /// Resolves the effective options for a query by layering per-query overrides over these defaults.
     /// </summary>
     internal ResolvedQueryOptions Resolve(QueryOptions? options) => new(
-        StaleTime: options?.StaleTime ?? DefaultStaleTime,
-        CacheTime: options?.CacheTime ?? DefaultCacheTime,
-        RetryCount: options?.RetryCount ?? DefaultRetryCount,
-        RetryDelay: options?.RetryDelay ?? DefaultRetryDelay,
-        RefetchInterval: options?.RefetchInterval,
+        StaleTime: NormalizeDuration(options?.StaleTime ?? DefaultStaleTime),
+        CacheTime: NormalizeDuration(options?.CacheTime ?? DefaultCacheTime),
+        RetryCount: Math.Max(0, options?.RetryCount ?? DefaultRetryCount),
+        RetryDelay: options?.RetryDelay ?? DefaultRetryDelay ?? RetryPolicy.Default,
+        RefetchInterval: options?.RefetchInterval is { } interval && interval > TimeSpan.Zero ? interval : null,
         Enabled: options?.Enabled ?? true,
         RefetchOnReconnect: options?.RefetchOnReconnect ?? DefaultRefetchOnReconnect,
         RefetchOnFocus: options?.RefetchOnFocus ?? DefaultRefetchOnFocus,
         RefetchOnResume: options?.RefetchOnResume ?? DefaultRefetchOnResume,
         ThrowOnError: options?.ThrowOnError ?? DefaultThrowOnError,
         CancelInFlightWhenUnobserved: options?.CancelInFlightWhenUnobserved ?? DefaultCancelInFlightWhenUnobserved);
+
+    /// <summary>
+    /// Maps <see cref="Timeout.InfiniteTimeSpan"/> to <see cref="TimeSpan.MaxValue"/> (never elapses) and
+    /// clamps other negative durations to zero.
+    /// </summary>
+    internal static TimeSpan NormalizeDuration(TimeSpan value) =>
+        value == Timeout.InfiniteTimeSpan ? TimeSpan.MaxValue : value < TimeSpan.Zero ? TimeSpan.Zero : value;
 }
 
 /// <summary>Fully materialized options with all defaults applied. Internal to the client.</summary>

@@ -43,6 +43,7 @@ DOTNETQUERY_REDIS=my-redis-host:6379 dotnet test tests/DotNetQuery.Core.Tests --
 ## Notes
 
 - The `ConnectionMultiplexer` is thread-safe, so no external locking is used.
-- Data is stored as JSON (via `QueryPersistenceManager`), so this package is **not** AOT/trim-safe.
+- Envelopes use source-generated JSON, so the provider is trim/AOT-safe; register payload types with a
+  `JsonTypeInfo<T>` on `QueryPersistenceManager` to keep the whole path reflection-free.
 - Storing all queries in one hash keeps `LoadAll`/`Clear` to a single `HGETALL`/`DEL` and avoids `SCAN`.
   Change the hash key per app/tenant via the `hashKey` constructor argument.

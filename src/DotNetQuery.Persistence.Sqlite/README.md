@@ -27,7 +27,7 @@ await manager.PersistAllAsync();   // on shutdown / periodically
   so an in-memory database survives between calls) and serializes access with a semaphore. **Dispose it**
   (`await using` / `using`) when done - disposal also clears the connection pool so the database file is
   released and can be deleted or replaced immediately.
-- **Not AOT/trim-safe.** Like the other persistence packages, it uses reflection-based
-  `System.Text.Json` (via `QueryPersistenceManager`) and ADO.NET.
+- **Trim/AOT analysis is clean** for this package (it stores plain strings). Register payload types on
+  `QueryPersistenceManager` with a `JsonTypeInfo<T>` to keep the whole persistence path reflection-free.
 - The native SQLite bundle is pinned to a patched `SQLitePCLRaw` release to avoid a known advisory in the
   version Microsoft.Data.Sqlite pulls transitively.

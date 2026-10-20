@@ -25,7 +25,7 @@ public sealed class IndexedDbQueryPersister : IQueryPersister
     private readonly IJSRuntime _js;
     private readonly string _databaseName;
     private readonly string _storeName;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions? _jsonOptions;
 
     /// <summary>Creates a persister over <paramref name="jsRuntime"/>.</summary>
     /// <param name="jsRuntime">The Blazor JS runtime used to reach IndexedDB.</param>
@@ -41,14 +41,14 @@ public sealed class IndexedDbQueryPersister : IQueryPersister
         _js = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
         _databaseName = databaseName ?? DefaultDatabaseName;
         _storeName = storeName ?? DefaultStoreName;
-        _jsonOptions = jsonOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _jsonOptions = jsonOptions;
     }
 
     /// <inheritdoc />
     public async Task SaveAsync(PersistedQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
-        var json = JsonSerializer.Serialize(query, _jsonOptions);
+        var json = PersistedQueryJson.Serialize(query, _jsonOptions);
         await _js.InvokeVoidAsync("dotnetQueryIndexedDb.save", cancellationToken, _databaseName, _storeName, query.Key, json).ConfigureAwait(false);
     }
 
@@ -57,7 +57,7 @@ public sealed class IndexedDbQueryPersister : IQueryPersister
     {
         ArgumentNullException.ThrowIfNull(key);
         var json = await _js.InvokeAsync<string?>("dotnetQueryIndexedDb.load", cancellationToken, _databaseName, _storeName, key).ConfigureAwait(false);
-        return string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<PersistedQuery>(json, _jsonOptions);
+        return string.IsNullOrEmpty(json) ? null : PersistedQueryJson.Deserialize(json, _jsonOptions);
     }
 
     /// <inheritdoc />
@@ -67,9 +67,21 @@ public sealed class IndexedDbQueryPersister : IQueryPersister
         var results = new List<PersistedQuery>(jsons.Length);
         foreach (var json in jsons)
         {
-            if (!string.IsNullOrEmpty(json) && JsonSerializer.Deserialize<PersistedQuery>(json, _jsonOptions) is { } query)
+            if (string.IsNullOrEmpty(json))
             {
-                results.Add(query);
+                continue;
+            }
+
+            try
+            {
+                if (PersistedQueryJson.Deserialize(json, _jsonOptions) is { } query)
+                {
+                    results.Add(query);
+                }
+            }
+            catch (JsonException)
+            {
+                // Skip corrupt or incompatible records instead of failing the whole restore.
             }
         }
 

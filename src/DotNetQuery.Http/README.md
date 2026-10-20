@@ -23,4 +23,7 @@ await client.PrefetchJsonAsync<Todo>(QueryKey.Create<Todo>(7), http, "todos/7");
   `HttpRequestException`, and a body that deserializes to `null` throws `InvalidOperationException`
   (a query should resolve to a value, not null).
 - Pass a `JsonSerializerOptions` to control naming/converters; the default is `JsonSerializerDefaults.Web`.
-- Uses reflection-based `System.Text.Json`, so this package is **not** AOT/trim-safe.
+- **Trimming / NativeAOT:** every helper has a `JsonTypeInfo<T>` overload (from a source-generated
+  `JsonSerializerContext`) that is trim- and AOT-safe - use it in Blazor WebAssembly and AOT apps:
+  `http.JsonQuery(key, "todos/7", AppJson.Default.Todo)` returns a ready-to-use `QueryDefinition<Todo>`.
+  The `JsonSerializerOptions` overloads use reflection and are annotated `[RequiresUnreferencedCode]`.

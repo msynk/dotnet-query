@@ -31,8 +31,17 @@ public sealed record InfiniteQueryState<TParam, TPage>
     /// <summary>Gets the UTC timestamp at which the data was last updated.</summary>
     public DateTimeOffset? DataUpdatedAt { get; init; }
 
+    /// <summary>Gets the number of failed attempts in the current fetch cycle.</summary>
+    public int FailureCount { get; init; }
+
     /// <summary>Gets a value indicating whether the query is loading its first page.</summary>
     public bool IsLoading => Status is QueryStatus.Loading;
+
+    /// <summary>Gets a value indicating whether the query has neither pages nor an error yet (idle or first load).</summary>
+    public bool IsPending => Status is QueryStatus.Idle or QueryStatus.Loading;
+
+    /// <summary>Gets a value indicating whether any fetch (first page, next/previous page, or refetch) is in flight.</summary>
+    public bool IsFetching => Status is QueryStatus.Loading or QueryStatus.Refetching;
 
     /// <summary>Gets a value indicating whether the query has at least one page.</summary>
     public bool IsSuccess => Status is QueryStatus.Success or QueryStatus.Refetching && Data.Pages.Count > 0;

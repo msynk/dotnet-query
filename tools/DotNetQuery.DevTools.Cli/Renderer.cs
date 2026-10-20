@@ -9,6 +9,7 @@ internal static class Renderer
     {
         RenderStats(export.Stats);
         RenderQueries(export.Queries);
+        RenderMutations(export.Mutations ?? []);
         RenderEvents(export.Events);
     }
 
@@ -16,8 +17,9 @@ internal static class Renderer
     {
         Console.WriteLine("== Cache ==================================================");
         Console.WriteLine($"  queries: {s.TotalQueries}   active: {s.ActiveQueries}   stale: {s.StaleQueries}");
-        Console.WriteLine($"  fetches: {s.FetchesStarted} started / {s.FetchesSucceeded} ok / {s.FetchesFailed} failed" +
-                          $"      mutations: {s.MutationsStarted} started / {s.MutationsCompleted} done");
+        Console.WriteLine($"  fetches: {s.FetchesStarted} started / {s.FetchesSucceeded} ok / {s.FetchesFailed} failed / {s.FetchesCancelled} cancelled" +
+                          $"   (in flight: {s.FetchingQueries})");
+        Console.WriteLine($"  mutations: {s.MutationsStarted} started / {s.MutationsCompleted} done / {s.MutationsFailed} failed / {s.PendingMutations} pending");
         Console.WriteLine($"  avg query duration: {s.AverageQueryDurationMs:F1} ms");
         if (s.StatusCounts.Count > 0)
         {
@@ -47,6 +49,25 @@ internal static class Renderer
             {
                 Console.WriteLine($"      └─ error: {q.ErrorMessage}");
             }
+        }
+
+        Console.WriteLine();
+    }
+
+    private static void RenderMutations(MutationDto[] mutations)
+    {
+        Console.WriteLine("== Mutations ==============================================");
+        if (mutations.Length == 0)
+        {
+            Console.WriteLine("  (none)\n");
+            return;
+        }
+
+        Console.WriteLine($"  {"#",-5} {"KEY",-22} {"STATUS",-8} {"DURATION",-10} ERROR");
+        foreach (var m in mutations.Take(15))
+        {
+            var duration = m.DurationMs is { } d ? $"{d:F0} ms" : "…";
+            Console.WriteLine($"  {m.MutationId,-5} {Trunc(m.MutationKey ?? "-", 22),-22} {m.Status,-8} {duration,-10} {m.ErrorMessage}");
         }
 
         Console.WriteLine();

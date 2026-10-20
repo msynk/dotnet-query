@@ -46,9 +46,22 @@ This appends new members to `PublicAPI.Unshipped.txt`. Review the diff - an unex
 exposed something you didn't intend. On a release, move `Unshipped` entries into `Shipped.txt`.
 
 Analyzer-enabled projects: `DotNetQuery.Core`, `.DependencyInjection`, `.DevTools`, `.Persistence`,
-`.Persistence.Sqlite`, `.Persistence.Redis`, `.Persistence.BlazorWasm`, `.Http`, `.Mvvm`, `.Wpf`,
-`.WinUI`, `.Avalonia`, `.Maui`. The Razor adapters (`.Blazor`, `.DevTools.Blazor`) are excluded (their
-public surface is largely Razor-generated; component parameters are covered by bUnit tests instead).
+`.Persistence.Sqlite`, `.Persistence.Redis`, `.Persistence.BlazorWasm`, `.Http`, `.GraphQL`, `.Mvvm`,
+`.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`. The Razor adapters (`.Blazor`, `.DevTools.Blazor`) are excluded
+(their public surface is largely Razor-generated; component parameters are covered by bUnit tests instead).
+
+## Concurrency rules for the engine
+
+`QueryEntry<T>` is the heart of the library; changes to it must keep these invariants (each is covered by
+tests in `FetchLifecycleTests`, `OfflineBehaviorTests` and `ConcurrencyRegressionTests`):
+
+- User code (fetchers, updaters, observer and cache-change handlers) never runs while an entry lock is held.
+- State changes are queued under the lock and delivered by a single drainer, so subscribers see every
+  transition once and in order.
+- A cancelled or superseded fetch never leaves a query in `Loading`/`Refetching`; waiters of a superseded
+  fetch receive the newest fetch's outcome.
+- Garbage collection never removes an entry with observers, an in-flight fetch, or a fetch deferred while
+  offline.
 
 ## Benchmarks
 
@@ -61,7 +74,8 @@ See [benchmarks/DotNetQuery.Benchmarks/README.md](benchmarks/DotNetQuery.Benchma
 
 ## NativeAOT / trimming
 
-The core is `IsAotCompatible`. Verify with the harness - a clean publish emits zero IL2xxx/IL3xxx
+Core, DependencyInjection, Persistence (all providers), Http and GraphQL are `IsAotCompatible`. Verify with
+the harness - a clean publish emits zero IL2xxx/IL3xxx
 warnings and produces a native binary:
 
 ```bash

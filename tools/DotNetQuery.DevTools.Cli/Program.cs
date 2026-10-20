@@ -77,7 +77,10 @@ static async Task<string> GenerateDemoExportAsync()
     await client.FetchAsync(QueryKey.Create("users"), _ => Task.FromResult(new[] { "alice", "bob" }));
     await client.FetchAsync(QueryKey.Create("orders", 42), _ => Task.FromResult(new { Id = 42 }));
     await client.FetchAsync<int>(QueryKey.Create("flaky"), _ => throw new InvalidOperationException("upstream 500"));
-    await client.MutateAsync<string, int>((s, _) => Task.FromResult(s.Length), "hello");
+    await client.MutateAsync<string, int>(
+        (s, _) => Task.FromResult(s.Length),
+        "hello",
+        new MutationOptions<string, int> { MutationKey = QueryKey.Create("greetings", "measure") });
     await client.InvalidateQueriesAsync(QueryKey.Create("users"));
 
     return devtools.ExportJson();

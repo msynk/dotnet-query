@@ -1,95 +1,19 @@
 @typeparam TData
 @implements IDisposable
-@inject IQueryClient QueryClient
 
 @if (_observer is not null)
 {
-    @ChildContent(_observer.CurrentResult)
-}
-
-@code {
-    private QueryObserver<TData>? _observer;
-
-    /// <summary>The key identifying the query.</summary>
-    [Parameter, EditorRequired]
-    public QueryKey Key { get; set; } = default!;
-
-    /// <summary>Delegate that performs the fetch.</summary>
-    [Parameter, EditorRequired]
-    public Func<CancellationToken, Task<TData>> Fetcher { get; set; } = default!;
-
-    /// <summary>Optional per-query options.</summary>
-    [Parameter]
-    public QueryOptions? Options { get; set; }
-
-    /// <summary>
-    /// Optional dependency value describing the fetcher's inputs. When it changes between renders
-    /// (by structural equality) while the <see cref="Key"/> stays the same, the query refetches using
-    /// the current <see cref="Fetcher"/>. Combine several inputs with a tuple, e.g.
-    /// <c>Inputs="@((page, filter))"</c>. Leave unset to refetch on key change only.
-    /// </summary>
-    [Parameter]
-    public object? Inputs { get; set; }
-
-    /// <summary>Render fragment receiving the live query result.</summary>
-    [Parameter, EditorRequired]
-    public RenderFragment<QueryResult<TData>> ChildContent { get; set; } = default!;
-
-    private bool _needsFetch;
-    private bool _needsRefetch;
-    private object? _lastInputs;
-
-    protected override void OnParametersSet()
+    var result = CurrentResult;
+    if (Loading is not null && result.IsPending)
     {
-        // Re-subscribe (and schedule a fetch) only when the key changes, so re-renders that merely
-        // recreate the fetcher lambda don't trigger redundant fetches.
-        if (_observer is not null && _observer.Key != Key)
-        {
-            Unsubscribe();
-        }
-
-        if (_observer is null)
-        {
-            _observer = QueryClient.Watch<TData>(Key);
-            _observer.StateChanged += OnStateChanged;
-            _needsFetch = true;
-            _lastInputs = Inputs;
-        }
-        else if (!Equals(_lastInputs, Inputs))
-        {
-            // Same key, but the declared inputs changed → force a refetch with the current fetcher,
-            // bypassing staleness so the new inputs take effect immediately.
-            _lastInputs = Inputs;
-            _needsRefetch = true;
-        }
+        @Loading
     }
-
-    protected override async Task OnParametersSetAsync()
+    else if (Error is not null && result.IsLoadingError)
     {
-        if (_needsFetch)
-        {
-            _needsFetch = false;
-            _needsRefetch = false;
-            await QueryClient.FetchAsync(Key, Fetcher, Options);
-        }
-        else if (_needsRefetch)
-        {
-            _needsRefetch = false;
-            await QueryClient.FetchAsync(Key, Fetcher, Options, forceRefetch: true);
-        }
+        @Error(result.Error!)
     }
-
-    private void OnStateChanged(QueryState<TData> state) => InvokeAsync(StateHasChanged);
-
-    private void Unsubscribe()
+    else if (ChildContent is not null)
     {
-        if (_observer is not null)
-        {
-            _observer.StateChanged -= OnStateChanged;
-            _observer.Dispose();
-            _observer = null;
-        }
+        @ChildContent(result)
     }
-
-    public void Dispose() => Unsubscribe();
 }
