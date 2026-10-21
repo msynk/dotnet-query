@@ -17,7 +17,7 @@ using var history = client.CreateInfiniteQuery<int, MessagePage>(
     new InfiniteQueryOptions<int, MessagePage>
     {
         InitialPageParam = 0,
-        GetNextPageParam = (last, _, _) => last.HasMore ? NextPageParam.Of(last.Offset + 10) : NextPageParam.None<int>(),
+        GetNextPageParam = (last, _, _) => last.HasMore ? NextPageParam.Of(last.Offset + ChatService.PageSize) : NextPageParam.None<int>(),
     });
 
 var afterFirst = await history.FetchAsync();

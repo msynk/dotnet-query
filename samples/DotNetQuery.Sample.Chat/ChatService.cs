@@ -13,7 +13,7 @@ public sealed record MessagePage(int Offset, IReadOnlyList<Message> Messages, bo
 /// </summary>
 public sealed class ChatService
 {
-    private const int PageSize = 10;
+    public const int PageSize = 10;
     private static readonly string[] Users = ["alice", "bob", "carol"];
 
     private readonly List<Message> _history =

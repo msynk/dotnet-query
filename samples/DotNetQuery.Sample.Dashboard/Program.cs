@@ -38,7 +38,14 @@ await client.FetchAsync(visitorsKey, api.GetLiveVisitorsAsync,
 var before = client.GetQueryData<int>(visitorsKey).Data;
 Console.WriteLine($"  [visitors] {before} (initial)");
 
-await Task.Delay(700); // let the 200 ms poll fire a few times
+// Let the 200 ms poll fire a few times. Wait on the outcome (with a generous ceiling) rather than a fixed
+// delay, so a slow CI runner doesn't turn a late timer tick into a false failure.
+var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+do
+{
+    await Task.Delay(100);
+}
+while (client.GetQueryData<int>(visitorsKey).Data < before + 3 && DateTime.UtcNow < deadline);
 var after = client.GetQueryData<int>(visitorsKey).Data;
 Console.WriteLine($"  [visitors] {after} (after background polling)\n");
 

@@ -35,9 +35,10 @@ internal static class Program
             .WithInterFont()
             .SetupWithoutStarting();
 
-        var client = new QueryClient(new QueryClientOptions { DefaultStaleTime = TimeSpan.FromSeconds(5) });
+        using var client = new QueryClient(new QueryClientOptions { DefaultStaleTime = TimeSpan.FromSeconds(5) });
         var service = new TodoService();
         var viewModel = new MainWindowViewModel(client, service);
+        using var todos = viewModel.Todos;
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
 

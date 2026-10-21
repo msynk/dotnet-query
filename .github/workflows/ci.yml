@@ -144,6 +144,9 @@ jobs:
       - name: Build MAUI adapter (android)
         run: dotnet build src/adapters/DotNetQuery.Maui -c Release -f net10.0-android
 
+      - name: Build MAUI sample (android)
+        run: dotnet build samples/DotNetQuery.Sample.Maui -c Release -f net10.0-android
+
       - name: Pack MAUI adapter
         run: dotnet pack src/adapters/DotNetQuery.Maui -c Release --no-build -o artifacts
 
