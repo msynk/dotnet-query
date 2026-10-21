@@ -1,6 +1,6 @@
 # DotNetQuery.Persistence.Redis
 
-A Redis-backed [`IQueryPersister`](../DotNetQuery/Persistence/IQueryPersister.cs) for DotNetQuery, built on
+A Redis-backed [`IQueryPersister`](../../DotNetQuery/Persistence/IQueryPersister.cs) for DotNetQuery, built on
 [StackExchange.Redis](https://stackexchange.github.io/StackExchange.Redis/). Every persisted query is a
 field in a single Redis hash, so it works well for shared or server-side caches read by multiple
 instances.

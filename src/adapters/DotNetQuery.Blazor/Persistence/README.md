@@ -2,7 +2,7 @@
 
 Browser cache persistence for DotNetQuery in **Blazor WebAssembly**, shipped in the `DotNetQuery.Blazor`
 package, so cached data survives page reloads. Two
-[`IQueryPersister`](../../../src/DotNetQuery/Persistence/IQueryPersister.cs) providers over `IJSRuntime`:
+[`IQueryPersister`](../../../DotNetQuery/Persistence/IQueryPersister.cs) providers over `IJSRuntime`:
 `LocalStorageQueryPersister` and `IndexedDbQueryPersister`. Both also work on Blazor Server (JS interop is
 remoted, with the usual latency).
 

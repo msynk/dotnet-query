@@ -41,7 +41,7 @@ the latest changes.
 | --- | --- | --- |
 | **Browser end-to-end tests** | Hydration, signals and the DevTools panel are verified with bUnit and a manual headless-Chrome run; add a Playwright job to CI for the TodoApp. | P1 |
 | **Ship the API baselines** | Move `PublicAPI.Unshipped.txt` entries to `Shipped.txt` when tagging 1.0. | P1 |
-| **Benchmark baseline** | Run `benchmarks/DotNetQuery.Benchmarks` in Release and commit the summary as the 1.0 baseline. | P2 |
+| **Benchmark baseline** | Run `tests/DotNetQuery.Benchmarks` in Release and commit the summary as the 1.0 baseline. | P2 |
 | **MAUI iOS/macCatalyst heads** | Wired to build on macOS; needs a Mac build host. | P2 |
 | **Query key source generator** | Optional compile-time key/definition factories. | P3 |
 | **Structural sharing** | Reuse unchanged parts of refetched data to reduce UI churn (TanStack's `structuralSharing`). | P3 |

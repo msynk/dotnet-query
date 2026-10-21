@@ -73,5 +73,5 @@ see [Blazor](blazor.md#devtools)):
 <QueryDevToolsPanel Floating="true" />
 ```
 
-For any app, `tools/DotNetQuery.DevTools.Cli` renders an `ExportJson()` dump (file or stdin) as a console
+For any app, `src/DotNetQuery.DevTools.Cli` renders an `ExportJson()` dump (file or stdin) as a console
 dashboard.

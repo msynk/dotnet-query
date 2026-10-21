@@ -77,7 +77,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
-		<ProjectReference Include="..\..\adapters\DotNetQuery.Maui\DotNetQuery.Maui.csproj" />
+		<ProjectReference Include="..\..\src\adapters\DotNetQuery.Maui\DotNetQuery.Maui.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
-    <ProjectReference Include="..\..\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
+    <ProjectReference Include="..\..\src\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
   </ItemGroup>
 
 </Project>

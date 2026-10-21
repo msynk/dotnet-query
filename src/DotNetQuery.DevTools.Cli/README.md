@@ -1,7 +1,7 @@
 # DotNetQuery.DevTools.Cli
 
 A standalone, **out-of-process** DevTools inspector. It consumes the JSON produced by any app's
-[`QueryDevTools.ExportJson()`](../../src/DotNetQuery/DevTools/QueryDevTools.cs) and renders a console
+[`QueryDevTools.ExportJson()`](../DotNetQuery/DevTools/QueryDevTools.cs) and renders a console
 dashboard - cache stats, a queries table, and the recent event log - with no dependency on the running
 app.
 
@@ -9,16 +9,16 @@ app.
 
 ```bash
 # Inspect an export produced by your app (devtools.ExportJson() written to a file):
-dotnet run --project tools/DotNetQuery.DevTools.Cli -- export.json
+dotnet run --project src/DotNetQuery.DevTools.Cli -- export.json
 
 # Or pipe one in on stdin:
-your-app --dump-devtools | dotnet run --project tools/DotNetQuery.DevTools.Cli -- -
+your-app --dump-devtools | dotnet run --project src/DotNetQuery.DevTools.Cli -- -
 
 # Emit a demo export (to capture a sample, or pipe straight back in):
-dotnet run --project tools/DotNetQuery.DevTools.Cli -- emit > export.json
+dotnet run --project src/DotNetQuery.DevTools.Cli -- emit > export.json
 
 # No argument: render a generated demo export (also the CI smoke test).
-dotnet run --project tools/DotNetQuery.DevTools.Cli
+dotnet run --project src/DotNetQuery.DevTools.Cli
 ```
 
 Example output:

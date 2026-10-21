@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
+    <ProjectReference Include="..\..\DotNetQuery\DotNetQuery.csproj" />
   </ItemGroup>
 
 </Project>

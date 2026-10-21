@@ -20,9 +20,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
-    <ProjectReference Include="..\..\src\DotNetQuery.Persistence.Sqlite\DotNetQuery.Persistence.Sqlite.csproj" />
-    <ProjectReference Include="..\..\src\DotNetQuery.Persistence.Redis\DotNetQuery.Persistence.Redis.csproj" />
-    <ProjectReference Include="..\..\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
+    <ProjectReference Include="..\..\src\persistence\DotNetQuery.Persistence.Sqlite\DotNetQuery.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\persistence\DotNetQuery.Persistence.Redis\DotNetQuery.Persistence.Redis.csproj" />
+    <ProjectReference Include="..\..\src\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
   </ItemGroup>
 
 </Project>

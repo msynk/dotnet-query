@@ -14,7 +14,7 @@ core and cross-platform adapters build and test on Linux/macOS too; CI runs both
 and per-OS tooling). Build it directly:
 
 ```bash
-dotnet build adapters/DotNetQuery.Maui -f net10.0-android      # needs the maui/android workloads
+dotnet build src/adapters/DotNetQuery.Maui -f net10.0-android      # needs the maui/android workloads
 ```
 
 Its target heads are environment-gated, so each builds where it can:
@@ -22,7 +22,7 @@ Its target heads are environment-gated, so each builds where it can:
 - **Android** - `dotnet` CLI, VS, and CI.
 - **Windows** (`net10.0-windows10.0.19041.0`) - only under full Visual Studio MSBuild (the head is gated
   on MSBuild runtime type `Full`, since the transitive WindowsAppSDK PRI/Appx tasks aren't in the bare
-  SDK): `& "$(vswhere ... -find MSBuild\**\Bin\MSBuild.exe)" adapters/DotNetQuery.Maui -restore`.
+  SDK): `& "$(vswhere ... -find MSBuild\**\Bin\MSBuild.exe)" src/adapters/DotNetQuery.Maui -restore`.
 - **iOS / Mac Catalyst** - added when building on macOS.
 
 `DotNetQuery.WinUI` builds with the plain CLI because it excludes the WindowsAppSDK MSBuild targets (see
@@ -74,11 +74,11 @@ tests in `FetchLifecycleTests`, `OfflineBehaviorTests` and `ConcurrencyRegressio
 ## Benchmarks
 
 ```bash
-dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks           # all
-dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --filter *QueryKey*
+dotnet run -c Release --project tests/DotNetQuery.Benchmarks           # all
+dotnet run -c Release --project tests/DotNetQuery.Benchmarks -- --filter *QueryKey*
 ```
 
-See [benchmarks/DotNetQuery.Benchmarks/README.md](benchmarks/DotNetQuery.Benchmarks/README.md).
+See [tests/DotNetQuery.Benchmarks/README.md](tests/DotNetQuery.Benchmarks/README.md).
 
 ## NativeAOT / trimming
 

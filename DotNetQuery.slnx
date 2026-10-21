@@ -1,12 +1,17 @@
 <Solution>
-  <Folder Name="/adapters/">
-    <Project Path="adapters/DotNetQuery.Avalonia/DotNetQuery.Avalonia.csproj" />
-    <Project Path="adapters/DotNetQuery.Blazor/DotNetQuery.Blazor.csproj" />
-    <Project Path="adapters/DotNetQuery.Wpf/DotNetQuery.Wpf.csproj" />
-    <Project Path="adapters/DotNetQuery.WinUI/DotNetQuery.WinUI.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/DotNetQuery/DotNetQuery.csproj" />
+    <Project Path="src/DotNetQuery.DevTools.Cli/DotNetQuery.DevTools.Cli.csproj" />
   </Folder>
-  <Folder Name="/benchmarks/">
-    <Project Path="benchmarks/DotNetQuery.Benchmarks/DotNetQuery.Benchmarks.csproj" />
+  <Folder Name="/src/adapters/">
+    <Project Path="src/adapters/DotNetQuery.Avalonia/DotNetQuery.Avalonia.csproj" />
+    <Project Path="src/adapters/DotNetQuery.Blazor/DotNetQuery.Blazor.csproj" />
+    <Project Path="src/adapters/DotNetQuery.Wpf/DotNetQuery.Wpf.csproj" />
+    <Project Path="src/adapters/DotNetQuery.WinUI/DotNetQuery.WinUI.csproj" />
+  </Folder>
+  <Folder Name="/src/persistence/">
+    <Project Path="src/persistence/DotNetQuery.Persistence.Sqlite/DotNetQuery.Persistence.Sqlite.csproj" />
+    <Project Path="src/persistence/DotNetQuery.Persistence.Redis/DotNetQuery.Persistence.Redis.csproj" />
   </Folder>
   <Folder Name="/aot/">
     <Project Path="aot/DotNetQuery.AotHarness/DotNetQuery.AotHarness.csproj" />
@@ -19,15 +24,8 @@
     <Project Path="samples/DotNetQuery.Sample.ECommerce/DotNetQuery.Sample.ECommerce.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Dashboard/DotNetQuery.Sample.Dashboard.csproj" />
   </Folder>
-  <Folder Name="/src/">
-    <Project Path="src/DotNetQuery/DotNetQuery.csproj" />
-    <Project Path="src/DotNetQuery.Persistence.Sqlite/DotNetQuery.Persistence.Sqlite.csproj" />
-    <Project Path="src/DotNetQuery.Persistence.Redis/DotNetQuery.Persistence.Redis.csproj" />
-  </Folder>
-  <Folder Name="/tools/">
-    <Project Path="tools/DotNetQuery.DevTools.Cli/DotNetQuery.DevTools.Cli.csproj" />
-  </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DotNetQuery.Benchmarks/DotNetQuery.Benchmarks.csproj" />
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />
     <Project Path="tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj" />
   </Folder>

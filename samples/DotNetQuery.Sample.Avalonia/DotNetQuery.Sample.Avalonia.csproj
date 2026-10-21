@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
-    <ProjectReference Include="..\..\adapters\DotNetQuery.Avalonia\DotNetQuery.Avalonia.csproj" />
+    <ProjectReference Include="..\..\src\adapters\DotNetQuery.Avalonia\DotNetQuery.Avalonia.csproj" />
   </ItemGroup>
 
 </Project>

@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DotNetQuery\DotNetQuery.csproj" />
+    <ProjectReference Include="..\..\DotNetQuery\DotNetQuery.csproj" />
   </ItemGroup>
 
 </Project>

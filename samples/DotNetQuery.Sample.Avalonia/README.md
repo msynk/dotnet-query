@@ -1,6 +1,6 @@
 # DotNetQuery.Sample.Avalonia
 
-A minimal Avalonia desktop app demonstrating the [`DotNetQuery.Avalonia`](../../adapters/DotNetQuery.Avalonia)
+A minimal Avalonia desktop app demonstrating the [`DotNetQuery.Avalonia`](../../src/adapters/DotNetQuery.Avalonia)
 adapter end to end: [MainWindowViewModel](MainWindowViewModel.cs) creates an `ObservableQuery` via the
 adapter's dispatcher-aware factory, and [MainWindow.axaml](MainWindow.axaml) binds straight to
 `Todos.Data`, `Todos.Status`, etc. through `INotifyPropertyChanged`. The **Refetch** button invalidates

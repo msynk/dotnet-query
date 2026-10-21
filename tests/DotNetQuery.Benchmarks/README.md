@@ -9,16 +9,16 @@ Benchmarks **must** run in `Release`:
 
 ```bash
 # All benchmarks
-dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks
+dotnet run -c Release --project tests/DotNetQuery.Benchmarks
 
 # A subset (glob against type/method names)
-dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --filter *QueryKey*
+dotnet run -c Release --project tests/DotNetQuery.Benchmarks -- --filter *QueryKey*
 
 # Quick validation pass (single op, no statistics - not a real measurement)
-dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --job dry
+dotnet run -c Release --project tests/DotNetQuery.Benchmarks -- --job dry
 
 # List everything available
-dotnet run -c Release --project benchmarks/DotNetQuery.Benchmarks -- --list flat
+dotnet run -c Release --project tests/DotNetQuery.Benchmarks -- --list flat
 ```
 
 ## What is measured

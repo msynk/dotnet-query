@@ -1,6 +1,6 @@
 # DotNetQuery.Sample.Maui
 
-A minimal .NET MAUI app demonstrating the [`DotNetQuery.Maui`](../../adapters/DotNetQuery.Maui) adapter
+A minimal .NET MAUI app demonstrating the [`DotNetQuery.Maui`](../../src/adapters/DotNetQuery.Maui) adapter
 end to end: it registers the query client with `AddDotNetQuery`, creates an `ObservableQuery` via the
 adapter's dispatcher-aware factory, binds it straight to XAML through `INotifyPropertyChanged`, and wires
 device connectivity with `MauiConnectivityBridge`.
