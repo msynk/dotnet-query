@@ -176,8 +176,9 @@ The component library's styles are bundled into your app's `<YourApp>.styles.css
 
 ## Persisting the cache in the browser
 
-`DotNetQuery.Persistence.BlazorWasm` stores registered queries in `localStorage` or IndexedDB so data
-survives reloads. Register queries with source-generated JSON metadata to stay trim/AOT-safe:
+`LocalStorageQueryPersister` and `IndexedDbQueryPersister` (namespace `DotNetQuery.Persistence`) store
+registered queries in `localStorage` or IndexedDB so data survives reloads. Register queries with
+source-generated JSON metadata to stay trim/AOT-safe:
 
 ```csharp
 var manager = new QueryPersistenceManager(client, new IndexedDbQueryPersister(JS),

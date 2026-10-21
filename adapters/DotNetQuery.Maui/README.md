@@ -17,7 +17,7 @@ var bridge = new MauiConnectivityBridge(connectivity);
 // queries now pause when the device goes offline and refetch on reconnect; Dispose to unsubscribe.
 ```
 
-Register the client with `AddDotNetQuery()` (from `DotNetQuery.DependencyInjection`) in your
+Register the client with `AddDotNetQuery()` (from the `DotNetQuery` package) in your
 `MauiProgram`, resolve the `ConnectivityProvider`, and construct the bridge once at startup.
 
 ## Target frameworks

@@ -1,6 +1,6 @@
 # DotNetQuery.Persistence.Redis
 
-A Redis-backed [`IQueryPersister`](../DotNetQuery.Persistence/IQueryPersister.cs) for DotNetQuery, built on
+A Redis-backed [`IQueryPersister`](../DotNetQuery/Persistence/IQueryPersister.cs) for DotNetQuery, built on
 [StackExchange.Redis](https://stackexchange.github.io/StackExchange.Redis/). Every persisted query is a
 field in a single Redis hash, so it works well for shared or server-side caches read by multiple
 instances.
@@ -35,9 +35,9 @@ docker run --rm -p 6379:6379 redis:7-alpine
 Then run the tests normally:
 
 ```bash
-dotnet test tests/DotNetQuery.Core.Tests --filter FullyQualifiedName~Redis
+dotnet test tests/DotNetQuery.Tests --filter FullyQualifiedName~Redis
 # against a non-default server:
-DOTNETQUERY_REDIS=my-redis-host:6379 dotnet test tests/DotNetQuery.Core.Tests --filter FullyQualifiedName~Redis
+DOTNETQUERY_REDIS=my-redis-host:6379 dotnet test tests/DotNetQuery.Tests --filter FullyQualifiedName~Redis
 ```
 
 ## Notes

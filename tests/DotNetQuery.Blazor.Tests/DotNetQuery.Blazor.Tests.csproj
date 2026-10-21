@@ -20,11 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
-    <ProjectReference Include="..\..\src\DotNetQuery.DependencyInjection\DotNetQuery.DependencyInjection.csproj" />
-    <ProjectReference Include="..\..\src\DotNetQuery.DevTools\DotNetQuery.DevTools.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
     <ProjectReference Include="..\..\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
-    <ProjectReference Include="..\..\adapters\DotNetQuery.DevTools.Blazor\DotNetQuery.DevTools.Blazor.csproj" />
   </ItemGroup>
 
 </Project>

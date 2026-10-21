@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <PackageId>DotNetQuery.Blazor</PackageId>
-    <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component (loading/error templates, keep-previous-data pagination, prerender hydration), hook-style UseQuery/UseMutation/UseInfiniteQuery for components, per-circuit client registration, and browser focus/online/visibility signal wiring.</Description>
+    <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component (loading/error templates, keep-previous-data pagination, prerender hydration), hook-style UseQuery/UseMutation/UseInfiniteQuery for components, per-circuit client registration, browser focus/online/visibility signal wiring, localStorage/IndexedDB cache persistence, and the visual DevTools panel.</Description>
     <!-- Razor-generated component classes carry no XML docs; their parameters do. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsAotCompatible>false</IsAotCompatible>
@@ -18,8 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
-    <ProjectReference Include="..\..\src\DotNetQuery.DependencyInjection\DotNetQuery.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
   </ItemGroup>
 
 </Project>

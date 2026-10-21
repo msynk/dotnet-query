@@ -1,6 +1,6 @@
 # DotNetQuery - Path to 1.0
 
-Status: **feature-complete core and Blazor adapter, 6 UI adapters, 249 tests, 16 NuGet packages, seven
+Status: **feature-complete core and Blazor adapter, 6 UI adapters, 249 tests, 7 NuGet packages, seven
 verified samples, a BenchmarkDotNet suite, a verified NativeAOT publish, CI, and a frozen public API
 surface.** This document tracks what remains before a formal 1.0 tag. See [CHANGELOG.md](CHANGELOG.md) for
 the latest changes.

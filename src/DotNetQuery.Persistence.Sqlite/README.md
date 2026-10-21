@@ -1,6 +1,6 @@
 # DotNetQuery.Persistence.Sqlite
 
-A SQLite-backed [`IQueryPersister`](../DotNetQuery.Persistence/IQueryPersister.cs) for DotNetQuery, built
+A SQLite-backed [`IQueryPersister`](../DotNetQuery/Persistence/IQueryPersister.cs) for DotNetQuery, built
 on [Microsoft.Data.Sqlite](https://learn.microsoft.com/dotnet/standard/data/sqlite/). Stores each
 persisted query as a row in a single `dotnetquery_cache` table for durable cross-session caching.
 

@@ -1,7 +1,7 @@
 # DotNetQuery.DevTools.Cli
 
 A standalone, **out-of-process** DevTools inspector. It consumes the JSON produced by any app's
-[`QueryDevTools.ExportJson()`](../../src/DotNetQuery.DevTools/QueryDevTools.cs) and renders a console
+[`QueryDevTools.ExportJson()`](../../src/DotNetQuery/DevTools/QueryDevTools.cs) and renders a console
 dashboard - cache stats, a queries table, and the recent event log - with no dependency on the running
 app.
 

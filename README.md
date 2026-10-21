@@ -27,16 +27,14 @@ visual inspector - built around `Task`, `CancellationToken`, immutable state, an
 
 | Package | Description |
 | --- | --- |
-| `DotNetQuery.Core` | Framework-agnostic engine. Zero UI dependencies, trim/AOT-safe. |
-| `DotNetQuery.DependencyInjection` | `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`. |
-| `DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals. |
-| `DotNetQuery.DevTools` / `.DevTools.Blazor` | Cache inspector, mutation history, event log, actions, JSON export; visual Blazor panel. |
-| `DotNetQuery.Persistence` | Persist/restore registered queries (in-memory, file system) and the durable `PersistentMutationQueue`. |
-| `DotNetQuery.Persistence.Sqlite` / `.Redis` / `.BlazorWasm` | SQLite, Redis, and browser `localStorage`/IndexedDB providers. |
-| `DotNetQuery.Http` / `.GraphQL` | HTTP/JSON and GraphQL fetchers and query definitions, with source-generated (AOT-safe) overloads. |
-| `DotNetQuery.Mvvm` / `.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` | `INotifyPropertyChanged` bindings and dispatcher-aware factories for XAML apps. |
+| `DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers, MVVM bindings (`ObservableQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
+| `DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, `localStorage`/IndexedDB persisters, and the visual DevTools panel. |
+| `DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers. |
+| `DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` | Dispatcher-aware factories over the MVVM bindings for XAML apps. |
 
-The portable libraries target **.NET 8 (LTS) and .NET 10**, including the Blazor adapters.
+Namespaces follow the feature, not the package: `DotNetQuery.Persistence`, `DotNetQuery.Mvvm`,
+`DotNetQuery.DevTools`, `DotNetQuery.GraphQL` and `DotNetQuery.DevTools.Blazor` all ship inside the packages
+above. The portable libraries target **.NET 8 (LTS) and .NET 10**, including the Blazor adapter.
 
 ## Quick start (Blazor)
 

@@ -45,10 +45,18 @@ dotnet format analyzers <path-to-project> --diagnostics RS0016
 This appends new members to `PublicAPI.Unshipped.txt`. Review the diff - an unexpected entry means you
 exposed something you didn't intend. On a release, move `Unshipped` entries into `Shipped.txt`.
 
-Analyzer-enabled projects: `DotNetQuery.Core`, `.DependencyInjection`, `.DevTools`, `.Persistence`,
-`.Persistence.Sqlite`, `.Persistence.Redis`, `.Persistence.BlazorWasm`, `.Http`, `.GraphQL`, `.Mvvm`,
-`.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`. The Razor adapters (`.Blazor`, `.DevTools.Blazor`) are excluded
-(their public surface is largely Razor-generated; component parameters are covered by bUnit tests instead).
+Analyzer-enabled projects: `DotNetQuery`, `.Persistence.Sqlite`, `.Persistence.Redis`, `.Wpf`, `.WinUI`,
+`.Avalonia`, `.Maui`. The Razor adapter (`.Blazor`, which also carries the browser persisters and the
+DevTools panel) is excluded (its public surface is largely Razor-generated; component parameters are
+covered by bUnit tests instead).
+
+## Package layout
+
+A feature gets its own package only when it brings a dependency some users will not want (a third-party
+library or a UI platform). Everything that needs only the BCL and `Microsoft.Extensions.DependencyInjection`
+/ `Options` lives in `DotNetQuery`, in a folder and namespace of its own (`Http/`, `GraphQL/`,
+`Persistence/`, `Mvvm/`, `DevTools/`, `DependencyInjection/`); browser-only features live in
+`DotNetQuery.Blazor`. Unused code is removed by the trimmer, so merging costs apps nothing.
 
 ## Concurrency rules for the engine
 

@@ -87,6 +87,21 @@ A correctness, Blazor and developer-experience overhaul driven by a full review 
 
 ### Changed
 
+- **Packages consolidated from 16 to 7.** Features that need no extra dependency now ship together;
+  namespaces are unchanged, so only package references need updating:
+
+  | Old package | Now in |
+  | --- | --- |
+  | `DotNetQuery.Core` | `DotNetQuery` (renamed) |
+  | `DotNetQuery.DependencyInjection`, `.Http`, `.GraphQL`, `.Persistence`, `.Mvvm`, `.DevTools` | `DotNetQuery` |
+  | `DotNetQuery.Persistence.BlazorWasm`, `.DevTools.Blazor` | `DotNetQuery.Blazor` |
+
+  `DotNetQuery` now depends on `Microsoft.Extensions.DependencyInjection.Abstractions` and
+  `Microsoft.Extensions.Options`. The IndexedDB script moved to
+  `_content/DotNetQuery.Blazor/dotnetquery-indexeddb.js`. `QueryDevTools.PreviewData`, `Preview` and
+  `ExportJson` are now annotated `[RequiresUnreferencedCode]`/`[RequiresDynamicCode]` (they always used
+  reflection-based JSON). `DotNetQuery.Persistence.Sqlite`, `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia` and
+  `.Maui` are unchanged apart from depending on `DotNetQuery`.
 - Fetchers run on the thread pool, never on the caller's UI synchronization context.
 - `FetchAsync(..., forceRefetch: true)` cancels an in-flight fetch instead of joining it.
 - `RefetchQueryAsync` never throws for fetch failures.

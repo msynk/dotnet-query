@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DotNetQuery.Core\DotNetQuery.Core.csproj" />
+    <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
   </ItemGroup>
 
 </Project>

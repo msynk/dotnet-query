@@ -47,7 +47,7 @@ meterProviderBuilder.AddMeter(DotNetQueryDiagnostics.MeterName);              //
 
 ## DevTools
 
-`DotNetQuery.DevTools` is a framework-agnostic inspection model:
+`QueryDevTools` (namespace `DotNetQuery.DevTools`) is a framework-agnostic inspection model:
 
 ```csharp
 using var devtools = new QueryDevTools(client);
@@ -66,7 +66,8 @@ string export = devtools.ExportJson();                // export the full diagnos
 
 `Changed` fires for every recorded event and every cache change, so UIs can refresh live.
 
-For Blazor, add the visual panel from `DotNetQuery.DevTools.Blazor` (see [Blazor](blazor.md#devtools)):
+For Blazor, add the visual panel that ships in `DotNetQuery.Blazor` (`@using DotNetQuery.DevTools.Blazor`;
+see [Blazor](blazor.md#devtools)):
 
 ```razor
 <QueryDevToolsPanel Floating="true" />

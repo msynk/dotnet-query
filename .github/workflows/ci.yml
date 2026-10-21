@@ -98,7 +98,7 @@ jobs:
             10.0.x
 
       - name: Test core
-        run: dotnet test tests/DotNetQuery.Core.Tests/DotNetQuery.Core.Tests.csproj -c Release
+        run: dotnet test tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj -c Release
         env:
           DOTNETQUERY_REDIS: localhost:6379
 

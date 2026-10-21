@@ -2,8 +2,6 @@
   <Folder Name="/adapters/">
     <Project Path="adapters/DotNetQuery.Avalonia/DotNetQuery.Avalonia.csproj" />
     <Project Path="adapters/DotNetQuery.Blazor/DotNetQuery.Blazor.csproj" />
-    <Project Path="adapters/DotNetQuery.DevTools.Blazor/DotNetQuery.DevTools.Blazor.csproj" />
-    <Project Path="adapters/DotNetQuery.Mvvm/DotNetQuery.Mvvm.csproj" />
     <Project Path="adapters/DotNetQuery.Wpf/DotNetQuery.Wpf.csproj" />
     <Project Path="adapters/DotNetQuery.WinUI/DotNetQuery.WinUI.csproj" />
   </Folder>
@@ -22,21 +20,15 @@
     <Project Path="samples/DotNetQuery.Sample.Dashboard/DotNetQuery.Sample.Dashboard.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/DotNetQuery.Core/DotNetQuery.Core.csproj" />
-    <Project Path="src/DotNetQuery.DependencyInjection/DotNetQuery.DependencyInjection.csproj" />
-    <Project Path="src/DotNetQuery.DevTools/DotNetQuery.DevTools.csproj" />
-    <Project Path="src/DotNetQuery.Persistence/DotNetQuery.Persistence.csproj" />
+    <Project Path="src/DotNetQuery/DotNetQuery.csproj" />
     <Project Path="src/DotNetQuery.Persistence.Sqlite/DotNetQuery.Persistence.Sqlite.csproj" />
     <Project Path="src/DotNetQuery.Persistence.Redis/DotNetQuery.Persistence.Redis.csproj" />
-    <Project Path="src/DotNetQuery.Persistence.BlazorWasm/DotNetQuery.Persistence.BlazorWasm.csproj" />
-    <Project Path="src/DotNetQuery.Http/DotNetQuery.Http.csproj" />
-    <Project Path="src/DotNetQuery.GraphQL/DotNetQuery.GraphQL.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/DotNetQuery.DevTools.Cli/DotNetQuery.DevTools.Cli.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />
-    <Project Path="tests/DotNetQuery.Core.Tests/DotNetQuery.Core.Tests.csproj" />
+    <Project Path="tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj" />
   </Folder>
 </Solution>

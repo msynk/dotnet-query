@@ -100,7 +100,8 @@ client.Cache.Changed += change =>
 
 ## Persistence
 
-To survive restarts, persist registered queries with the `DotNetQuery.Persistence` package:
+To survive restarts, persist registered queries with `QueryPersistenceManager`
+(namespace `DotNetQuery.Persistence`):
 
 ```csharp
 var persistence = new QueryPersistenceManager(client, new FileSystemQueryPersister(appDataDir),

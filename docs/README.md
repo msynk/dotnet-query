@@ -32,11 +32,10 @@ Server-state management for .NET - fetching, caching, synchronizing, and mutatin
 
 ## Packages
 
-- **DotNetQuery.Core** - the portable engine (zero UI dependencies)
-- **DotNetQuery.DependencyInjection** - `AddDotNetQuery`
-- **DotNetQuery.Persistence** - cache persistence (in-memory + file system) and the durable mutation queue
-- **DotNetQuery.Persistence.Sqlite** / **.Redis** / **.BlazorWasm** - SQLite, Redis, and browser localStorage/IndexedDB providers
-- **DotNetQuery.Http** / **.GraphQL** - HTTP/JSON and GraphQL fetcher conveniences
-- **DotNetQuery.DevTools** - inspection, event log, export
-- **DotNetQuery.Blazor** / **DotNetQuery.DevTools.Blazor** - Blazor components
-- **DotNetQuery.Mvvm** / **DotNetQuery.Wpf** / **DotNetQuery.WinUI** / **DotNetQuery.Avalonia** / **DotNetQuery.Maui** - XAML/MVVM bindings & adapters
+- **DotNetQuery** - the portable engine (zero UI dependencies) plus `AddDotNetQuery`, cache persistence
+  (in-memory + file system) and the durable mutation queue, HTTP/JSON and GraphQL fetchers, MVVM bindings,
+  and the DevTools model (inspection, event log, export)
+- **DotNetQuery.Blazor** - Blazor components, browser localStorage/IndexedDB persisters, and the DevTools panel
+- **DotNetQuery.Persistence.Sqlite** / **.Redis** - SQLite and Redis persistence providers
+- **DotNetQuery.Wpf** / **DotNetQuery.WinUI** / **DotNetQuery.Avalonia** / **DotNetQuery.Maui** - XAML adapters
+  over the MVVM bindings

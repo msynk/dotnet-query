@@ -51,7 +51,7 @@ UI thread). `SetQueryData` updaters may be re-run under contention - keep them p
 
 ## Trimming and NativeAOT
 
-`DotNetQuery.Core`, `.DependencyInjection`, `.Persistence` (all providers), `.Http` and `.GraphQL` are
+`DotNetQuery`, `DotNetQuery.Persistence.Sqlite` and `DotNetQuery.Persistence.Redis` are
 `IsAotCompatible` and analyzed for trim/AOT safety; CI publishes a NativeAOT harness with warnings as errors.
 The convenience overloads that serialize your types by reflection are annotated with
 `[RequiresUnreferencedCode]`; use the `JsonTypeInfo<T>` overloads with a source-generated
@@ -65,7 +65,8 @@ var todos = http.JsonQuery(TodoQueries.All, "todos", AppJson.Default.ListTodo);
 persistence.Register(todos, AppJson.Default.ListTodo);
 ```
 
-`DotNetQuery.DevTools` uses reflection-based JSON for previews/exports and is meant for development.
+The DevTools previews and export (`QueryDevTools.PreviewData`/`Preview`/`ExportJson`) use reflection-based
+JSON, are annotated accordingly, and are meant for development.
 
 ## Time is injectable
 

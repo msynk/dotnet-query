@@ -35,12 +35,12 @@ await manager.PersistAllAsync();
 
 | Persister | Package | Use for |
 | --- | --- | --- |
-| `InMemoryQueryPersister` | `DotNetQuery.Persistence` | tests, transient caches |
-| `FileSystemQueryPersister` | `DotNetQuery.Persistence` | desktop/mobile, one JSON file per query |
+| `InMemoryQueryPersister` | `DotNetQuery` | tests, transient caches |
+| `FileSystemQueryPersister` | `DotNetQuery` | desktop/mobile, one JSON file per query |
 | `SqliteQueryPersister` | `DotNetQuery.Persistence.Sqlite` | durable single-file store, many queries |
 | `RedisQueryPersister` | `DotNetQuery.Persistence.Redis` | shared / server-side caches |
-| `LocalStorageQueryPersister` | `DotNetQuery.Persistence.BlazorWasm` | Blazor WebAssembly (survives reloads) |
-| `IndexedDbQueryPersister` | `DotNetQuery.Persistence.BlazorWasm` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
+| `LocalStorageQueryPersister` | `DotNetQuery.Blazor` | Blazor WebAssembly (survives reloads) |
+| `IndexedDbQueryPersister` | `DotNetQuery.Blazor` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
 
 ```csharp
 await using var persister = SqliteQueryPersister.ForFile("cache.db");
@@ -56,7 +56,7 @@ For a **durable offline mutation queue** on top of any persister, see `Persisten
 
 ## Fetching JSON over HTTP
 
-`DotNetQuery.Http` turns an `HttpClient` + URL into a fetcher and fetches JSON straight into the cache:
+The HTTP extensions turn an `HttpClient` + URL into a fetcher and fetch JSON straight into the cache:
 
 ```csharp
 // Trim/AOT-safe with source-generated metadata:
@@ -68,8 +68,8 @@ await client.FetchJsonAsync<Todo>(QueryKey.Create<Todo>(7), http, "todos/7");
 var fetcher = http.JsonFetcher<List<Todo>>("todos");   // reuse anywhere a fetcher is accepted
 ```
 
-`DotNetQuery.GraphQL` does the same for GraphQL endpoints - it POSTs `{ query, variables }`, unwraps the
-`data` envelope, and raises a `GraphQLException` on `errors`:
+The GraphQL extensions (namespace `DotNetQuery.GraphQL`) do the same for GraphQL endpoints - they POST
+`{ query, variables }`, unwrap the `data` envelope, and raise a `GraphQLException` on `errors`:
 
 ```csharp
 // Trim/AOT-safe: variables as a JsonObject, data via source-generated metadata.

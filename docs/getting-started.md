@@ -3,8 +3,7 @@
 ## Install
 
 ```bash
-dotnet add package DotNetQuery.Core
-dotnet add package DotNetQuery.DependencyInjection
+dotnet add package DotNetQuery
 dotnet add package DotNetQuery.Blazor      # Blazor apps
 ```
 
@@ -122,7 +121,7 @@ await client.FetchAsync(UserQueries.List(api));
 ```
 
 In Blazor, use the [`<Query>` component or `UseQuery`](blazor.md); in WPF/WinUI/Avalonia/MAUI, use
-`ObservableQuery<T>` from `DotNetQuery.Mvvm`.
+`ObservableQuery<T>` (namespace `DotNetQuery.Mvvm`) through the platform adapter.
 
 ## Next
 

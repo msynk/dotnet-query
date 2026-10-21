@@ -1,7 +1,7 @@
 # DotNetQuery.Benchmarks
 
 [BenchmarkDotNet](https://benchmarkdotnet.org/) micro-benchmarks for the performance-sensitive paths in
-`DotNetQuery.Core`.
+`DotNetQuery`.
 
 ## Running
 

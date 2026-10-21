@@ -63,7 +63,7 @@ await queue.EnqueueAsync(ct => api.CreateTodoAsync(todo, ct));
 
 ## Durable offline queue (survives restarts)
 
-Closures can't outlive the process, so `PersistentMutationQueue` (in `DotNetQuery.Persistence`) stores
+Closures can't outlive the process, so `PersistentMutationQueue` (namespace `DotNetQuery.Persistence`) stores
 mutations as data - a handler key plus serializable variables - in any `IQueryPersister`:
 
 ```csharp
