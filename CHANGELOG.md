@@ -110,6 +110,30 @@ Production-readiness work driven by the improvement plan (see `IMPROVEMENT-PLAN.
 - Blazor refetched every active query twice on a reconnect (connectivity provider and online manager both
   reported it); the duplicate signal is now coalesced.
 - `DotNetQuery.Sample.Avalonia` pulled `Tmds.DBus.Protocol 0.20.0` (GHSA-xrw6-gwf8-vvr9); pinned 0.21.3.
+- `PersistentMutationQueue`: a replay handler that enqueues a follow-up mutation (or calls `FlushAsync`,
+  `RestoreAsync`, `RemoveAsync`, `ClearAsync` or `RetryDeadLetterAsync`) deadlocked the queue; `RestoreAsync`
+  running beside such a handler did too. A retried dead letter moved back ahead of later mutations after a
+  restore or restart; it now keeps its place at the end of the queue.
+- `ConditionalRequestHandler` left its `If-None-Match`/`If-Modified-Since` on the request, so a request sent
+  again by an outer handler (a retry, `BearerTokenHandler` after a token refresh) bypassed it and surfaced a raw
+  `304`.
+- `CircuitBreakerHandler`: a throwing `IsFailure` left a half-open circuit rejecting every request until
+  `Reset()`; the outcome now falls back to the default classification.
+- `BatchLoader`: a batch function returning `null` (or a dictionary whose lookup throws) left every waiter of
+  the burst hanging; they now fail with the error. Chunks of a large burst are fetched concurrently.
+- `InvalidateQueriesAsync(QueryFilter)` invalidated declared dependents of the filter's key even when an
+  exact, type, staleness, fetching, status or predicate criterion matched nothing.
+- `Mutation` with `DeduplicatePending` started the run (state handlers, optimistic updaters, `OnMutate`) under
+  its lock; a throwing `RetryDelay` failed the mutation with the strategy's exception instead of its own error.
+- `QuerySynchronizer`: messages are numbered per sender, so a transport that delivers them out of order can no
+  longer apply an older value over a newer one. Prefix registrations no longer format every cached key for each
+  received message.
+- `QueryPersistenceManager.RestoreAllAsync` threw when two cached keys share a storage text (for example an
+  `int` and a `long` segment).
+- Selectors over a value type re-ran on every notification; they now re-run only when the value changes.
+- Blazor: `UseQueries` never loaded a query that started disabled and was enabled later. The `Virtualize`
+  items provider mapped rows to the wrong index once `MaxPages` dropped pages from the front; it now tracks
+  the window and loads previous pages when scrolling back.
 
 ### Changed
 

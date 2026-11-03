@@ -98,8 +98,9 @@ public sealed record QuerySyncOptions
 /// </para>
 /// <para>
 /// Conflicts resolve by timestamp (last writer wins), so caches converge; a sender's own later message about a key
-/// it last wrote (for example rolling back an optimistic update to an older snapshot) is always applied. Messages
-/// carry serialized data - only synchronize data every participant is allowed to see.
+/// it last wrote (for example rolling back an optimistic update to an older snapshot) is always applied. Messages are
+/// numbered per sender, so a transport that delivers them out of order cannot apply an older one over a newer one.
+/// Messages carry serialized data - only synchronize data every participant is allowed to see.
 /// </para>
 /// </remarks>
 public sealed class QuerySynchronizer : IDisposable
@@ -114,11 +115,18 @@ public sealed class QuerySynchronizer : IDisposable
     private readonly ConcurrentDictionary<QueryKey, Registration> _exact = new();
     private readonly ConcurrentDictionary<string, Registration> _exactByText = new(StringComparer.Ordinal);
     private readonly List<Registration> _prefixes = [];
-    private readonly ConcurrentDictionary<QueryKey, (string Sender, DateTimeOffset UpdatedAt)> _remote = new();
+    private readonly ConcurrentDictionary<QueryKey, (string Sender, DateTimeOffset UpdatedAt, long? Sequence)> _remote = new();
+    private readonly object _remoteGate = new();
     private readonly ConcurrentDictionary<QueryKey, int> _applyingInvalidations = new();
+
+    // Cached keys under a prefix registration, by text, so a received message finds its query without formatting
+    // every cached key.
+    private readonly ConcurrentDictionary<string, QueryKey> _prefixKeysByText = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<QueryKey, string> _prefixKeyTexts = new();
     private readonly Action<QueryCacheChange> _cacheHandler;
     private readonly Action<DotNetQueryEvent> _eventHandler;
     private readonly Action<string> _messageHandler;
+    private long _sequence;
     private int _started;
     private int _disposed;
 
@@ -181,6 +189,11 @@ public sealed class QuerySynchronizer : IDisposable
             _prefixes.Add(Registration.Create(prefix, isPrefix: true, data => JsonSerializer.Serialize(data, typeInfo), json => JsonSerializer.Deserialize(json, typeInfo)!));
         }
 
+        if (Volatile.Read(ref _started) != 0)
+        {
+            TrackCachedPrefixKeys();
+        }
+
         return this;
     }
 
@@ -193,6 +206,9 @@ public sealed class QuerySynchronizer : IDisposable
             _client.Cache.Changed += _cacheHandler;
             _client.DiagnosticEvent += _eventHandler;
             _channel.MessageReceived += _messageHandler;
+
+            // After subscribing, so a query added meanwhile is tracked by one or the other.
+            TrackCachedPrefixKeys();
         }
 
         return this;
@@ -218,6 +234,11 @@ public sealed class QuerySynchronizer : IDisposable
         if (Find(change.Key) is not { } registration)
         {
             return;
+        }
+
+        if (registration.IsPrefix)
+        {
+            TrackPrefixKey(change.Key, removed: change.Kind is QueryCacheChangeKind.Removed);
         }
 
         // Removals are not synchronized: garbage collection removes entries too, and that is local memory
@@ -264,6 +285,7 @@ public sealed class QuerySynchronizer : IDisposable
     {
         envelope.Sender = _sender;
         envelope.Channel = _options.ChannelName;
+        envelope.Sequence = Interlocked.Increment(ref _sequence);
         _ = SendAsync(JsonSerializer.Serialize(envelope, SyncJsonContext.Default.SyncEnvelope));
     }
 
@@ -306,7 +328,7 @@ public sealed class QuerySynchronizer : IDisposable
                 switch (envelope.Kind)
                 {
                     case SyncKind.Data when envelope.Payload is { } payload && envelope.UpdatedAt is { } updatedAt:
-                        ApplyData(key, registration, envelope.Sender!, payload, updatedAt);
+                        ApplyData(key, registration, envelope.Sender!, envelope.Sequence, payload, updatedAt);
                         break;
                     case SyncKind.Invalidated:
                         ApplyInvalidation(key);
@@ -337,19 +359,30 @@ public sealed class QuerySynchronizer : IDisposable
         }
     }
 
-    private void ApplyData(QueryKey key, Registration registration, string sender, string payload, DateTimeOffset updatedAt)
+    private void ApplyData(QueryKey key, Registration registration, string sender, long? sequence, string payload, DateTimeOffset updatedAt)
     {
         // Last writer wins, decided atomically by the entry; the sender of the current value may always revise it
-        // (for example a rollback to an older snapshot).
-        var force = _remote.TryGetValue(key, out var last) && last.Sender == sender;
+        // (for example a rollback to an older snapshot) - with a later message only: sends are not serialized, so a
+        // transport may deliver a sender's messages out of order, and an older one must not overwrite a newer one.
+        var stamp = (sender, updatedAt, sequence);
+        bool force;
+        lock (_remoteGate)
+        {
+            force = _remote.TryGetValue(key, out var last) && last.Sender == sender;
+            if (force && sequence is { } current && last.Sequence is { } applied && current <= applied)
+            {
+                return; // delivered late
+            }
 
-        // Record the stamp before the write: its change notification may be delivered on any thread, and it must be
-        // recognized as an echo there.
-        _remote[key] = (sender, updatedAt);
+            // Record the stamp before the write: its change notification may be delivered on any thread, and it must
+            // be recognized as an echo there.
+            _remote[key] = stamp;
+        }
+
         if (!registration.Apply(_client, key, payload, updatedAt, force))
         {
             // Not applied (older than local data): forget the stamp unless a newer message replaced it meanwhile.
-            _remote.TryRemove(KeyValuePair.Create(key, (sender, updatedAt)));
+            _remote.TryRemove(KeyValuePair.Create(key, stamp));
         }
     }
 
@@ -366,40 +399,16 @@ public sealed class QuerySynchronizer : IDisposable
             yield break;
         }
 
-        Registration[] prefixes;
-        lock (_prefixes)
+        if (_prefixKeysByText.TryGetValue(keyText, out var key) && FindPrefix(key) is { } prefix)
         {
-            prefixes = [.. _prefixes];
-        }
-
-        if (prefixes.Length == 0)
-        {
-            yield break;
-        }
-
-        foreach (var key in _client.Cache.Keys)
-        {
-            if (string.Equals(key.ToString(), keyText, StringComparison.Ordinal))
-            {
-                foreach (var prefix in prefixes)
-                {
-                    if (prefix.Key.IsPrefixOf(key))
-                    {
-                        yield return (key, prefix);
-                        yield break;
-                    }
-                }
-            }
+            yield return (key, prefix);
         }
     }
 
-    private Registration? Find(QueryKey key)
-    {
-        if (_exact.TryGetValue(key, out var exact))
-        {
-            return exact;
-        }
+    private Registration? Find(QueryKey key) => _exact.TryGetValue(key, out var exact) ? exact : FindPrefix(key);
 
+    private Registration? FindPrefix(QueryKey key)
+    {
         lock (_prefixes)
         {
             foreach (var prefix in _prefixes)
@@ -412,6 +421,47 @@ public sealed class QuerySynchronizer : IDisposable
         }
 
         return null;
+    }
+
+    private void TrackCachedPrefixKeys()
+    {
+        lock (_prefixes)
+        {
+            if (_prefixes.Count == 0)
+            {
+                return;
+            }
+        }
+
+        foreach (var key in _client.Cache.Keys)
+        {
+            if (Find(key) is { IsPrefix: true })
+            {
+                TrackPrefixKey(key, removed: false);
+            }
+        }
+    }
+
+    // Each key is formatted once while it is cached.
+    private void TrackPrefixKey(QueryKey key, bool removed)
+    {
+        if (!removed)
+        {
+            if (!_prefixKeyTexts.ContainsKey(key))
+            {
+                var text = key.ToString();
+                _prefixKeyTexts[key] = text;
+                _prefixKeysByText[text] = key;
+            }
+
+            return;
+        }
+
+        // A key removed and added again at once may report the two out of order: keep it while it is cached.
+        if (!_client.Cache.TryGetEntry(key, out _) && _prefixKeyTexts.TryRemove(key, out var removedText))
+        {
+            _prefixKeysByText.TryRemove(KeyValuePair.Create(removedText, key));
+        }
     }
 
     private void RaiseError(Exception error)
@@ -428,19 +478,22 @@ public sealed class QuerySynchronizer : IDisposable
 
     private sealed class Registration
     {
-        private Registration(QueryKey key)
+        private Registration(QueryKey key, bool isPrefix)
         {
             Key = key;
+            IsPrefix = isPrefix;
         }
 
         public QueryKey Key { get; }
+
+        public bool IsPrefix { get; }
 
         public Func<IQueryClient, QueryKey, (string Payload, DateTimeOffset UpdatedAt)?> Snapshot { get; private init; } = default!;
 
         public Func<IQueryClient, QueryKey, string, DateTimeOffset, bool, bool> Apply { get; private init; } = default!;
 
         public static Registration Create<T>(QueryKey key, bool isPrefix, Func<T, string> serialize, Func<string, T> deserialize) =>
-            new(key)
+            new(key, isPrefix)
             {
                 Snapshot = (client, target) =>
                     client.Cache.TryGetState<T>(target, out var state) && state is { HasData: true, DataUpdatedAt: { } at }
@@ -479,6 +532,9 @@ internal sealed class SyncEnvelope
     public string? Channel { get; set; }
 
     public string? Sender { get; set; }
+
+    // Numbers the sender's messages, so a receiver can tell a late one from a later one.
+    public long? Sequence { get; set; }
 
     public SyncKind Kind { get; set; }
 

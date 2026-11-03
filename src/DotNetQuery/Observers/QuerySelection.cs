@@ -226,7 +226,9 @@ internal sealed class QuerySelection<T, TResult>(
     {
         if (state.HasData)
         {
-            if (!_hasSource || !ReferenceEquals(_source, state.Data) || (typeof(T).IsValueType && !SafeSourceEquals(_source, state.Data)))
+            // A value type is compared by value: boxed for ReferenceEquals, it would never match.
+            var sourceChanged = !_hasSource || (typeof(T).IsValueType ? !SafeSourceEquals(_source, state.Data) : !ReferenceEquals(_source, state.Data));
+            if (sourceChanged)
             {
                 _hasSource = true;
                 _source = state.Data;

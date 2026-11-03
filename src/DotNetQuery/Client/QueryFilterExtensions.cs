@@ -20,7 +20,12 @@ public static class QueryFilterExtensions
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(filter);
 
-        var matched = client.Cache.Invalidate(entry => entry.Matches(filter), filter.Key is { } key ? [key] : null);
+        // Only a plain prefix filter names a key range whose declared dependencies apply even when nothing under it is
+        // cached; for any narrower filter, dependencies follow from the queries it actually matched.
+        var requested = filter is { Key: { } key, Exact: false, Type: QueryTypeFilter.All, Stale: null, Fetching: null, Status: null, Predicate: null }
+            ? new[] { key }
+            : null;
+        var matched = client.Cache.Invalidate(entry => entry.Matches(filter), requested);
         var refetches = new List<Task>();
         foreach (var (entry, refetchActive) in matched)
         {

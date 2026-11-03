@@ -19,7 +19,14 @@ public class ConditionalRequestHandlerTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Requests.Add(request);
+            // A copy as sent: the handler under test takes its validators off the request once the response is back.
+            var sent = new HttpRequestMessage(request.Method, request.RequestUri);
+            foreach (var (name, values) in request.Headers)
+            {
+                sent.Headers.TryAddWithoutValidation(name, values);
+            }
+
+            Requests.Add(sent);
             return Task.FromResult(Respond(request));
         }
     }

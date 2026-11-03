@@ -69,6 +69,7 @@ public sealed class ConditionalRequestHandler : DelegatingHandler
         }
 
         var cacheKey = uri.AbsoluteUri;
+        HttpResponseMessage response;
         if (_responses.TryGetValue(cacheKey, out var remembered))
         {
             if (remembered.ETag is { } etag)
@@ -79,9 +80,24 @@ public sealed class ConditionalRequestHandler : DelegatingHandler
             {
                 request.Headers.IfModifiedSince = lastModified;
             }
-        }
 
-        var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                // The validator is this handler's, not the caller's: take it off again, so an outer handler that sends
+                // the request again (a retry, or a copy after a token refresh) does not look like a conditional request
+                // of its own, which would bypass this handler and surface a raw 304.
+                request.Headers.IfNoneMatch.Clear();
+                request.Headers.IfModifiedSince = null;
+            }
+        }
+        else
+        {
+            response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
 
         if (response.StatusCode is HttpStatusCode.NotModified && remembered is not null)
         {

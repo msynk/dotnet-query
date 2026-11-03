@@ -103,6 +103,10 @@ public sealed class Mutation<TVariables, TData>
             return RunAsync(variables, cancellationToken);
         }
 
+        // Only reserve the run under the lock, and start it after: starting runs user code synchronously (state
+        // handlers, optimistic updaters, OnMutate, a mutation function that completes at once).
+        var start = new TaskCompletionSource();
+        Task<MutationResult<TVariables, TData>> started;
         lock (_pendingRuns)
         {
             foreach (var (pendingVariables, pendingRun) in _pendingRuns)
@@ -113,7 +117,7 @@ public sealed class Mutation<TVariables, TData>
                 }
             }
 
-            var started = RunAsync(variables, CancellationToken.None);
+            started = RunWhenStartedAsync(start.Task, variables);
             _pendingRuns.Add((variables, started));
             _ = started.ContinueWith(
                 (task, state) =>
@@ -128,8 +132,16 @@ public sealed class Mutation<TVariables, TData>
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
-            return started.WaitAsync(cancellationToken);
         }
+
+        start.SetResult(); // runs the reserved run inline, on this thread
+        return started.WaitAsync(cancellationToken);
+    }
+
+    private async Task<MutationResult<TVariables, TData>> RunWhenStartedAsync(Task start, TVariables variables)
+    {
+        await start.ConfigureAwait(false);
+        return await RunAsync(variables, CancellationToken.None).ConfigureAwait(false);
     }
 
     private async Task<MutationResult<TVariables, TData>> RunAsync(TVariables variables, CancellationToken cancellationToken)
@@ -196,16 +208,16 @@ public sealed class Mutation<TVariables, TData>
                         committed = true;
                         break;
                     }
-                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < _options.RetryCount && ShouldRetry(failures + 1, ex))
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < _options.RetryCount && ShouldRetry(failures + 1, ex)
+                        && TryGetRetryDelay(failures, ex, out var delay))
                     {
                         failures++;
                         state = state with { FailureCount = failures, Error = ex };
                         Report(state);
 
-                        var delay = (_options.RetryDelay ?? RetryPolicy.Constant(TimeSpan.Zero))(failures - 1, ex);
                         if (delay > TimeSpan.Zero)
                         {
-                            await Task.Delay(delay < MaxRetryDelay ? delay : MaxRetryDelay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                            await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);
                         }
 
                         if (networkMode is not NetworkMode.Always)
@@ -416,6 +428,28 @@ public sealed class Mutation<TVariables, TData>
         {
             return false;
         }
+    }
+
+    // A strategy that throws ends the retries, so the run fails with the mutation's own error; delays are clamped to
+    // what Task.Delay accepts.
+    private bool TryGetRetryDelay(int retryAttempt, Exception error, out TimeSpan delay)
+    {
+        try
+        {
+            delay = _options.RetryDelay?.Invoke(retryAttempt, error) ?? TimeSpan.Zero;
+        }
+        catch (Exception)
+        {
+            delay = TimeSpan.Zero;
+            return false;
+        }
+
+        if (delay > MaxRetryDelay)
+        {
+            delay = MaxRetryDelay;
+        }
+
+        return true;
     }
 
     private static async Task RunQuietlyAsync(Func<Task> action)

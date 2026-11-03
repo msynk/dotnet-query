@@ -359,7 +359,17 @@ public sealed class QueryPersistenceManager : IDisposable
             EnsurePrefixHandler();
         }
 
-        var keysByText = _client.Cache.Keys.ToDictionary(StorageKeyFor, k => k, StringComparer.Ordinal);
+        // Distinct keys can share a storage text (an int and a long segment, say): the first one wins instead of the
+        // whole restore failing on a duplicate.
+        var keysByText = new Dictionary<string, QueryKey>(StringComparer.Ordinal);
+        if (prefixed.Length > 0)
+        {
+            foreach (var key in _client.Cache.Keys)
+            {
+                keysByText.TryAdd(StorageKeyFor(key), key);
+            }
+        }
+
         foreach (var (storageKey, _) in prefixed)
         {
             if (keysByText.TryGetValue(storageKey, out var existing) && Resolve(existing) is { } registration &&

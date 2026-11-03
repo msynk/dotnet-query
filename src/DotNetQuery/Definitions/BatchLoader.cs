@@ -100,38 +100,37 @@ public sealed class BatchLoader<TKey, TValue>
             _pending = null;
         }
 
-        foreach (var chunk in batch.Chunk(Math.Max(1, _options.MaxBatchSize)))
-        {
-            await RunAsync(chunk).ConfigureAwait(false);
-        }
+        // The chunks are independent requests: send them together rather than one round trip after another.
+        await Task.WhenAll(batch.Chunk(Math.Max(1, _options.MaxBatchSize)).Select(RunAsync)).ConfigureAwait(false);
     }
 
+    // Never throws: every waiter of the chunk is completed, whatever the batch function does.
     private async Task RunAsync(KeyValuePair<TKey, TaskCompletionSource<TValue>>[] chunk)
     {
-        IReadOnlyDictionary<TKey, TValue> found;
         try
         {
-            found = await _fetchBatch(chunk.Select(pair => pair.Key).ToArray(), CancellationToken.None).ConfigureAwait(false);
+            var found = await _fetchBatch(chunk.Select(pair => pair.Key).ToArray(), CancellationToken.None).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The batch fetch returned no dictionary.");
+
+            foreach (var (key, waiter) in chunk)
+            {
+                if (found.TryGetValue(key, out var value))
+                {
+                    waiter.TrySetResult(value);
+                }
+                else
+                {
+                    waiter.TrySetException(new KeyNotFoundException($"The batch response did not include '{key}'."));
+                }
+            }
         }
         catch (Exception ex)
         {
+            // A failed request, or a broken response (a dictionary whose lookup throws): the waiters not completed yet
+            // fail with the error.
             foreach (var (_, waiter) in chunk)
             {
                 waiter.TrySetException(ex);
-            }
-
-            return;
-        }
-
-        foreach (var (key, waiter) in chunk)
-        {
-            if (found.TryGetValue(key, out var value))
-            {
-                waiter.TrySetResult(value);
-            }
-            else
-            {
-                waiter.TrySetException(new KeyNotFoundException($"The batch response did not include '{key}'."));
             }
         }
     }

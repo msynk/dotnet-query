@@ -452,30 +452,38 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
 
     private sealed class QueriesSlot<T>(DotNetQueryComponentBase owner) : IDisposable, IPersistableSlot
     {
-        private readonly Dictionary<QueryKey, QueryObserver<T>> _observers = [];
+        private readonly Dictionary<QueryKey, Item> _items = [];
 
         public IReadOnlyList<QueryObserver<T>> Reconcile(IReadOnlyList<QueryDefinition<T>> queries)
         {
             var wanted = new HashSet<QueryKey>(queries.Select(q => q.Key));
-            foreach (var key in _observers.Keys.Where(k => !wanted.Contains(k)).ToArray())
+            foreach (var key in _items.Keys.Where(k => !wanted.Contains(k)).ToArray())
             {
-                Release(_observers[key]);
-                _observers.Remove(key);
+                Release(_items[key].Observer);
+                _items.Remove(key);
             }
 
             var result = new List<QueryObserver<T>>(queries.Count);
             foreach (var query in queries)
             {
-                if (!_observers.TryGetValue(query.Key, out var observer))
+                var enabled = query.Options?.Enabled ?? true;
+                if (!_items.TryGetValue(query.Key, out var item))
                 {
                     owner.Hydrate<T>(query.Key);
-                    observer = owner.QueryClient.Watch(query);
+                    var observer = owner.QueryClient.Watch(query);
                     observer.StateChanged += OnChanged;
-                    _observers[query.Key] = observer;
+                    _items[query.Key] = item = new Item(observer) { Enabled = enabled };
+                    owner.FetchInBackground(query.Key, query.Fetcher, query.Options);
+                }
+                else if (item.Enabled != enabled)
+                {
+                    // Like UseQuery: a query whose Enabled flips (a dependent query becoming ready) is fetched with its
+                    // new options, so it loads now and later refetches use them.
+                    item.Enabled = enabled;
                     owner.FetchInBackground(query.Key, query.Fetcher, query.Options);
                 }
 
-                result.Add(observer);
+                result.Add(item.Observer);
             }
 
             return result;
@@ -483,7 +491,7 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
 
         public void Persist(PersistentComponentState state, IQueryClient client)
         {
-            foreach (var key in _observers.Keys)
+            foreach (var key in _items.Keys)
             {
                 QueryStateHydration.Persist<T>(state, client, key);
             }
@@ -499,12 +507,19 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
 
         public void Dispose()
         {
-            foreach (var observer in _observers.Values)
+            foreach (var item in _items.Values)
             {
-                Release(observer);
+                Release(item.Observer);
             }
 
-            _observers.Clear();
+            _items.Clear();
+        }
+
+        private sealed class Item(QueryObserver<T> observer)
+        {
+            public QueryObserver<T> Observer { get; } = observer;
+
+            public bool Enabled { get; set; }
         }
     }
 

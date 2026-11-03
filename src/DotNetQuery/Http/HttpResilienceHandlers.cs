@@ -239,11 +239,20 @@ public sealed class CircuitBreakerHandler : DelegatingHandler
         RaiseStateChanged(state);
     }
 
+    // A classifier that throws (user code) falls back to the default classification, so the outcome is always recorded
+    // and a half-open trial always releases its slot.
     private bool IsFailure(HttpResponseMessage? response, Exception? error)
     {
         if (_options.IsFailure is { } custom)
         {
-            return custom(response, error);
+            try
+            {
+                return custom(response, error);
+            }
+            catch (Exception)
+            {
+                // Classified below.
+            }
         }
 
         return response is not null ? HttpRetryPolicy.IsTransient(response.StatusCode) : error is not null && HttpRetryPolicy.IsTransient(error);

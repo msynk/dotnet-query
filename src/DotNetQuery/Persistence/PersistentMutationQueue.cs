@@ -148,6 +148,7 @@ public sealed class PersistentMutationQueue : IDisposable
     private bool _paused;
     private readonly SemaphoreSlim _flushGate = new(1, 1);
     private readonly SemaphoreSlim _enqueueGate = new(1, 1);
+    private readonly AsyncLocal<ReplayScope?> _replayScope = new();
     private readonly Action<bool> _connectivityHandler;
     private long _sequence;
     private int _disposed;
@@ -315,15 +316,17 @@ public sealed class PersistentMutationQueue : IDisposable
                 return false;
             }
 
-            // Store first, then move in memory: a failed save leaves the dead letter where it was.
+            // Store first, then move in memory: a failed save leaves the dead letter where it was. The id stays, so
+            // the entry carries a new replay position, persisted with it: a restore sorts by it, not by the id.
             var info = dead.Info.Mutation with { EnqueuedAt = _timeProvider.GetUtcNow() };
-            var payload = WriteEnvelope(info.MutationKey, ReadVariables(dead.Payload));
+            var order = NextOrder(info.EnqueuedAt);
+            var payload = WriteEnvelope(info.MutationKey, ReadVariables(dead.Payload), order: order);
             await _store.SaveAsync(new PersistedQuery(KeyPrefix + info.Id, payload, info.EnqueuedAt), cancellationToken).ConfigureAwait(false);
             await _store.RemoveAsync(DeadPrefix + info.Id, cancellationToken).ConfigureAwait(false);
             lock (_gate)
             {
                 _dead.Remove(dead);
-                _pending.Add(new Entry(info, payload));
+                _pending.Add(new Entry(info, payload, order));
             }
         }
         finally
@@ -440,6 +443,10 @@ public sealed class PersistentMutationQueue : IDisposable
     /// Durably queues a mutation, then (when online) replays the queue in order. Completes once the mutation
     /// is stored and, if online, the flush has run. Failures are reported via <see cref="MutationFailed"/>.
     /// </summary>
+    /// <remarks>
+    /// Called from a replay handler (for example to queue a follow-up write), it completes once the mutation is
+    /// stored: the replay that runs the handler goes on to replay it.
+    /// </remarks>
     public async Task EnqueueAsync<TVariables>(string mutationKey, TVariables variables, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mutationKey);
@@ -463,11 +470,11 @@ public sealed class PersistentMutationQueue : IDisposable
         try
         {
             var enqueuedAt = _timeProvider.GetUtcNow();
-            var id = $"{enqueuedAt.UtcTicks:D19}-{Interlocked.Increment(ref _sequence):D10}";
+            var id = NextOrder(enqueuedAt);
             await _store.SaveAsync(new PersistedQuery(KeyPrefix + id, payload, enqueuedAt), cancellationToken).ConfigureAwait(false);
             lock (_gate)
             {
-                _pending.Add(new Entry(new PendingMutation(id, mutationKey, enqueuedAt), payload));
+                _pending.Add(new Entry(new PendingMutation(id, mutationKey, enqueuedAt), payload, id));
             }
         }
         finally
@@ -492,11 +499,18 @@ public sealed class PersistentMutationQueue : IDisposable
         int restored;
 
         // Exclude concurrent enqueues and flushes while merging, so an entry being written or replayed right
-        // now can neither be loaded twice nor resurrected after it completed.
-        await _enqueueGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        // now can neither be loaded twice nor resurrected after it completed. The flush gate is taken first (the
+        // order a replay handler that enqueues takes them in), and not at all from a replay handler, whose flush
+        // already holds it.
+        var ownsFlush = !InReplayHandler;
+        if (ownsFlush)
         {
             await _flushGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        try
+        {
+            await _enqueueGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var stored = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
@@ -504,12 +518,15 @@ public sealed class PersistentMutationQueue : IDisposable
             }
             finally
             {
-                _flushGate.Release();
+                _enqueueGate.Release();
             }
         }
         finally
         {
-            _enqueueGate.Release();
+            if (ownsFlush)
+            {
+                _flushGate.Release();
+            }
         }
 
         if (restored > 0)
@@ -550,11 +567,11 @@ public sealed class PersistentMutationQueue : IDisposable
                     continue;
                 }
 
-                _pending.Add(new Entry(new PendingMutation(id, mutationKey, item.UpdatedAt), item.Payload));
+                _pending.Add(new Entry(new PendingMutation(id, mutationKey, item.UpdatedAt), item.Payload, TryReadOrder(item.Payload) ?? id));
                 restored++;
             }
 
-            _pending.Sort(static (a, b) => string.CompareOrdinal(a.Info.Id, b.Info.Id));
+            _pending.Sort(static (a, b) => string.CompareOrdinal(a.Order, b.Order));
         }
 
         return restored;
@@ -564,9 +581,10 @@ public sealed class PersistentMutationQueue : IDisposable
     /// Replays queued mutations in order while connectivity holds. Never throws for mutation failures;
     /// only cancellation propagates, leaving the remaining mutations queued.
     /// </summary>
+    /// <remarks>Called from a replay handler, it returns at once: the replay running the handler continues the queue.</remarks>
     public async Task FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _disposed) != 0 || InReplayHandler)
         {
             return;
         }
@@ -606,7 +624,7 @@ public sealed class PersistentMutationQueue : IDisposable
                 {
                     try
                     {
-                        await handler.Run(variablesJson, head.Info, cancellationToken).ConfigureAwait(false);
+                        await RunHandlerAsync(handler, variablesJson, head.Info, cancellationToken).ConfigureAwait(false);
                         await RemoveAsync(head).ConfigureAwait(false);
                         break;
                     }
@@ -678,6 +696,28 @@ public sealed class PersistentMutationQueue : IDisposable
             _flushGate.Release();
         }
     }
+
+    // Runs a handler inside a replay scope, so the calls it makes back into the queue know that the flush awaiting it
+    // holds _flushGate (waiting for it there would deadlock).
+    private async Task RunHandlerAsync(Handler handler, string variablesJson, PendingMutation mutation, CancellationToken cancellationToken)
+    {
+        var scope = new ReplayScope();
+        _replayScope.Value = scope;
+        try
+        {
+            await handler.Run(variablesJson, mutation, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            scope.Active = false;
+        }
+    }
+
+    // Whether the caller runs inside a replay handler of this queue. The scope flows into work the handler starts, but
+    // ends with the handler call, so work that outlives it takes the gates as usual.
+    private bool InReplayHandler => _replayScope.Value is { Active: true };
+
+    private string NextOrder(DateTimeOffset at) => $"{at.UtcTicks:D19}-{Interlocked.Increment(ref _sequence):D10}";
 
     // A throwing strategy ends the retries (the mutation fails with its own error); delays are clamped to what
     // Task.Delay accepts, so FlushAsync never throws because of the retry policy.
@@ -783,7 +823,7 @@ public sealed class PersistentMutationQueue : IDisposable
         RaisePendingChanged();
     }
 
-    private static string WriteEnvelope(string mutationKey, string variablesJson, string? error = null)
+    private static string WriteEnvelope(string mutationKey, string variablesJson, string? error = null, string? order = null)
     {
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer))
@@ -796,6 +836,11 @@ public sealed class PersistentMutationQueue : IDisposable
                 writer.WriteString("error", error);
             }
 
+            if (order is not null)
+            {
+                writer.WriteString("order", order);
+            }
+
             writer.WriteEndObject();
         }
 
@@ -804,12 +849,17 @@ public sealed class PersistentMutationQueue : IDisposable
 
     private static string ReadVariables(string payload) => TryReadEnvelope(payload, out _, out var variables) ? variables : "null";
 
-    private static string? TryReadError(string payload)
+    private static string? TryReadError(string payload) => TryReadString(payload, "error");
+
+    // The replay position of a retried dead letter; other entries replay in id order.
+    private static string? TryReadOrder(string payload) => TryReadString(payload, "order");
+
+    private static string? TryReadString(string payload, string property)
     {
         try
         {
             using var document = JsonDocument.Parse(payload);
-            return document.RootElement.TryGetProperty("error", out var error) ? error.GetString() : null;
+            return document.RootElement.TryGetProperty(property, out var value) && value.ValueKind is JsonValueKind.String ? value.GetString() : null;
         }
         catch (JsonException)
         {
@@ -874,7 +924,12 @@ public sealed class PersistentMutationQueue : IDisposable
 
     private sealed record Handler(Type VariablesType, Func<object?, string> Serialize, Func<string, PendingMutation, CancellationToken, Task> Run);
 
-    private sealed record Entry(PendingMutation Info, string Payload);
+    private sealed record Entry(PendingMutation Info, string Payload, string Order);
 
     private sealed record DeadEntry(DeadLetterMutation Info, string Payload);
+
+    private sealed class ReplayScope
+    {
+        public volatile bool Active = true;
+    }
 }

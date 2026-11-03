@@ -85,6 +85,34 @@ public class ProviderAndNavigationTests : TestContext
         Assert.Equal(1, client.Cache.Describe(QueryKey.Create("user", 3))!.ObserverCount);
     }
 
+    private sealed class DependentUsersView : DotNetQueryComponentBase
+    {
+        [Parameter]
+        public bool Ready { get; set; }
+
+        private IReadOnlyList<QueryObserver<string>> _users = [];
+
+        protected override void OnParametersSet() =>
+            _users = UseQueries(new[] { 1, 2 }.Select(id => new QueryDefinition<string>(
+                QueryKey.Create("dependent-user", id),
+                _ => Task.FromResult($"user {id}"),
+                new QueryOptions { Enabled = Ready })).ToList());
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder) =>
+            builder.AddContent(0, string.Join(",", _users.Select(u => u.CurrentState.Data ?? "-")));
+    }
+
+    [Fact]
+    public void UseQueries_loads_dependent_queries_once_they_are_enabled()
+    {
+        var cut = RenderComponent<DependentUsersView>(ps => ps.Add(p => p.Ready, false));
+        Assert.Contains("-,-", cut.Markup);
+
+        cut.SetParametersAndRender(ps => ps.Add(p => p.Ready, true)); // same keys, now enabled
+
+        cut.WaitForAssertion(() => Assert.Contains("user 1,user 2", cut.Markup));
+    }
+
     [Fact]
     public async Task Navigation_cancels_fetches_of_queries_left_behind()
     {
