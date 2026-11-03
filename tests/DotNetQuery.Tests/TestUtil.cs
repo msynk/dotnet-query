@@ -4,6 +4,16 @@ namespace DotNetQuery.Tests;
 
 internal static class TestUtil
 {
+    /// <summary>Web-default JSON options with reflection metadata (<c>JsonSerializerOptions.Web</c> needs .NET 9).</summary>
+    public static readonly System.Text.Json.JsonSerializerOptions WebJson = CreateWebJson();
+
+    private static System.Text.Json.JsonSerializerOptions CreateWebJson()
+    {
+        var options = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        options.MakeReadOnly(populateMissingResolver: true);
+        return options;
+    }
+
     public static async Task WaitUntilAsync(Func<bool> condition, int timeoutMs = 8000)
     {
         var sw = Stopwatch.StartNew();

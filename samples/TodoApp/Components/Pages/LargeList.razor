@@ -1,0 +1,41 @@
+@page "/large"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@inherits DotNetQueryComponentBase
+@inject TodoApi Api
+
+<PageTitle>DotNetQuery · Large list</PageTitle>
+
+<h1>10,000 rows</h1>
+<p style="color:#666">
+    An infinite query feeds <code>&lt;Virtualize&gt;</code>: only the visible rows are rendered, pages are loaded as you
+    scroll and cached, and coming back to this page restores the scroll position.
+</p>
+
+<div class="large-list" style="height:400px; overflow-y:auto; border:1px solid #ddd;">
+    <Virtualize ItemsProvider="_rows" Context="row" ItemSize="28" OverscanCount="10">
+        <ItemContent>
+            <div class="row" style="height:28px; display:flex; gap:12px; padding:0 8px;">
+                <span style="width:120px">@row.Name</span><span>score @row.Score</span>
+            </div>
+        </ItemContent>
+        <Placeholder>
+            <div style="height:28px; color:#bbb; padding:0 8px;">loading…</div>
+        </Placeholder>
+    </Virtualize>
+</div>
+<p class="loaded-pages">Loaded pages: @_feed.CurrentState.PageCount</p>
+
+<ScrollRestoration Id="large-list" Selector=".large-list" Ready="@(_feed.CurrentState.PageCount > 0)" />
+<QueryInfrastructure />
+
+@code {
+    private InfiniteQuery<int, RowPage> _feed = default!;
+    private ItemsProviderDelegate<Row> _rows = default!;
+
+    protected override void OnInitialized()
+    {
+        _feed = UseInfiniteQuery(TodoQueries.Rows, (offset, ct) => Api.GetRowsAsync(offset, 100, ct), TodoQueries.RowOptions);
+        _rows = _feed.ToItemsProvider(page => page.Rows, page => page.Total);
+    }
+}

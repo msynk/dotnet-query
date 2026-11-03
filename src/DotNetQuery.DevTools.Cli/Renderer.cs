@@ -10,7 +10,25 @@ internal static class Renderer
         RenderStats(export.Stats);
         RenderQueries(export.Queries);
         RenderMutations(export.Mutations ?? []);
+        RenderProfiles(export.Profiles ?? []);
         RenderEvents(export.Events);
+    }
+
+    private static void RenderProfiles(ProfileDto[] profiles)
+    {
+        if (profiles.Length == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine("== Slowest queries ========================================");
+        Console.WriteLine($"  {"KEY",-28} {"FETCHES",7} {"FAILED",6} {"RETRIES",7} {"AVG",9} {"MAX",9}");
+        foreach (var p in profiles.Take(10))
+        {
+            Console.WriteLine($"  {Trunc(p.Key, 28),-28} {p.Fetches,7} {p.Failures,6} {p.Retries,7} {p.AverageDurationMs,7:F1}ms {p.MaxDurationMs,7:F1}ms");
+        }
+
+        Console.WriteLine();
     }
 
     private static void RenderStats(StatsDto s)

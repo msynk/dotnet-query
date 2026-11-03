@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Windows.Input;
 
 namespace DotNetQuery.Mvvm;
 
@@ -18,6 +19,8 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
     ];
 
     private readonly Mutation<TVariables, TData> _mutation;
+    private readonly AsyncCommand _mutateCommand;
+    private readonly AsyncCommand _resetCommand;
     private readonly SynchronizationContext? _syncContext;
     private readonly object _applyGate = new();
     private MutationState<TVariables, TData> _state;
@@ -36,6 +39,10 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
         _syncContext = SynchronizationContext.Current;
         _mutation = client.CreateMutation(mutationFn, options);
         _state = _mutation.CurrentState;
+        _mutateCommand = new AsyncCommand(
+            parameter => MutateAsync(ToVariables(parameter)),
+            parameter => !IsPending && IsVariables(parameter));
+        _resetCommand = new AsyncCommand(_ => { Reset(); return Task.CompletedTask; }, _ => !IsIdle && !IsPending);
         _mutation.StateChanged += OnStateChanged;
     }
 
@@ -68,6 +75,16 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
 
     /// <summary>Gets the number of failed attempts in the most recent run.</summary>
     public int FailureCount => _state.FailureCount;
+
+    /// <summary>
+    /// A command that runs the mutation with the command parameter as its variables. It cannot execute while the
+    /// mutation is pending (so a double-click does not submit twice) or when the parameter is not a
+    /// <typeparamref name="TVariables"/>.
+    /// </summary>
+    public ICommand MutateCommand => _mutateCommand;
+
+    /// <summary>A command that resets the mutation to idle (for example to dismiss an error); disabled while idle or pending.</summary>
+    public ICommand ResetCommand => _resetCommand;
 
     /// <summary>Runs the mutation with the supplied variables.</summary>
     public Task<MutationResult<TVariables, TData>> MutateAsync(TVariables variables, CancellationToken cancellationToken = default) =>
@@ -114,7 +131,15 @@ public sealed class ObservableMutation<TVariables, TData> : INotifyPropertyChang
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
+
+        _mutateCommand.RaiseCanExecuteChanged();
+        _resetCommand.RaiseCanExecuteChanged();
     }
+
+    private static bool IsVariables(object? parameter) =>
+        parameter is TVariables || (parameter is null && default(TVariables) is null);
+
+    private static TVariables ToVariables(object? parameter) => parameter is TVariables variables ? variables : default!;
 
     /// <summary>Stops forwarding state changes.</summary>
     public void Dispose() => _mutation.StateChanged -= OnStateChanged;

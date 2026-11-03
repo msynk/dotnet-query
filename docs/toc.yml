@@ -1,0 +1,42 @@
+- name: Guides
+  items:
+    - name: Overview
+      href: index.md
+    - name: Getting started
+      href: getting-started.md
+    - name: Tutorials
+      href: tutorials.md
+    - name: Blazor
+      href: blazor.md
+    - name: Desktop and mobile
+      href: desktop-and-mobile.md
+    - name: Caching
+      href: caching.md
+    - name: Mutations
+      href: mutations.md
+    - name: Optimistic updates
+      href: optimistic-updates.md
+    - name: Infinite queries
+      href: infinite-queries.md
+    - name: Offline mode
+      href: offline-mode.md
+    - name: Generated queries (Refit, OpenAPI)
+      href: source-generation.md
+    - name: Diagnostics and DevTools
+      href: diagnostics.md
+    - name: Performance
+      href: performance.md
+    - name: Advanced scenarios
+      href: advanced-scenarios.md
+    - name: Architecture and lifecycle
+      href: architecture.md
+    - name: Troubleshooting
+      href: troubleshooting.md
+    - name: Coming from TanStack Query
+      href: tanstack-migration.md
+    - name: Migrating between releases
+      href: migration.md
+    - name: Versioning and releases
+      href: releasing.md
+- name: API reference
+  href: api/

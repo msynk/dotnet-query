@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
+    <!-- [GenerateQueries]: generated code must stay trim/AOT-clean too. -->
+    <ProjectReference Include="..\..\src\DotNetQuery.SourceGenerators\DotNetQuery.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

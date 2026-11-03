@@ -137,4 +137,30 @@ public class SignalTriggerTests
         Assert.Same(focusByConcrete, focusByInterface);
         Assert.NotNull(provider.GetRequiredService<IQueryClient>());
     }
+
+    [Fact]
+    public async Task A_reconnect_reported_by_both_connectivity_and_the_online_manager_refetches_once()
+    {
+        var time = new FakeTimeProvider();
+        var connectivity = new ConnectivityProvider();
+        var online = new OnlineManager();
+        using var client = new QueryClient(TestUtil.NoRetry(), time, onlineManager: online, connectivity: connectivity);
+        var key = QueryKey.Create("reconnect-once");
+        var calls = 0;
+        using var observer = client.Watch<int>(key);
+        await client.FetchAsync(key, _ => Task.FromResult(Interlocked.Increment(ref calls)));
+
+        connectivity.SetOnline(false);
+        connectivity.SetOnline(true);   // the browser bridge reports the transition...
+        online.Signal();                // ...and raises the online manager right after
+        await TestUtil.WaitUntilAsync(() => Volatile.Read(ref calls) >= 2);
+        await Task.Delay(50);
+
+        Assert.Equal(2, Volatile.Read(ref calls));
+
+        // A later, separate online signal still refetches.
+        time.Advance(TimeSpan.FromSeconds(5));
+        online.Signal();
+        await TestUtil.WaitUntilAsync(() => Volatile.Read(ref calls) == 3);
+    }
 }

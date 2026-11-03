@@ -15,14 +15,86 @@ public sealed class QueryCache
     /// <summary>Initializes a new cache using the supplied time source.</summary>
     /// <param name="timeProvider">Time source used for staleness and GC. Defaults to <see cref="TimeProvider.System"/>.</param>
     public QueryCache(TimeProvider? timeProvider = null)
-        : this(timeProvider, null, null, TimeSpan.FromMinutes(5))
+        : this(timeProvider, null, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5))
     {
     }
 
-    internal QueryCache(TimeProvider? timeProvider, IQueryEventSink? eventSink, IConnectivityProvider? connectivity, TimeSpan defaultCacheTime)
+    internal QueryCache(
+        TimeProvider? timeProvider,
+        IQueryEventSink? eventSink,
+        IConnectivityProvider? connectivity,
+        TimeSpan defaultCacheTime,
+        TimeSpan mutationCacheTime,
+        QueryClientOptions? options = null)
     {
-        _runtime = new QueryRuntime(this, timeProvider ?? TimeProvider.System, eventSink, connectivity, defaultCacheTime);
+        _runtime = new QueryRuntime(this, timeProvider ?? TimeProvider.System, eventSink, connectivity, defaultCacheTime, options);
+        Mutations = new MutationCache(_runtime.TimeProvider, mutationCacheTime);
+        if (options?.TrimOnMemoryPressure == true)
+        {
+            Gen2GcCallback.Register(static target => ((QueryCache)target).OnGen2Collection(), this);
+        }
     }
+
+    // Runs on the finalizer thread after a gen-2 collection: check the memory load, trim on the thread pool.
+    private bool OnGen2Collection()
+    {
+        var info = GC.GetGCMemoryInfo();
+        if (info.HighMemoryLoadThresholdBytes > 0 && info.MemoryLoadBytes >= info.HighMemoryLoadThresholdBytes)
+        {
+            ThreadPool.UnsafeQueueUserWorkItem(static cache => cache.Trim(0), this, preferLocal: false);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Evicts the least recently used inactive queries (no observers, no fetch in flight or deferred) until at most
+    /// <paramref name="maxInactiveQueries"/> remain, regardless of their cache time. Runs automatically when
+    /// <see cref="QueryClientOptions.MaxInactiveQueries"/> or <see cref="QueryClientOptions.TrimOnMemoryPressure"/> is set.
+    /// </summary>
+    /// <returns>The number of queries evicted.</returns>
+    public int Trim(int maxInactiveQueries)
+    {
+        var inactive = _entries.Values.Where(e => !e.IsRemoved && !e.IsActive).OrderBy(e => e.LastActivityAt).ToList();
+        var excess = inactive.Count - Math.Max(0, maxInactiveQueries);
+        var evicted = 0;
+        foreach (var entry in inactive)
+        {
+            if (evicted >= excess)
+            {
+                break;
+            }
+
+            if (entry.TryEvict() && _entries.TryRemove(KeyValuePair.Create(entry.Key, entry)))
+            {
+                evicted++;
+                RaiseChanged(entry.Key, QueryCacheChangeKind.Removed);
+            }
+        }
+
+        return evicted;
+    }
+
+    /// <summary>
+    /// Captures the current state of every query matching <paramref name="filter"/> (all queries when
+    /// <see langword="null"/>) for a later <see cref="QueryCacheSnapshot.Restore"/>.
+    /// </summary>
+    public QueryCacheSnapshot CreateSnapshot(QueryFilter? filter = null)
+    {
+        var entries = new List<EntrySnapshot>();
+        foreach (var entry in FindEntries(filter))
+        {
+            if (entry.CaptureSnapshot() is { } snapshot)
+            {
+                entries.Add(snapshot);
+            }
+        }
+
+        return new QueryCacheSnapshot(this, entries, _runtime.TimeProvider.GetUtcNow());
+    }
+
+    /// <summary>Gets the client's mutation runs: pending ones and recently settled ones.</summary>
+    public MutationCache Mutations { get; }
 
     /// <summary>
     /// Raised whenever an entry is added or removed, or its state changes. Handlers run synchronously on the
@@ -58,9 +130,81 @@ public sealed class QueryCache
         return _entries.TryGetValue(key, out var entry) ? entry.Describe() : null;
     }
 
+    /// <summary>
+    /// Describes every entry that matches <paramref name="filter"/> (every entry when <see langword="null"/>), for
+    /// inspection tooling and bulk reads.
+    /// </summary>
+    public IReadOnlyList<QueryDescriptor> FindAll(QueryFilter? filter = null)
+    {
+        var descriptors = new List<QueryDescriptor>();
+        foreach (var entry in FindEntries(filter))
+        {
+            descriptors.Add(entry.Describe());
+        }
+
+        return descriptors;
+    }
+
     internal QueryRuntime Runtime => _runtime;
 
-    internal QueryEntry<T> GetOrCreate<T>(QueryKey key)
+    internal List<IQueryEntry> FindEntries(QueryFilter? filter)
+    {
+        var matched = new List<IQueryEntry>();
+        foreach (var entry in _entries.Values)
+        {
+            if (filter is null ? !entry.IsRemoved : entry.Matches(filter))
+            {
+                matched.Add(entry);
+            }
+        }
+
+        return matched;
+    }
+
+    /// <summary>
+    /// Removes <paramref name="entry"/> if it is still the live entry for its key and nothing observes it. An observed
+    /// entry is reset in place instead (data discarded, in-flight fetch cancelled) and refetched for its observers,
+    /// so they keep receiving updates rather than being stranded on a dead entry.
+    /// </summary>
+    internal bool Remove(IQueryEntry entry)
+    {
+        if (entry.TryRemoveUnobserved())
+        {
+            // A concurrent GetOrCreate may evict the dead entry first; it then reports the removal itself.
+            if (_entries.TryRemove(KeyValuePair.Create(entry.Key, entry)))
+            {
+                RaiseChanged(entry.Key, QueryCacheChangeKind.Removed);
+            }
+
+            return true;
+        }
+
+        var cancelDetached = entry.ResetAndDetach();
+        _ = entry.RefetchAsync(FetchMode.CancelAndRefetch, includeDisabled: false, CancellationToken.None);
+        cancelDetached();
+        return true;
+    }
+
+    /// <summary>Removes and disposes every entry, observed or not (used when the owning client is disposed).</summary>
+    internal void DisposeAll()
+    {
+        foreach (var (key, entry) in _entries)
+        {
+            if (_entries.TryRemove(KeyValuePair.Create(key, entry)))
+            {
+                entry.Dispose();
+                RaiseChanged(key, QueryCacheChangeKind.Removed);
+            }
+        }
+    }
+
+    internal QueryEntry<T> GetOrCreate<T>(QueryKey key) =>
+        // Fast path for the common case - the entry exists - without the closure the creating path needs.
+        _entries.TryGetValue(key, out var existing) && existing is QueryEntry<T> { IsRemoved: false } live
+            ? live
+            : GetOrCreateSlow<T>(key);
+
+    private QueryEntry<T> GetOrCreateSlow<T>(QueryKey key)
     {
         while (true)
         {
@@ -69,8 +213,13 @@ public sealed class QueryCache
 
             if (entry.IsRemoved)
             {
-                // Lost a race with garbage collection or removal; drop the dead entry and retry.
-                _entries.TryRemove(KeyValuePair.Create(key, entry));
+                // Lost a race with garbage collection or removal; drop the dead entry (reporting the removal if
+                // this thread is the one that evicts it) and retry.
+                if (_entries.TryRemove(KeyValuePair.Create(key, entry)))
+                {
+                    RaiseChanged(key, QueryCacheChangeKind.Removed);
+                }
+
                 continue;
             }
 
@@ -103,6 +252,19 @@ public sealed class QueryCache
         }
     }
 
+    // Hot-path variant: the state travels as an argument, so a static lambda needs no closure allocation per call.
+    internal TResult WithEntry<T, TState, TResult>(QueryKey key, TState state, Func<QueryEntry<T>, TState, TResult?> action)
+        where TResult : class
+    {
+        while (true)
+        {
+            if (action(GetOrCreate<T>(key), state) is { } result)
+            {
+                return result;
+            }
+        }
+    }
+
     internal bool TryGetEntry(QueryKey key, out IQueryEntry entry) => _entries.TryGetValue(key, out entry!);
 
     internal IReadOnlyList<IQueryEntry> GetEntries() => _entries.Values.ToArray();
@@ -122,27 +284,27 @@ public sealed class QueryCache
         return false;
     }
 
-    /// <summary>Removes the entry for the specified key, cancelling any in-flight fetch.</summary>
-    /// <returns><see langword="true"/> if an entry was removed.</returns>
+    /// <summary>
+    /// Removes the entry for the specified key, cancelling any in-flight fetch. An entry that is still observed (for
+    /// example rendered by a component) is not dropped - that would strand its observers - but reset: its data is
+    /// discarded and it is refetched for them.
+    /// </summary>
+    /// <returns><see langword="true"/> if an entry was removed (or, when observed, reset).</returns>
     public bool Remove(QueryKey key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        if (_entries.TryRemove(key, out var entry))
-        {
-            entry.Dispose();
-            RaiseChanged(key, QueryCacheChangeKind.Removed);
-            return true;
-        }
-
-        return false;
+        return _entries.TryGetValue(key, out var entry) && Remove(entry);
     }
 
-    /// <summary>Removes every entry, cancelling all in-flight fetches.</summary>
+    /// <summary>
+    /// Removes every entry, cancelling all in-flight fetches. Observed entries are reset and refetched instead (see
+    /// <see cref="Remove(QueryKey)"/>), so no cached data survives and every rendered query reloads.
+    /// </summary>
     public void Clear()
     {
-        foreach (var key in _entries.Keys)
+        foreach (var entry in _entries.Values)
         {
-            Remove(key);
+            Remove(entry);
         }
     }
 
@@ -151,27 +313,81 @@ public sealed class QueryCache
     /// next fetch reloads it from the origin.
     /// </summary>
     /// <returns>The matched entries, flagged with whether each should be refetched now.</returns>
-    internal IReadOnlyList<(IQueryEntry Entry, bool Refetch)> Invalidate(Func<QueryKey, bool> predicate)
+    internal IReadOnlyList<(IQueryEntry Entry, bool Refetch)> Invalidate(Func<QueryKey, bool> predicate) =>
+        Invalidate(entry => predicate(entry.Key));
+
+    /// <inheritdoc cref="Invalidate(Func{QueryKey, bool})"/>
+    /// <param name="predicate">Selects the entries to invalidate.</param>
+    /// <param name="requested">
+    /// The key prefixes the caller asked to invalidate, if known: declared invalidation dependencies of these apply
+    /// even when nothing under them is cached.
+    /// </param>
+    internal IReadOnlyList<(IQueryEntry Entry, bool Refetch)> Invalidate(Func<IQueryEntry, bool> predicate, IReadOnlyList<QueryKey>? requested = null)
     {
         var matched = new List<(IQueryEntry, bool)>();
-        foreach (var (key, entry) in _entries)
+        var seen = new HashSet<IQueryEntry>(ReferenceEqualityComparer.Instance);
+        foreach (var entry in _entries.Values)
         {
-            if (predicate(key))
+            if (predicate(entry) && seen.Add(entry))
             {
                 matched.Add((entry, entry.Invalidate()));
             }
+        }
+
+        // Follow declared invalidation dependencies (transitively; each dependent prefix is expanded once).
+        if ((matched.Count > 0 || requested is { Count: > 0 }) && _runtime.Options is { HasInvalidationDependencies: true } options)
+        {
+            var expanded = new HashSet<QueryKey>();
+            var frontier = new Queue<(QueryKey Key, bool Requested)>(matched.Select(m => (m.Item1.Key, false)));
+            foreach (var key in requested ?? [])
+            {
+                frontier.Enqueue((key, true));
+            }
+
+            while (frontier.TryDequeue(out var item))
+            {
+                foreach (var dependent in options.GetInvalidationDependents(item.Key, includeNarrowerSources: item.Requested))
+                {
+                    if (!expanded.Add(dependent))
+                    {
+                        continue;
+                    }
+
+                    frontier.Enqueue((dependent, true));
+                    foreach (var entry in _entries.Values)
+                    {
+                        if (dependent.IsPrefixOf(entry.Key) && seen.Add(entry))
+                        {
+                            matched.Add((entry, entry.Invalidate()));
+                            frontier.Enqueue((entry.Key, false));
+                        }
+                    }
+                }
+            }
+        }
+
+        if (matched.Count > 0)
+        {
+            _runtime.EventSink?.QueriesInvalidated(matched.Select(m => m.Item1.Key).ToArray());
         }
 
         return matched;
     }
 
     /// <summary>
-    /// Removes inactive entries (no observers, no in-flight fetch) whose retention window has elapsed.
-    /// Runs automatically on the client's <see cref="QueryClientOptions.GarbageCollectionInterval"/>.
+    /// Removes inactive entries (no observers, no in-flight fetch) whose retention window has elapsed, and settled
+    /// mutation runs older than <see cref="QueryClientOptions.MutationCacheTime"/>. Runs automatically on the
+    /// client's <see cref="QueryClientOptions.GarbageCollectionInterval"/>.
     /// </summary>
-    /// <returns>The number of entries collected.</returns>
+    /// <returns>The number of query entries collected.</returns>
     public int CollectGarbage()
     {
+        Mutations.CollectGarbage();
+        if (_runtime.Options?.MaxInactiveQueries is { } maxInactive)
+        {
+            Trim(maxInactive);
+        }
+
         var now = _runtime.TimeProvider.GetUtcNow();
         var collected = 0;
         foreach (var (key, entry) in _entries)

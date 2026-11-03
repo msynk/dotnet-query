@@ -20,8 +20,8 @@
     <VersionPrefix>0.8.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright (c) DotNetQuery contributors</Copyright>
-    <PackageProjectUrl>https://github.com/dotnetquery/dotnetquery</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/dotnetquery/dotnetquery</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/msynk/dotnet-query</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/msynk/dotnet-query</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>server-state;cache;query;data-fetching;async;tanstack;caching;http;api</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>

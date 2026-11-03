@@ -16,7 +16,17 @@ var addTodo = client.CreateObservableMutation<NewTodo, Todo>(
 ```
 
 Bind `todos.Data`, `todos.IsPending`, `todos.IsError`, etc. in XAML; state changes marshal onto the
-WinUI `DispatcherQueue`. The factories throw if called off the UI thread.
+WinUI `DispatcherQueue`. The factories throw if called off the UI thread. Bind buttons to `todos.RefetchCommand`
+and `addTodo.MutateCommand`; `CreateObservableInfiniteQuery` exposes `FetchNextPageCommand` for "load more".
+
+Refetch stale data when the user returns to the window, and pause queries while offline:
+
+```csharp
+_window = new MainWindow();
+_lifecycle = new WinUIQueryLifecycle(_window, services.GetRequiredService<AppLifecycleSignals>());
+```
+
+See [Desktop and mobile](../../../docs/desktop-and-mobile.md) for the full guide.
 
 ## Build note
 

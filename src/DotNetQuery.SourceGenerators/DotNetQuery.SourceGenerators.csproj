@@ -1,0 +1,32 @@
+<!-- Publish settings passed on the command line for an app (for example -p:PublishTrimmed=true -r win-x64) flow to
+     every referenced project; a netstandard2.0 analyzer cannot be trimmed or published, so it ignores them. -->
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="PublishTrimmed;PublishAot;SelfContained;RuntimeIdentifier">
+
+  <!-- The Roslyn source generator behind [GenerateQueries]. It is not a package of its own: the DotNetQuery package
+       ships it under analyzers/dotnet/cs. Roslyn components must target netstandard2.0; 4.8 is the compiler of the
+       .NET 8 SDK, so the generator runs on every supported SDK. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>false</IsAotCompatible>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishAot>false</PublishAot>
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier></RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+</Project>

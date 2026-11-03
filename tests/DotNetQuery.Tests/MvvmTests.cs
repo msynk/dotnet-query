@@ -117,4 +117,44 @@ public class MvvmTests
         Assert.Equal("bad", oq.Error!.Message);
         Assert.True(oq.IsLoadingError);
     }
+
+    [Fact]
+    public async Task ObservableQuery_raises_only_the_properties_that_changed()
+    {
+        using var client = new QueryClient(TestUtil.NoRetry(o => o.DefaultStructuralSharing = true), new FakeTimeProvider());
+        var key = QueryKey.Create("mvvm-diff");
+        var version = 1;
+        using var oq = new ObservableQuery<List<string>>(client, key, _ => Task.FromResult(new List<string> { $"v{Volatile.Read(ref version)}" }));
+        await WaitUntilAsync(() => oq.HasData);
+        var initial = oq.Data;
+        var changed = new List<string>();
+        ((INotifyPropertyChanged)oq).PropertyChanged += (_, e) => { lock (changed) { changed.Add(e.PropertyName!); } };
+
+        // An equal refetch: the status flips (Refetching -> Success) but the shared data instance does not change.
+        await oq.RefetchAsync();
+
+        // Notifications may be delivered by another thread after RefetchAsync returns: wait for both flips.
+        await WaitUntilAsync(() => { lock (changed) { return changed.Count(n => n == nameof(ObservableQuery<int>.IsFetching)) >= 2; } });
+        await WaitUntilAsync(() => oq.Status == QueryStatus.Success && !oq.IsFetching);
+
+        Assert.Same(initial, oq.Data);
+        lock (changed)
+        {
+            Assert.Contains(nameof(ObservableQuery<int>.Status), changed);
+            Assert.Contains(nameof(ObservableQuery<int>.IsFetching), changed);
+            Assert.DoesNotContain(nameof(ObservableQuery<int>.Data), changed);
+            Assert.DoesNotContain(nameof(ObservableQuery<int>.Key), changed);
+            Assert.DoesNotContain(nameof(ObservableQuery<int>.HasData), changed);
+            changed.Clear();
+        }
+
+        Interlocked.Exchange(ref version, 2);
+        await oq.RefetchAsync();
+        await WaitUntilAsync(() => oq.Data![0] == "v2");
+
+        lock (changed)
+        {
+            Assert.Contains(nameof(ObservableQuery<int>.Data), changed);
+        }
+    }
 }

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <PackageId>DotNetQuery.WinUI</PackageId>
+    <PackageId>Msynk.DotNetQuery.WinUI</PackageId>
     <Description>WinUI 3 / Windows App SDK adapter for DotNetQuery: dispatcher-aware factories over the MVVM bindings (ObservableQuery/ObservableMutation) for XAML data binding.</Description>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <!-- Pure-C# adapter (only the DispatcherQueue projection is used), so we skip UseWinUI/XAML/PRI

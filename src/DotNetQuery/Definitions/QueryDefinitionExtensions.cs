@@ -15,7 +15,24 @@ public static class QueryDefinitionExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(query);
+        client.SeedInitialData(query);
         return client.FetchAsync(query.Key, query.Fetcher, query.Options, forceRefetch, cancellationToken);
+    }
+
+    /// <summary>
+    /// Fetches a dynamic set of queries in parallel (each deduplicated and cached as usual) and returns their results in
+    /// the same order - the counterpart of TanStack's <c>useQueries</c>. For a fixed set of different types, await
+    /// several <c>FetchAsync</c> calls with <see cref="Task.WhenAll(Task[])"/> instead.
+    /// </summary>
+    public static async Task<IReadOnlyList<QueryResult<T>>> FetchAllAsync<T>(
+        this IQueryClient client,
+        IEnumerable<QueryDefinition<T>> queries,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(queries);
+        var fetches = queries.Select(query => client.FetchAsync(query, cancellationToken: cancellationToken)).ToArray();
+        return await Task.WhenAll(fetches).ConfigureAwait(false);
     }
 
     /// <summary>Fetches the query into the cache ahead of time, ignoring errors (best-effort warm-up).</summary>
@@ -23,6 +40,7 @@ public static class QueryDefinitionExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(query);
+        client.SeedInitialData(query);
         return client.PrefetchAsync(query.Key, query.Fetcher, query.Options, cancellationToken);
     }
 
@@ -34,6 +52,7 @@ public static class QueryDefinitionExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(query);
+        client.SeedInitialData(query);
         var cached = client.GetQueryData<T>(query.Key);
         if (cached.HasData)
         {
@@ -68,12 +87,43 @@ public static class QueryDefinitionExtensions
         return client.SetQueryData(query.Key, updater);
     }
 
-    /// <summary>Creates a live observer for the query. Dispose it to unsubscribe.</summary>
+    /// <summary>
+    /// Creates a live observer for the query, seeding the definition's <see cref="QueryDefinition{T}.InitialData"/>
+    /// and exposing its <see cref="QueryDefinition{T}.PlaceholderData"/> through
+    /// <see cref="QueryObserver{T}.CurrentResult"/>. Dispose it to unsubscribe.
+    /// </summary>
     public static QueryObserver<T> Watch<T>(this IQueryClient client, QueryDefinition<T> query)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(query);
-        return client.Watch<T>(query.Key);
+        client.SeedInitialData(query);
+        var observer = client.Watch<T>(query.Key);
+        observer.Placeholder = query.PlaceholderData;
+        return observer;
+    }
+
+    /// <summary>
+    /// Seeds the cache with the definition's <see cref="QueryDefinition{T}.InitialData"/> if the query has no data
+    /// yet (and remembers it for <c>ResetQueriesAsync</c>). Called automatically by the definition-based fetch,
+    /// prefetch, ensure and watch operations; adapters that subscribe by key call it directly.
+    /// </summary>
+    /// <returns><see langword="true"/> if initial data was written to the cache.</returns>
+    public static bool SeedInitialData<T>(this IQueryClient client, QueryDefinition<T> query)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(query);
+        if (query.InitialData is not { } factory)
+        {
+            return false;
+        }
+
+        while (true)
+        {
+            if (client.Cache.GetOrCreate<T>(query.Key).TrySeedInitialData(factory, query.InitialDataUpdatedAt) is { } applied)
+            {
+                return applied;
+            }
+        }
     }
 
     /// <summary>Invalidates the query and every query whose key it prefixes, refetching active ones.</summary>

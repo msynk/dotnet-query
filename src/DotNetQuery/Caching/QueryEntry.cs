@@ -13,17 +13,22 @@ namespace DotNetQuery;
 /// every transition exactly once and in order, even when changes race on different threads.
 /// </remarks>
 /// <typeparam name="T">The type of data produced by the query.</typeparam>
-internal sealed class QueryEntry<T> : IQueryEntry
+internal sealed partial class QueryEntry<T> : IQueryEntry
 {
     // Task.Delay rejects delays above ~49.7 days; clamp misbehaving retry strategies instead of crashing.
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
+    private static long s_nextId;
 
     private readonly object _gate = new();
     private readonly QueryRuntime _runtime;
-    private readonly HashSet<QueryObserver<T>> _observers = [];
+    private readonly HashSet<IQuerySubscriber<T>> _observers = [];
     private readonly Queue<Pending> _outbox = new();
 
     private QueryState<T> _state = QueryState<T>.Idle;
+
+    // Completed tasks for the current state, reused while the state is unchanged (fresh cache hits return them).
+    private Task<QueryState<T>>? _stateTask;
+    private Task<QueryResult<T>>? _resultTask;
     private long _version;
     private FetchCycle? _cycle;
     private bool _invalidated;
@@ -37,6 +42,11 @@ internal sealed class QueryEntry<T> : IQueryEntry
     private TimeSpan _cacheTime;
     private bool _removed;
     private bool _draining;
+    private Func<T>? _initialData;
+    private TimeSpan? _adaptiveInterval;
+    private Action? _drainNow;
+    private FetchCycle? _detachedCycle;
+    private DateTimeOffset? _initialDataUpdatedAt;
 
     public QueryEntry(QueryKey key, QueryRuntime runtime)
     {
@@ -47,6 +57,12 @@ internal sealed class QueryEntry<T> : IQueryEntry
     }
 
     public QueryKey Key { get; }
+
+    /// <summary>A process-unique id giving entries a global lock order for multi-entry transactions.</summary>
+    internal long Id { get; } = Interlocked.Increment(ref s_nextId);
+
+    /// <summary>The entry lock, taken directly (in <see cref="Id"/> order) only by multi-entry transactions.</summary>
+    internal object Gate => _gate;
 
     public TimeSpan CacheTime
     {
@@ -68,6 +84,11 @@ internal sealed class QueryEntry<T> : IQueryEntry
     public bool IsRemoved
     {
         get { lock (_gate) { return _removed; } }
+    }
+
+    public bool IsFetching
+    {
+        get { lock (_gate) { return _cycle is not null; } }
     }
 
     /// <summary>Gets an immutable snapshot of the entry's current state.</summary>
@@ -123,7 +144,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
 
             if (!options.Enabled)
             {
-                return Task.FromResult(_state);
+                return StateTaskLocked();
             }
 
             if (_cycle is { } inFlight && !inFlight.Cts.IsCancellationRequested && mode is not FetchMode.CancelAndRefetch)
@@ -132,9 +153,9 @@ internal sealed class QueryEntry<T> : IQueryEntry
             }
             else if (mode is FetchMode.IfStale && !IsStaleLocked(options.StaleTime))
             {
-                return Task.FromResult(_state);
+                return StateTaskLocked();
             }
-            else if (!_runtime.IsOnline)
+            else if (options.NetworkMode is NetworkMode.Online && !_runtime.IsOnline)
             {
                 // Offline: never hit the network. Serve cached data if any, otherwise pause; either way the
                 // fetch resumes automatically on reconnect.
@@ -161,6 +182,53 @@ internal sealed class QueryEntry<T> : IQueryEntry
         CancelQuietly(superseded);
         Drain();
         return cycle is null ? Task.FromResult(snapshot) : AwaitCycleAsync(cycle, throwOnError, cancellationToken);
+    }
+
+    /// <summary>
+    /// <see cref="TryFetchAsync"/> for <c>IQueryClient.FetchAsync</c>: remembers the fetcher and returns the result;
+    /// a request served from the cache returns a completed task shared while the state is unchanged.
+    /// </summary>
+    public Task<QueryResult<T>>? TryFetchResultAsync(
+        Func<CancellationToken, Task<T>> fetcher,
+        ResolvedQueryOptions options,
+        FetchMode mode,
+        CancellationToken cancellationToken)
+    {
+        var fetch = TryFetchAsync(fetcher, options, mode, remember: true, options.ThrowOnError, cancellationToken);
+        if (fetch is null)
+        {
+            return null;
+        }
+
+        if (!fetch.IsCompletedSuccessfully)
+        {
+            return ToResultAsync(Key, fetch);
+        }
+
+        var state = fetch.Result;
+        var cached = Volatile.Read(ref _resultTask);
+        if (cached is not null && ReferenceEquals(cached.Result.State, state))
+        {
+            return cached;
+        }
+
+        cached = Task.FromResult(new QueryResult<T>(Key, state));
+        Volatile.Write(ref _resultTask, cached);
+        return cached;
+
+        static async Task<QueryResult<T>> ToResultAsync(QueryKey key, Task<QueryState<T>> fetch) =>
+            new(key, await fetch.ConfigureAwait(false));
+    }
+
+    private Task<QueryState<T>> StateTaskLocked()
+    {
+        var task = _stateTask;
+        if (task is null || !ReferenceEquals(task.Result, _state))
+        {
+            _stateTask = task = Task.FromResult(_state);
+        }
+
+        return task;
     }
 
     /// <summary>
@@ -256,6 +324,174 @@ internal sealed class QueryEntry<T> : IQueryEntry
         return cycle.Completion;
     }
 
+    public Task ResetAsync()
+    {
+        ResetAndDetach()();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Resets the entry like <see cref="ResetAsync"/>, but returns the cancellation of the detached in-flight fetch
+    /// instead of performing it, so a caller can start the follow-up refetch first: the next cycle that starts is
+    /// linked as the detached cycle's successor, and its waiters receive that refetch's outcome deterministically.
+    /// </summary>
+    public Action ResetAndDetach()
+    {
+        Func<T>? initialData;
+        DateTimeOffset? initialDataUpdatedAt;
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return static () => { };
+            }
+
+            initialData = _initialData;
+            initialDataUpdatedAt = _initialDataUpdatedAt;
+        }
+
+        var hasInitial = false;
+        T? initialValue = default;
+        if (initialData is not null)
+        {
+            try
+            {
+                initialValue = initialData();
+                hasInitial = true;
+            }
+            catch (Exception)
+            {
+                // A failing initial-data factory resets to the empty state instead.
+            }
+        }
+
+        CancellationTokenSource? cancel = null;
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return static () => { };
+            }
+
+            // Detach the in-flight fetch: it is cancelled and, whatever its outcome, never touches state again (it
+            // must neither restore its pre-fetch status nor land outdated data over the reset). Its waiters receive
+            // the entry's state as of when it settles.
+            if (_cycle is { } cycle)
+            {
+                cycle.Detached = true;
+                cancel = cycle.Cts;
+                _cycle = null;
+                _detachedCycle = cycle;
+            }
+
+            _invalidated = false;
+            _pausedFetchPending = false;
+            SetStateLocked(
+                hasInitial
+                    ? new QueryState<T> { Status = QueryStatus.Success, Data = initialValue, DataUpdatedAt = initialDataUpdatedAt ?? Now }
+                    : QueryState<T>.Idle,
+                dataChanged: true);
+        }
+
+        Drain();
+        return () => CancelQuietly(cancel);
+    }
+
+    /// <summary>
+    /// Marks the entry removed and cancels its in-flight fetch - but only if nothing observes it. Returns
+    /// <see langword="false"/> (changing nothing) for an observed entry: removing it would strand its observers on a
+    /// dead entry that never updates again.
+    /// </summary>
+    public bool TryRemoveUnobserved()
+    {
+        CancellationTokenSource? cancel;
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return true;
+            }
+
+            if (_observers.Count > 0)
+            {
+                return false;
+            }
+
+            _removed = true;
+            _refreshTimer?.Dispose();
+            _refreshTimer = null;
+            cancel = _cycle?.Cts;
+        }
+
+        CancelQuietly(cancel);
+        return true;
+    }
+
+    /// <summary>
+    /// Seeds <paramref name="factory"/>'s data when the entry holds no data and is not in an error state, and
+    /// remembers it as the entry's initial data for <see cref="ResetAsync"/>. The factory runs outside the lock.
+    /// Returns <see langword="null"/> if the entry was removed, otherwise whether the data was applied.
+    /// </summary>
+    public bool? TrySeedInitialData(Func<T> factory, DateTimeOffset? updatedAt)
+    {
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return null;
+            }
+
+            _initialData = factory;
+            _initialDataUpdatedAt = updatedAt;
+            if (_state.HasData || _state.Status is QueryStatus.Error)
+            {
+                return false;
+            }
+        }
+
+        var data = factory();
+
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return null;
+            }
+
+            if (_state.HasData || _state.Status is QueryStatus.Error)
+            {
+                return false;
+            }
+
+            ApplyDataLocked(data, updatedAt ?? Now);
+        }
+
+        Drain();
+        return true;
+    }
+
+    public bool Matches(QueryFilter filter)
+    {
+        if (!filter.MatchesKey(Key))
+        {
+            return false;
+        }
+
+        lock (_gate)
+        {
+            if (_removed || !filter.MatchesState(
+                    isActive: _observers.Count > 0,
+                    isStale: IsStaleLocked(_lastFetcher is null ? TimeSpan.Zero : _lastOptions.StaleTime),
+                    isFetching: _cycle is not null,
+                    status: _state.Status))
+            {
+                return false;
+            }
+        }
+
+        return filter.Predicate is null || filter.Predicate(Describe());
+    }
+
     private FetchCycle StartCycleLocked(
         Func<CancellationToken, Task<T>> fetcher,
         ResolvedQueryOptions options,
@@ -274,6 +510,13 @@ internal sealed class QueryEntry<T> : IQueryEntry
         {
             previous.Successor = cycle;
             superseded = previous.Cts;
+        }
+
+        // The first fetch after a reset takes over the waiters of the fetch the reset detached.
+        if (_detachedCycle is { } detached)
+        {
+            detached.Successor ??= cycle;
+            _detachedCycle = null;
         }
 
         _cycle = cycle;
@@ -307,7 +550,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
         {
             try
             {
-                data = await cycle.Fetcher(token).ConfigureAwait(false);
+                data = await RunAttemptAsync(cycle, attempts + 1, token).ConfigureAwait(false);
 
                 // A fetcher that ignores its token may still complete after being cancelled/superseded.
                 outcome = token.IsCancellationRequested ? FetchOutcome.Cancelled : FetchOutcome.Succeeded;
@@ -322,20 +565,20 @@ internal sealed class QueryEntry<T> : IQueryEntry
             {
                 attempts++;
                 error = ex;
-                if (attempts > cycle.Options.RetryCount)
+                if (attempts > cycle.Options.RetryCount || !ShouldRetry(cycle.Options.ShouldRetry, attempts, ex))
                 {
                     outcome = FetchOutcome.Failed;
                     break;
                 }
 
-                if (!_runtime.IsOnline)
+                if (cycle.Options.NetworkMode is not NetworkMode.Always && !_runtime.IsOnline)
                 {
                     // Lost connectivity mid-fetch: stop burning retries and resume on reconnect.
                     outcome = FetchOutcome.Paused;
                     break;
                 }
 
-                ReportRetry(cycle, attempts);
+                ReportRetry(cycle, attempts, ex);
 
                 TimeSpan delay;
                 try
@@ -369,7 +612,15 @@ internal sealed class QueryEntry<T> : IQueryEntry
             }
         }
 
+        if (outcome is FetchOutcome.Succeeded && cycle.Options.StructuralSharing)
+        {
+            // Runs Equals (user code) outside the lock. If the entry changes meanwhile, the shared value is
+            // still equal to what was fetched, so storing it is as correct as storing the fetched value.
+            data = StructuralSharing.Share(CurrentData(), data);
+        }
+
         Complete(cycle, outcome, data, error, attempts);
+        UpdateAdaptiveInterval(cycle.Options);
 
         if (sink is not null)
         {
@@ -391,7 +642,138 @@ internal sealed class QueryEntry<T> : IQueryEntry
         cycle.Cts.Dispose();
     }
 
-    private void ReportRetry(FetchCycle cycle, int attempts)
+    // A predicate that throws vetoes the retry: the cycle ends with the fetch error, not the predicate's.
+    private static bool ShouldRetry(RetryPredicate? predicate, int failureCount, Exception error)
+    {
+        if (predicate is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            return predicate(failureCount, error);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    // One attempt through the client's limiters, timeout and interceptors. Without any of them configured (the
+    // default), the fetcher is called directly, without an extra async state machine per attempt.
+    private Task<T> RunAttemptAsync(FetchCycle cycle, int attempt, CancellationToken token) =>
+        _runtime.Limiter is null && _runtime.RateLimiter is null && cycle.Options.Timeout is null
+            ? Invoke(cycle, attempt, token)
+            : RunScheduledAttemptAsync(cycle, attempt, token);
+
+    private async Task<T> RunScheduledAttemptAsync(FetchCycle cycle, int attempt, CancellationToken token)
+    {
+        using var slot = _runtime.Limiter is { } limiter
+            ? await limiter.AcquireAsync(cycle.Options.Priority, token).ConfigureAwait(false)
+            : null;
+        using var permit = _runtime.RateLimiter is { } rateLimiter
+            ? await rateLimiter.AcquireAsync(Key, token).ConfigureAwait(false)
+            : null;
+
+        if (cycle.Options.Timeout is not { } timeout)
+        {
+            return await Invoke(cycle, attempt, token).ConfigureAwait(false);
+        }
+
+        using var timeoutSource = new CancellationTokenSource(timeout, _runtime.TimeProvider);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutSource.Token);
+        var task = Invoke(cycle, attempt, linked.Token);
+        try
+        {
+            // WaitAsync also abandons a fetcher that ignores its token.
+            return await task.WaitAsync(linked.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !token.IsCancellationRequested)
+        {
+            _ = task.ContinueWith(static t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            throw new TimeoutException($"Fetching {Key} did not complete within {timeout}.");
+        }
+    }
+
+    private Task<T> Invoke(FetchCycle cycle, int attempt, CancellationToken token)
+    {
+        var interceptors = _runtime.Interceptors;
+        if (interceptors.Length == 0)
+        {
+            return cycle.Fetcher(token);
+        }
+
+        var context = new QueryInterceptorContext(Key, attempt);
+        var next = cycle.Fetcher;
+        for (var i = interceptors.Length - 1; i >= 0; i--)
+        {
+            var interceptor = interceptors[i];
+            var inner = next;
+            next = ct => interceptor.InterceptAsync(context, inner, ct);
+        }
+
+        return next(token);
+    }
+
+    // Recomputes an adaptive polling interval after a fetch settled (user code, so outside the lock).
+    private void UpdateAdaptiveInterval(ResolvedQueryOptions options)
+    {
+        if (options.AdaptiveRefetchInterval is not { } compute)
+        {
+            return;
+        }
+
+        TimeSpan? next;
+        try
+        {
+            next = compute(Describe());
+        }
+        catch (Exception)
+        {
+            next = null;
+        }
+
+        lock (_gate)
+        {
+            _adaptiveInterval = next is { } interval && interval > TimeSpan.Zero ? interval : null;
+            UpdateRefetchScheduleLocked();
+        }
+    }
+
+    // Structural sharing for direct writes (SetQueryData, updaters, hydration, synchronized data), as for fetched
+    // data: an equal value keeps the cached instance and a partly changed list or dictionary reuses its unchanged
+    // elements. Equals is user code, so it runs outside the lock; if the entry changes meanwhile, the shared value is
+    // still equal to the written one, so storing it is as correct as storing the original.
+    private T ShareWithCurrent(T data)
+    {
+        T? current;
+        lock (_gate)
+        {
+            if (!SharesStructureLocked() || !_state.HasData)
+            {
+                return data;
+            }
+
+            current = _state.Data;
+        }
+
+        return StructuralSharing.Share(current, data);
+    }
+
+    // The query's own setting once it has been fetched, else the client default.
+    private bool SharesStructureLocked() =>
+        _lastFetcher is not null ? _lastOptions.StructuralSharing : _runtime.Options?.DefaultStructuralSharing ?? false;
+
+    private T? CurrentData()
+    {
+        lock (_gate)
+        {
+            return _state.HasData ? _state.Data : default;
+        }
+    }
+
+    private void ReportRetry(FetchCycle cycle, int attempts, Exception error)
     {
         lock (_gate)
         {
@@ -402,6 +784,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
         }
 
         Drain();
+        _runtime.EventSink?.QueryFetchRetried(Key, attempts, error);
     }
 
     private void Complete(FetchCycle cycle, FetchOutcome outcome, T data, Exception? error, int attempts)
@@ -415,8 +798,13 @@ internal sealed class QueryEntry<T> : IQueryEntry
                 _cycle = null;
             }
 
-            // A superseded cycle must not touch state: its successor owns the outcome.
-            if (cycle.Successor is null)
+            if (ReferenceEquals(_detachedCycle, cycle))
+            {
+                _detachedCycle = null; // settled before any follow-up fetch: do not link a later, unrelated one
+            }
+
+            // A superseded cycle must not touch state (its successor owns the outcome), nor a detached one (reset).
+            if (cycle.Successor is null && !cycle.Detached)
             {
                 var now = Now;
                 switch (outcome)
@@ -496,7 +884,9 @@ internal sealed class QueryEntry<T> : IQueryEntry
             FetchCycle? successor;
             lock (_gate)
             {
-                successor = cycle.Successor;
+                // A detached cycle (the entry was reset mid-fetch) has no successor of its own; hand its waiters
+                // to the fetch running now, if any (for example the refetch a reset of an observed query starts).
+                successor = cycle.Successor ?? (cycle.Detached && _cycle is { } current && !ReferenceEquals(current, cycle) ? current : null);
             }
 
             if (successor is null)
@@ -531,6 +921,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
     /// <summary>Sets the entry's data, marking it fresh. Returns <see langword="false"/> if the entry was removed.</summary>
     public bool TrySetData(T data, DateTimeOffset? updatedAt = null)
     {
+        data = ShareWithCurrent(data);
         lock (_gate)
         {
             if (_removed)
@@ -569,6 +960,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
             QueryState<T> current;
             bool invalidated;
             long observed;
+            bool share;
             lock (_gate)
             {
                 if (_removed)
@@ -579,9 +971,14 @@ internal sealed class QueryEntry<T> : IQueryEntry
                 current = _state;
                 invalidated = _invalidated;
                 observed = _version;
+                share = SharesStructureLocked();
             }
 
             var candidate = updater(current.HasData ? current.Data : default);
+            if (share && current.HasData)
+            {
+                candidate = StructuralSharing.Share(current.Data, candidate);
+            }
 
             DataWrite write;
             lock (_gate)
@@ -617,25 +1014,63 @@ internal sealed class QueryEntry<T> : IQueryEntry
     {
         lock (_gate)
         {
-            if (_removed || _version != expectedVersion)
+            if (!TryRestoreLocked(state, invalidated, expectedVersion))
             {
                 return false;
             }
-
-            _invalidated = invalidated;
-            SetStateLocked(
-                state with
-                {
-                    Status = state.Status is QueryStatus.Loading or QueryStatus.Refetching
-                        ? (state.HasData ? QueryStatus.Success : QueryStatus.Idle)
-                        : state.Status,
-                },
-                dataChanged: true);
         }
 
         Drain();
         return true;
     }
+
+    /// <summary>The body of <see cref="TryRestore"/>; the caller holds <see cref="Gate"/> and drains afterwards.</summary>
+    internal bool TryRestoreLocked(QueryState<T> state, bool invalidated, long expectedVersion)
+    {
+        if (_removed || _version != expectedVersion)
+        {
+            return false;
+        }
+
+        _invalidated = invalidated;
+        SetStateLocked(
+            state with
+            {
+                Status = state.Status is QueryStatus.Loading or QueryStatus.Refetching
+                    ? (state.HasData ? QueryStatus.Success : QueryStatus.Idle)
+                    : state.Status,
+            },
+            dataChanged: true);
+        return true;
+    }
+
+    /// <summary>
+    /// Reads what a write needs to compute and later roll back: the state, the invalidation flag and the version.
+    /// Returns <see langword="null"/> if the entry was removed.
+    /// </summary>
+    internal (QueryState<T> State, bool Invalidated, long Version)? SnapshotForWrite()
+    {
+        lock (_gate)
+        {
+            return _removed ? null : (_state, _invalidated, _version);
+        }
+    }
+
+    /// <summary>Whether the entry is live and still at <paramref name="version"/>. The caller holds <see cref="Gate"/>.</summary>
+    internal bool IsAtVersionLocked(long version) => !_removed && _version == version;
+
+    /// <summary>Whether the entry was removed. The caller holds <see cref="Gate"/>.</summary>
+    internal bool IsRemovedLocked => _removed;
+
+    /// <summary>Writes data (marking it fresh) and returns the new version. The caller holds <see cref="Gate"/> and drains afterwards.</summary>
+    internal long WriteDataLocked(T data)
+    {
+        ApplyDataLocked(data, Now);
+        return _version;
+    }
+
+    /// <summary>Delivers notifications queued by <c>*Locked</c> writes made under <see cref="Gate"/>.</summary>
+    internal void FlushNotifications() => Drain();
 
     /// <summary>
     /// Applies externally produced data (server prerender, persisted cache) only when it is newer than what
@@ -643,6 +1078,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
     /// </summary>
     public bool? TryHydrate(T data, DateTimeOffset updatedAt)
     {
+        data = ShareWithCurrent(data);
         lock (_gate)
         {
             if (_removed)
@@ -651,6 +1087,32 @@ internal sealed class QueryEntry<T> : IQueryEntry
             }
 
             if (_state.DataUpdatedAt is { } existing && existing >= updatedAt)
+            {
+                return false;
+            }
+
+            ApplyDataLocked(data, updatedAt);
+        }
+
+        Drain();
+        return true;
+    }
+
+    /// <summary>
+    /// Writes data received from another cache with its original timestamp - atomically, only if it is not older
+    /// than the data held now, unless <paramref name="force"/> is set. Returns <see langword="null"/> if removed.
+    /// </summary>
+    internal bool? TryApplyRemote(T data, DateTimeOffset updatedAt, bool force)
+    {
+        data = ShareWithCurrent(data);
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return null;
+            }
+
+            if (!force && _state.HasData && _state.DataUpdatedAt is { } existing && existing > updatedAt)
             {
                 return false;
             }
@@ -686,7 +1148,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
     /// Subscribes a freshly created observer (with no handlers attached yet), seeding it with the current
     /// state. Returns <see langword="false"/> if the entry was removed.
     /// </summary>
-    internal bool TryAddObserver(QueryObserver<T> observer)
+    internal bool TryAddObserver(IQuerySubscriber<T> observer)
     {
         QueryState<T> current;
         long version;
@@ -711,7 +1173,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
         return true;
     }
 
-    internal void RemoveObserver(QueryObserver<T> observer)
+    internal void RemoveObserver(IQuerySubscriber<T> observer)
     {
         CancellationTokenSource? cancel = null;
         lock (_gate)
@@ -742,7 +1204,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
     private void UpdateRefetchScheduleLocked()
     {
         var interval = _observers.Count > 0 && !_removed && _lastFetcher is not null && _lastOptions.Enabled
-            ? _lastOptions.RefetchInterval
+            ? (_lastOptions.AdaptiveRefetchInterval is not null ? _adaptiveInterval : _lastOptions.RefetchInterval)
             : null;
 
         if (interval is { } period)
@@ -772,6 +1234,69 @@ internal sealed class QueryEntry<T> : IQueryEntry
     private void OnRefetchInterval() => _ = RefetchAsync(FetchMode.Force, includeDisabled: false, CancellationToken.None);
 
     // ---------------------------------------------------------------- lifecycle
+
+    public bool TryEvict()
+    {
+        lock (_gate)
+        {
+            if (_removed || _observers.Count > 0 || _cycle is not null || _pausedFetchPending)
+            {
+                return false;
+            }
+
+            _removed = true;
+            _refreshTimer?.Dispose();
+            _refreshTimer = null;
+            return true;
+        }
+    }
+
+    public EntrySnapshot? CaptureSnapshot()
+    {
+        lock (_gate)
+        {
+            return _removed ? null : new EntrySnapshot<T>(Key, _state, _invalidated);
+        }
+    }
+
+    /// <summary>
+    /// Restores a captured state exactly (a fetch status becomes the settled status it implies), detaching any fetch in
+    /// flight. Returns <see langword="null"/> if the entry was removed.
+    /// </summary>
+    internal bool? TryRestoreSnapshot(QueryState<T> state, bool invalidated)
+    {
+        CancellationTokenSource? cancel = null;
+        lock (_gate)
+        {
+            if (_removed)
+            {
+                return null;
+            }
+
+            if (_cycle is { } cycle)
+            {
+                cycle.Detached = true;
+                cancel = cycle.Cts;
+                _cycle = null;
+                _detachedCycle = cycle;
+            }
+
+            _invalidated = invalidated;
+            _pausedFetchPending = false;
+            SetStateLocked(
+                state with
+                {
+                    Status = state.Status is QueryStatus.Loading or QueryStatus.Refetching
+                        ? (state.HasData ? QueryStatus.Success : QueryStatus.Idle)
+                        : state.Status,
+                },
+                dataChanged: true);
+        }
+
+        CancelQuietly(cancel);
+        Drain();
+        return true;
+    }
 
     /// <summary>Atomically marks the entry removed if it is inactive, idle and past its retention window.</summary>
     public bool TryCollect(DateTimeOffset now)
@@ -836,7 +1361,7 @@ internal sealed class QueryEntry<T> : IQueryEntry
     // Must hold _gate. Records the new state and queues its notification; call Drain() after releasing the lock.
     private void SetStateLocked(QueryState<T> state, bool dataChanged)
     {
-        if (!dataChanged && state.Equals(_state))
+        if (!dataChanged && SameState(state, _state))
         {
             return;
         }
@@ -850,12 +1375,33 @@ internal sealed class QueryEntry<T> : IQueryEntry
             dataChanged ? QueryCacheChangeKind.DataUpdated : QueryCacheChangeKind.StateChanged));
     }
 
+    // Compares two states without calling the data's Equals (user code must not run under the lock). Callers that
+    // pass dataChanged: false never change Data, so reference identity is enough for it.
+    private static bool SameState(QueryState<T> a, QueryState<T> b) =>
+        a.Status == b.Status
+        && ReferenceEquals(a.Error, b.Error)
+        && a.DataUpdatedAt == b.DataUpdatedAt
+        && a.ErrorUpdatedAt == b.ErrorUpdatedAt
+        && a.FailureCount == b.FailureCount
+        && (typeof(T).IsValueType || ReferenceEquals(a.Data, b.Data));
+
     /// <summary>
     /// Delivers queued notifications in order. Only one thread drains at a time; a thread that finds a
     /// drain in progress leaves its notification to that thread, which keeps delivery strictly ordered
     /// (including notifications raised re-entrantly from a handler).
     /// </summary>
     private void Drain()
+    {
+        // Inside QueryNotifications.Batch(), deliver at the end of the batch instead.
+        if (NotificationBatchScope.TryDefer(this, _drainNow ??= DrainNow))
+        {
+            return;
+        }
+
+        DrainNow();
+    }
+
+    private void DrainNow()
     {
         lock (_gate)
         {
@@ -909,13 +1455,13 @@ internal sealed class QueryEntry<T> : IQueryEntry
         }
     }
 
-    private readonly struct Pending(QueryState<T> state, long version, QueryObserver<T>[] observers, QueryCacheChangeKind kind)
+    private readonly struct Pending(QueryState<T> state, long version, IQuerySubscriber<T>[] observers, QueryCacheChangeKind kind)
     {
         public QueryState<T> State { get; } = state;
 
         public long Version { get; } = version;
 
-        public QueryObserver<T>[] Observers { get; } = observers;
+        public IQuerySubscriber<T>[] Observers { get; } = observers;
 
         public QueryCacheChangeKind Kind { get; } = kind;
     }
@@ -932,6 +1478,9 @@ internal sealed class QueryEntry<T> : IQueryEntry
 
         /// <summary>The cycle that replaced this one; non-null means this cycle was superseded.</summary>
         public FetchCycle? Successor { get; set; }
+
+        /// <summary>Set when the entry was reset mid-fetch: the cycle's outcome must not touch state.</summary>
+        public bool Detached { get; set; }
 
         public QueryStatus RevertStatus { get; init; }
 

@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/DotNetQuery/DotNetQuery.csproj" />
     <Project Path="src/DotNetQuery.DevTools.Cli/DotNetQuery.DevTools.Cli.csproj" />
+    <Project Path="src/DotNetQuery.SourceGenerators/DotNetQuery.SourceGenerators.csproj" />
   </Folder>
   <Folder Name="/src/adapters/">
     <Project Path="src/adapters/DotNetQuery.Avalonia/DotNetQuery.Avalonia.csproj" />
@@ -18,6 +19,7 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/TodoApp/TodoApp.csproj" />
+    <Project Path="samples/TodoApp.Client/TodoApp.Client.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Avalonia/DotNetQuery.Sample.Avalonia.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Chat/DotNetQuery.Sample.Chat.csproj" />
     <Project Path="samples/DotNetQuery.Sample.OfflineFirst/DotNetQuery.Sample.OfflineFirst.csproj" />
@@ -27,6 +29,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/DotNetQuery.Benchmarks/DotNetQuery.Benchmarks.csproj" />
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />
+    <Project Path="tests/DotNetQuery.E2E/DotNetQuery.E2E.csproj" />
+    <Project Path="tests/DotNetQuery.SourceGenerators.Tests/DotNetQuery.SourceGenerators.Tests.csproj" />
     <Project Path="tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj" />
   </Folder>
 </Solution>

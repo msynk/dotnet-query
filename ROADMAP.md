@@ -1,6 +1,6 @@
 # DotNetQuery - Path to 1.0
 
-Status: **feature-complete core and Blazor adapter, 6 UI adapters, 249 tests, 7 NuGet packages, seven
+Status: **feature-complete core and Blazor adapter, 6 UI adapters, 412 tests, 7 NuGet packages, seven
 verified samples, a BenchmarkDotNet suite, a verified NativeAOT publish, CI, and a frozen public API
 surface.** This document tracks what remains before a formal 1.0 tag. See [CHANGELOG.md](CHANGELOG.md) for
 the latest changes.
@@ -11,8 +11,11 @@ the latest changes.
   `QueryDefinition<T>`, immutable state/options, retry policies, deduplication with supersession
   (invalidation cancels outdated fetches), ordered observer notifications, cancellation with state
   restore, atomic cache updates, hydration, race-free background GC.
-- **Mutations** - declarative optimistic updates with exact, conflict-safe rollback; `Invalidates`;
-  retries; lifecycle callbacks that never re-run the mutation; cancellation; mutation keys and ids.
+- **Mutations** - declarative optimistic updates with exact, conflict-safe, atomic multi-key rollback;
+  `Invalidates`; retries with `ShouldRetry`; lifecycle callbacks that never re-run the mutation; cancellation;
+  mutation keys and ids; the mutation cache (`client.Cache.Mutations`) and serial `Scope`s.
+- **Query engine additions** - query filters and bulk operations, atomic multi-query transactions, initial and
+  placeholder data, selectors with fine-grained notifications, opt-in structural sharing.
 - **Infinite queries** - cache-backed (shared, invalidated, persisted, hydrated, inspected),
   offset/cursor/bidirectional, sliding window, cursor re-derivation on refetch.
 - **Background sync** - interval, focus/reconnect/resume triggers, dependency invalidation.
@@ -39,12 +42,11 @@ the latest changes.
 
 | Item | Notes | Priority |
 | --- | --- | --- |
-| **Browser end-to-end tests** | Hydration, signals and the DevTools panel are verified with bUnit and a manual headless-Chrome run; add a Playwright job to CI for the TodoApp. | P1 |
 | **Ship the API baselines** | Move `PublicAPI.Unshipped.txt` entries to `Shipped.txt` when tagging 1.0. | P1 |
-| **Benchmark baseline** | Run `tests/DotNetQuery.Benchmarks` in Release and commit the summary as the 1.0 baseline. | P2 |
+| **Benchmark baseline** | A ShortRun baseline is committed; re-run with the default job on a quiet machine for the 1.0 baseline. | P2 |
 | **MAUI iOS/macCatalyst heads** | Wired to build on macOS; needs a Mac build host. | P2 |
 | **Query key source generator** | Optional compile-time key/definition factories. | P3 |
-| **Structural sharing** | Reuse unchanged parts of refetched data to reduce UI churn (TanStack's `structuralSharing`). | P3 |
+| **Reserve the `Msynk.` NuGet prefix** | Package IDs now use `Msynk.DotNetQuery.*` (the old IDs collided with an unrelated library); request prefix reservation on nuget.org. | P1 |
 
 ## Known characteristics (documented, not bugs)
 
@@ -54,5 +56,5 @@ the latest changes.
   for you) - an undisposed observer keeps its query active.
 - `PersistentMutationQueue` replays at-least-once: a crash between a successful request and its removal from
   the store replays it on the next start, so handlers should be idempotent.
-- Queries are persisted by exact registered key; dynamic keys (for example per-id queries) must be
-  registered explicitly.
+- Queries are persisted by exact registered key or by key prefix; prefixed records are restored when the
+  matching query is first used (a key cannot be rebuilt from its persisted text).

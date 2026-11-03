@@ -33,7 +33,7 @@
         <Button Grid.Row="4"
                 x:Name="RefetchBtn"
                 Text="Refetch"
-                Clicked="OnRefetchClicked" />
+                Command="{Binding RefetchCommand}" />
 
     </Grid>
 

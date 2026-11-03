@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <PackageId>DotNetQuery.Wpf</PackageId>
+    <PackageId>Msynk.DotNetQuery.Wpf</PackageId>
     <Description>WPF adapter for DotNetQuery: dispatcher-aware helpers and re-exported MVVM bindings (ObservableQuery/ObservableMutation) for XAML data binding.</Description>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>

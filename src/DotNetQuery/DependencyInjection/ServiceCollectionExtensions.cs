@@ -70,6 +70,15 @@ public static class DotNetQueryServiceCollectionExtensions
         services.TryAdd(ServiceDescriptor.Describe(typeof(ConnectivityProvider), typeof(ConnectivityProvider), clientLifetime));
         services.TryAdd(ServiceDescriptor.Describe(typeof(IConnectivityProvider), sp => sp.GetRequiredService<ConnectivityProvider>(), clientLifetime));
 
+        // One place for desktop and mobile adapters to report focus, resume and network availability.
+        services.TryAdd(ServiceDescriptor.Describe(
+            typeof(AppLifecycleSignals),
+            sp => new AppLifecycleSignals(
+                sp.GetRequiredService<FocusManager>(),
+                sp.GetRequiredService<ResumeManager>(),
+                sp.GetRequiredService<ConnectivityProvider>()),
+            clientLifetime));
+
         services.TryAdd(ServiceDescriptor.Describe(
             typeof(IQueryClient),
             sp => new QueryClient(

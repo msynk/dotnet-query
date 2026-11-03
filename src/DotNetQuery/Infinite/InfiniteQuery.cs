@@ -119,6 +119,26 @@ public sealed class InfiniteQuery<TParam, TPage> : IDisposable
         return RunAsync(FetchPreviousAsync, FetchMode.CancelAndRefetch, remember: false, direction: -1, cancellationToken);
     }
 
+    /// <summary>
+    /// Loads pages until at least <paramref name="count"/> are loaded or there is no next page - for restoring a
+    /// scrolled list or prefetching several pages at once. Serves fresh cached pages; already-loaded pages are kept.
+    /// </summary>
+    public async Task<InfiniteQueryState<TParam, TPage>> FetchPagesAsync(int count, CancellationToken cancellationToken = default)
+    {
+        var state = await FetchAsync(cancellationToken).ConfigureAwait(false);
+        while (state.PageCount < count && state.HasNextPage && !state.IsError)
+        {
+            var before = state.PageCount;
+            state = await FetchNextPageAsync(cancellationToken).ConfigureAwait(false);
+            if (state.PageCount <= before)
+            {
+                break; // no progress (failure, or MaxPages sliding the window)
+            }
+        }
+
+        return state;
+    }
+
     private Task<InfiniteQueryState<TParam, TPage>> EnsureInitialAsync(CancellationToken cancellationToken) =>
         RunAsync(RefetchPagesAsync, FetchMode.Force, remember: true, direction: 0, cancellationToken);
 
@@ -308,5 +328,34 @@ public sealed class InfiniteQuery<TParam, TPage> : IDisposable
         _observer.StateChanged -= OnEntryChanged;
         _observer.Dispose();
         StateChanged = null;
+    }
+}
+
+/// <summary>Helpers for infinite queries.</summary>
+public static class InfiniteQueryExtensions
+{
+    /// <summary>
+    /// Loads the first <paramref name="pages"/> pages of an infinite query into the cache ahead of time (for example
+    /// before navigating to a feed), serving fresh cached pages. Errors are captured in the cache, not thrown.
+    /// </summary>
+    public static async Task PrefetchInfiniteQueryAsync<TParam, TPage>(
+        this IQueryClient client,
+        QueryKey key,
+        Func<TParam, CancellationToken, Task<TPage>> fetcher,
+        InfiniteQueryOptions<TParam, TPage> options,
+        int pages = 1,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        using var query = client.CreateInfiniteQuery(key, fetcher, options);
+        await query.FetchPagesAsync(Math.Max(1, pages), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Flattens the loaded pages into one item list, in page order.</summary>
+    public static IReadOnlyList<TItem> Items<TParam, TPage, TItem>(this InfiniteData<TParam, TPage> data, Func<TPage, IEnumerable<TItem>> items)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(items);
+        return data.Pages.SelectMany(items).ToArray();
     }
 }

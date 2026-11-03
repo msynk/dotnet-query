@@ -1,0 +1,49 @@
+@using Microsoft.AspNetCore.Components.Routing
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject IQueryClient InjectedClient
+
+@* Invisible component: place once in an interactive layout to make queries navigation-aware. On every navigation it
+   cancels fetches of queries nothing renders any more (the pages left behind) and, optionally, refetches the stale
+   queries the new page shows. *@
+
+@code {
+    /// <summary>A client supplied by a <c>QueryClientProvider</c>, if any.</summary>
+    [CascadingParameter] public IQueryClient? CascadedClient { get; set; }
+
+    /// <summary>Cancel in-flight fetches of unobserved queries on navigation (default <see langword="true"/>).</summary>
+    [Parameter] public bool CancelInactiveFetches { get; set; } = true;
+
+    /// <summary>Refetch observed queries that are stale once the navigation completed (default <see langword="false"/>).</summary>
+    [Parameter] public bool RefetchStaleOnNavigation { get; set; }
+
+    private IQueryClient Client => CascadedClient ?? InjectedClient;
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = HandleAsync();
+
+    private async Task HandleAsync()
+    {
+        try
+        {
+            if (CancelInactiveFetches)
+            {
+                // The new page's components subscribe during this navigation's render; yield so they are counted.
+                await Task.Yield();
+                await Client.CancelQueriesAsync(new QueryFilter { Type = QueryTypeFilter.Inactive, Fetching = true });
+            }
+
+            if (RefetchStaleOnNavigation)
+            {
+                await Client.RefetchQueriesAsync(new QueryFilter { Type = QueryTypeFilter.Active, Stale = true });
+            }
+        }
+        catch (Exception)
+        {
+            // Navigation housekeeping must never surface errors (fetch errors are captured in query state).
+        }
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+}

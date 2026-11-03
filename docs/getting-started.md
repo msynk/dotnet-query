@@ -3,9 +3,12 @@
 ## Install
 
 ```bash
-dotnet add package DotNetQuery
-dotnet add package DotNetQuery.Blazor      # Blazor apps
+dotnet add package Msynk.DotNetQuery
+dotnet add package Msynk.DotNetQuery.Blazor      # Blazor apps
 ```
+
+Packages are published under the owner-scoped `Msynk.` prefix (`DotNetQuery.Core` and `DotNetQuery.Blazor` on
+NuGet belong to an unrelated library). Namespaces and assembly names are unchanged: `using DotNetQuery;`.
 
 ## Register the client
 
@@ -90,6 +93,15 @@ Every client operation has a definition overload (`FetchAsync`, `PrefetchAsync`,
 `GetQueryData`, `SetQueryData`, `Watch`, `InvalidateQueriesAsync`, `CancelQueriesAsync`,
 `RefetchQueryAsync`), as do the Blazor `<Query>` component, `UseQuery`, and the MVVM bindings.
 `WithOptions(o => o with { Enabled = ... })` derives a variant.
+
+A definition can also carry `InitialData` (seeded into the cache when the query has no data yet, fresh from
+`InitialDataUpdatedAt` - or now - for the stale time) and `PlaceholderData` (shown through
+`observer.CurrentResult` while pending, flagged `IsPlaceholderData`, never cached):
+
+```csharp
+var user = UserQueries.ById(api, 7).WithInitialData(userFromList, listUpdatedAt);
+var list = UserQueries.List(api).WithPlaceholderData([]);
+```
 
 ## Query keys
 

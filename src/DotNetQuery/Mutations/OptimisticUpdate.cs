@@ -13,10 +13,8 @@ public abstract class OptimisticUpdate<TVariables>
     /// <summary>Gets the key of the query the update writes to.</summary>
     public QueryKey Key { get; }
 
-    /// <summary>
-    /// Cancels in-flight fetches for <see cref="Key"/>, applies the update, and returns the rollback action.
-    /// </summary>
-    internal abstract Task<Func<Task>> ApplyAsync(IQueryClient client, TVariables variables, CancellationToken cancellationToken);
+    /// <summary>Adds the optimistic write for <paramref name="variables"/> to <paramref name="batch"/>.</summary>
+    internal abstract void AddTo(QueryDataBatch batch, TVariables variables);
 }
 
 /// <summary>Factory for <see cref="OptimisticUpdate{TVariables}"/>.</summary>
@@ -54,29 +52,7 @@ public static class OptimisticUpdate
     private sealed class TypedOptimisticUpdate<TVariables, TData>(QueryKey key, Func<TData?, TVariables, TData> update)
         : OptimisticUpdate<TVariables>(key)
     {
-        internal override async Task<Func<Task>> ApplyAsync(IQueryClient client, TVariables variables, CancellationToken cancellationToken)
-        {
-            // Stop a pending refetch from overwriting the optimistic value when it lands.
-            await client.CancelQueriesAsync(k => k == Key, cancellationToken).ConfigureAwait(false);
-
-            while (true)
-            {
-                var entry = client.Cache.GetOrCreate<TData>(Key);
-                if (entry.TryUpdateDataCore(current => update(current, variables)) is not { } write)
-                {
-                    continue; // collected concurrently; retry against a fresh entry
-                }
-
-                return () =>
-                {
-                    // Restore the exact snapshot (data, timestamp, invalidation) - unless something else wrote
-                    // on top of the optimistic value meanwhile (another mutation's update, a refetch). Restoring
-                    // then would clobber that write, so mark the query stale and refetch it instead.
-                    return entry.TryRestore(write.Previous, write.PreviousInvalidated, write.Version)
-                        ? Task.CompletedTask
-                        : client.InvalidateQueriesAsync(k => k == Key, CancellationToken.None);
-                };
-            }
-        }
+        internal override void AddTo(QueryDataBatch batch, TVariables variables) =>
+            batch.Update<TData>(Key, current => update(current, variables));
     }
 }

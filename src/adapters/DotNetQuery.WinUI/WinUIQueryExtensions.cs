@@ -34,6 +34,20 @@ public static class WinUIQueryExtensions
     }
 
     /// <summary>
+    /// Creates an <see cref="ObservableInfiniteQuery{TParam, TPage}"/> for data binding (bind a "load more" control to
+    /// its <c>FetchNextPageCommand</c>). Must be called on the WinUI UI thread.
+    /// </summary>
+    public static ObservableInfiniteQuery<TParam, TPage> CreateObservableInfiniteQuery<TParam, TPage>(
+        this IQueryClient client,
+        QueryKey key,
+        Func<TParam, CancellationToken, Task<TPage>> fetcher,
+        InfiniteQueryOptions<TParam, TPage> options)
+    {
+        EnsureUiThread();
+        return new ObservableInfiniteQuery<TParam, TPage>(client, key, fetcher, options);
+    }
+
+    /// <summary>
     /// Creates an <see cref="ObservableMutation{TVariables, TData}"/> for data binding. Must be called on
     /// the WinUI UI thread.
     /// </summary>

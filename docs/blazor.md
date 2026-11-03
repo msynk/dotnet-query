@@ -74,7 +74,9 @@ cached separately and switching back is instant.
 
 - **Templates.** `Loading` renders while the query has neither data nor an error, `Error` when the first
   load failed. `ChildContent` receives the `QueryResult<T>` for everything else (or every state, if you
-  omit the other templates). The first render already shows `Loading` - there is no idle flash.
+  omit the other templates). The first render already shows `Loading` - there is no idle flash. `Empty`
+  renders instead of `ChildContent` when the query succeeded with `null` or an empty collection (override
+  what counts as empty with `IsEmpty="@(n => n == 0)"`).
 - **Key changes** (e.g. `_filter` changes) subscribe to the new key and fetch it; fresh cached data is shown
   without a request.
 - **`KeepPreviousData`** keeps rendering the previous key's data (`result.IsPlaceholderData` is `true`)
@@ -142,6 +144,225 @@ with the component.
 `UseInfiniteQuery` works the same way for paginated lists. Errors from `ThrowOnError` queries are
 dispatched to the nearest `ErrorBoundary`.
 
+`UseQuery(definition, select, notifyOn)` subscribes through a selector, so the component re-renders only when
+the selected value changes - for example a badge that counts open todos does not re-render on background
+refetches or on edits to done items:
+
+```csharp
+_openCount = UseQuery(TodoQueries.List(Api), todos => todos.Count(t => !t.Done), QueryStateProperties.Data);
+```
+
+Hook-style queries prerender like `<Query>`: while prerendering, the component waits for the fetches its
+`Use*` calls started (so the HTML contains the data), persists the results into the page, and the interactive
+render hydrates them with their original timestamps instead of fetching again. Override
+`PersistQueryState => false` for data that must not be embedded in the page.
+
+### Dynamic lists of queries
+
+`UseQueries(definitions)` subscribes to a list that changes between renders (TanStack's `useQueries`): each query is
+fetched in parallel; queries that leave the list are unsubscribed and new ones added, and the returned observers
+match the list's order.
+
+```csharp
+_users = UseQueries(SelectedIds.Select(id => UserQueries.ById(Api, id)).ToList());
+```
+
+### Rendering only what matters
+
+`<Query NotifyOn="QueryStateProperties.Data | QueryStateProperties.Error">` re-renders only for those changes (no
+re-render for background-refetch status flips); `UseQuery(definition, select, notifyOn)` does the same for hooks.
+
+### Several clients
+
+`<QueryClientProvider Client="@client">` makes the components below it - `<Query>`, `DotNetQueryComponentBase`, the
+DevTools panel - use that client instead of the registered one (a separate cache for public reference data, an
+isolated cache in a preview or a test).
+
+### Navigation
+
+`<DotNetQueryNavigation />` (once, in an interactive layout) cancels the fetches of queries nothing renders any more
+when the user navigates away, and with `RefetchStaleOnNavigation="true"` refetches the stale queries the new page
+shows.
+
+### Long lists: Virtualize and scroll restoration
+
+```razor
+<Virtualize ItemsProvider="_rows" Context="row"><RowView Row="row" /></Virtualize>
+<ScrollRestoration Id="rows" Ready="@_rowsLoaded" />
+
+@code {
+    private ItemsProviderDelegate<Row> _rows = default!;
+    protected override void OnInitialized() =>
+        _rows = UseInfiniteQuery(RowQueries.Key, Api.GetRowsAsync, RowQueries.Options).ToItemsProvider(page => page.Items, page => page.Total);
+}
+```
+
+`ToItemsProvider` loads the pages covering the rows Virtualize asks for (through the cache, so scrolling back is
+instant); without a total it keeps one page of headroom so scrolling continues. `<ScrollRestoration>` remembers the
+scroll position per id (in `sessionStorage`) and restores it when the view renders again.
+
+## Render modes
+
+The adapter works the same in every interactive render mode, and a Blazor Web App can mix them per page (the
+[TodoApp sample](https://github.com/msynk/dotnet-query/tree/main/samples/TodoApp) does: `@rendermode InteractiveServer`, `InteractiveWebAssembly` and
+`InteractiveAuto` pages side by side, all covered by the Playwright tests).
+
+- **Register in both projects.** Call `AddDotNetQueryBlazor()` in the server's `Program.cs` and in the `.Client`
+  project's. Prerendering of a WebAssembly or Auto page runs on the server with the server's registrations; the
+  interactive render runs in the browser with the client's.
+- **Fetch through an abstraction.** A component that runs in both places should not call a server-only service
+  directly. Put an interface in the `.Client` project (`ITodoClient`), implement it over `HttpClient` in the browser
+  and over the data layer on the server, and build query definitions on the interface. Keys stay identical, so the
+  prerendered state hydrates into the browser cache and no request is repeated after the switch.
+- **Persisted state is per render mode.** Blazor writes separate prerender state for server and WebAssembly
+  components (`Blazor-Server-Component-State` / `Blazor-WebAssembly-Component-State` in the page); the adapter's
+  hydration uses whichever applies, so nothing needs configuring.
+- **Disable inputs until interactive.** `RendererInfo.IsInteractive` is `false` while prerendering; disabling submit
+  buttons until then avoids actions that would be lost before the page becomes interactive.
+
+### Blazor Server reconnection
+
+Browser online/offline events do not cover a dropped SignalR connection to the circuit. Register a
+`CircuitHandler` (in the server project; `CircuitHandler` is a server-only type, so it is not part of the
+WebAssembly-compatible adapter) that refetches the stale queries the user is looking at when the connection
+comes back:
+
+```csharp
+public sealed class QueryCircuitHandler(IQueryClient client) : CircuitHandler
+{
+    private bool _wasDown;
+
+    public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
+    {
+        _wasDown = true;
+        return Task.CompletedTask;
+    }
+
+    public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken)
+    {
+        if (_wasDown)
+        {
+            _wasDown = false;
+            _ = client.RefetchQueriesAsync(new QueryFilter { Type = QueryTypeFilter.Active, Stale = true }, CancellationToken.None);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+builder.Services.AddScoped<CircuitHandler, QueryCircuitHandler>();
+```
+
+### Forms and grids
+
+- **`EditForm`**: load the entity with `UseQuery`, copy it into a form model once (not on every render, or the
+  user's edits are overwritten by background refetches), and save through `UseMutation` with an optimistic update
+  of the detail and list keys plus `Invalidates`. See
+  [EditTodo.razor](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/Components/Pages/EditTodo.razor).
+- **`QuickGrid`**: make each page a query, so paging back and forth is served from the cache and pages are
+  deduplicated and refreshed like any query:
+
+```razor
+<QuickGrid ItemsProvider="_provider" Pagination="_pagination">...</QuickGrid>
+<Paginator State="_pagination" />
+
+@code {
+    private readonly PaginationState _pagination = new() { ItemsPerPage = 10 };
+    private GridItemsProvider<Row> _provider = default!;
+
+    protected override void OnInitialized() => _provider = async request =>
+    {
+        var (offset, count) = (request.StartIndex, request.Count ?? 10);
+        var page = await Client.FetchAsync(
+            QueryKey.Create("grid", offset, count),
+            ct => Api.GetRowsAsync(offset, count, ct),
+            new QueryOptions { StaleTime = TimeSpan.FromMinutes(1) },
+            cancellationToken: request.CancellationToken);
+        var data = page.EnsureData();
+        return GridItemsProviderResult.From(data.Rows, data.Total);
+    };
+}
+```
+
+### Real-time updates (SignalR)
+
+Server pushes map onto the cache: write the pushed entity with `SetQueryData` when the message carries it, or
+invalidate the affected keys when it only says something changed. Observed queries re-render; unobserved ones
+refetch the next time they are shown.
+
+```csharp
+hub.On<Todo>("TodoChanged", todo =>
+{
+    client.SetQueryData(TodoQueries.All.Append("by-id", todo.Id), todo);
+    _ = client.InvalidateQueriesAsync(QueryFilter.ForKey(TodoQueries.All));
+});
+```
+
+For high-frequency streams, `StreamIntoCacheAsync` (see [Advanced scenarios](advanced-scenarios.md)) folds an
+`IAsyncEnumerable` into one cached value.
+
+## Initial and placeholder data
+
+Definitions can carry data to show before the first fetch completes:
+
+```csharp
+// Initial data is real cached data (seeded once, persisted, restored by ResetQueriesAsync). Fresh initial
+// data is served without a request; stale initial data is shown and refetched in the background.
+var detail = TodoQueries.ById(Api, id) with
+{
+    InitialData = () => Client.GetQueryData(TodoQueries.List(Api)).Data?.FirstOrDefault(t => t.Id == id)!,
+    InitialDataUpdatedAt = Client.GetQueryData(TodoQueries.List(Api)).DataUpdatedAt,
+};
+
+// Placeholder data is never cached: shown while pending, flagged with IsPlaceholderData.
+var skeleton = TodoQueries.List(Api).WithPlaceholderData([new Todo(0, "Loading…", false)]);
+```
+
+`<Query Definition="...">`, `UseQuery(definition)`, `client.Watch(definition)` and `ObservableQuery` all honor
+both. A placeholder result is not pending, so `<Query>` renders `ChildContent` (not `Loading`) with
+`result.IsPlaceholderData` set; `KeepPreviousData` takes precedence over the placeholder when both apply.
+
+## Signing users in and out
+
+A scoped client is private to one circuit (Blazor Server) or one browser tab (WebAssembly) - but in
+WebAssembly that tab outlives a sign-out, so the next user to sign in would see the previous user's cached
+data. Opt in to clearing the cache whenever the signed-in identity changes:
+
+```csharp
+builder.Services.AddDotNetQueryBlazor().ResetOnUserChange();
+
+// Also reset when the active tenant changes:
+builder.Services.AddDotNetQueryBlazor().ResetOnUserChange(user =>
+    $"{QueryAuthenticationGuard.DefaultIdentity(user)}|{user.FindFirst("tenant")?.Value}");
+```
+
+The `QueryAuthenticationGuard` listens to `AuthenticationStateProvider` (activated by the first `<Query>` or
+`DotNetQueryComponentBase` component). The first identity is recorded without a reset; on every later change
+queries nobody renders are removed, rendered queries are reset and refetched under the new identity (no stale
+data is shown even briefly), and settled mutation runs are forgotten. Token refreshes for the same user do not
+reset anything. Persisted caches and offline mutation queues live outside the client - clear them in
+`guard.UserChanged`, or call `guard.Reset()` from an explicit sign-out handler.
+
+## Keeping browser tabs in sync
+
+Register the queries to share between tabs and place the starter component in an interactive layout:
+
+```csharp
+builder.Services.AddDotNetQueryBlazor()
+    .AddCrossTabSync(sync => sync.RegisterPrefix(TodoQueries.All, TodoJson.Default.ListTodo));
+```
+
+```razor
+<DotNetQueryCrossTabSync />
+```
+
+A todo added in one tab - including its optimistic placeholder and, if the server rejects it, the rollback -
+appears in every other tab of the same origin without a refetch, and invalidations reach every tab. It runs
+over the browser's `BroadcastChannel` (`BroadcastChannelQuerySync`) and the core `QuerySynchronizer` (see
+[Advanced Scenarios](advanced-scenarios.md#synchronizing-caches-tabs-windows-processes)). Use the
+`JsonTypeInfo<T>` registrations in trimmed WebAssembly apps. In Blazor Server each tab's circuit keeps its own
+cache on the server and the browser relays the data between them.
+
 ## Mutations with optimistic updates
 
 ```csharp
@@ -169,8 +390,23 @@ See [Optimistic Updates](optimistic-updates.md).
 ```
 
 A floating button opens an overlay with the cache (status, observers, staleness, timings, a JSON preview
-of the cached data), the mutation history (variables, duration, errors), the event log, and actions to
-refetch, invalidate, cancel or remove a query. Use `Floating="false"` (the default) to render it inline.
+of the cached data), the mutation history (variables, duration, errors, and whether a run is paused waiting
+for its scope or connectivity), the event log, and actions to refetch, invalidate, cancel or remove a query.
+Use `Floating="false"` (the default) to render it inline.
+
+Keep it away from production users and their data:
+
+```razor
+@inject IWebHostEnvironment Environment   @* IWebAssemblyHostEnvironment in WebAssembly *@
+<QueryDevToolsPanel Floating="true" Enabled="@Environment.IsDevelopment()" ShowData="false" />
+```
+
+A disabled panel renders nothing and does not observe the client; `ShowData="false"` hides cached values and
+mutation variables while keeping keys, statuses and timings.
+
+The panel also offers a key-hierarchy tree, a status filter, a per-query timeline and profile with a Reset action,
+cache snapshots with one-click restore (time travel), and - with `Queue="@offlineQueue"` - an "Offline queue" tab
+to inspect pending and dead-lettered mutations, retry or discard them. See [Diagnostics](diagnostics.md).
 The component library's styles are bundled into your app's `<YourApp>.styles.css`, so make sure your
 `App.razor` links it.
 

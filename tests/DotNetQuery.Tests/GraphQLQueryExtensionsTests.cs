@@ -1,11 +1,24 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DotNetQuery;
 using DotNetQuery.GraphQL;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 namespace DotNetQuery.Tests;
+
+internal sealed record AddTodoVariables(string Title);
+
+internal sealed record AddTodoData(AddedTodo AddTodo);
+
+internal sealed record AddedTodo(int Id, string Title);
+
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+[JsonSerializable(typeof(AddTodoVariables))]
+[JsonSerializable(typeof(AddTodoData))]
+internal sealed partial class GraphQLTestJson : JsonSerializerContext;
 
 public class GraphQLQueryExtensionsTests
 {
@@ -91,6 +104,72 @@ public class GraphQLQueryExtensionsTests
         Assert.True(result.IsSuccess);
         Assert.Equal(new UserDto(7, "Ada"), result.Data!.User);
         Assert.Equal("Ada", client.GetQueryData<UserResponse>(key).Data!.User.Name);
+    }
+
+    private const string AddTodo = "mutation($title:String!){ addTodo(title:$title){ id title } }";
+
+    [Fact]
+    public async Task GraphQLMutationFn_sends_the_variables_and_returns_the_data()
+    {
+        var handler = Handler(() => Json("{\"data\":{\"addTodo\":{\"id\":3,\"title\":\"Milk\"}}}"), out var http);
+        var mutate = http.GraphQLMutationFn("graphql", AddTodo, GraphQLTestJson.Default.AddTodoVariables, GraphQLTestJson.Default.AddTodoData);
+
+        var data = await mutate(new AddTodoVariables("Milk"), CancellationToken.None);
+
+        Assert.Equal(new AddedTodo(3, "Milk"), data.AddTodo);
+        Assert.Contains("addTodo(title:$title)", handler.LastBody);
+        Assert.Contains("\"variables\":{\"title\":\"Milk\"}", handler.LastBody);
+    }
+
+    [Fact]
+    public async Task GraphQLMutationFn_reflection_overload_serializes_with_web_defaults()
+    {
+        var handler = Handler(() => Json("{\"data\":{\"addTodo\":{\"id\":4,\"title\":\"Eggs\"}}}"), out var http);
+        var mutate = http.GraphQLMutationFn<AddTodoVariables, AddTodoData>("graphql", AddTodo);
+
+        var data = await mutate(new AddTodoVariables("Eggs"), CancellationToken.None);
+
+        Assert.Equal(4, data.AddTodo.Id);
+        Assert.Contains("\"variables\":{\"title\":\"Eggs\"}", handler.LastBody);
+    }
+
+    [Fact]
+    public async Task CreateGraphQLMutation_runs_through_the_mutation_pipeline()
+    {
+        using var client = new QueryClient(new QueryClientOptions { DefaultStaleTime = TimeSpan.FromMinutes(5) }, new FakeTimeProvider());
+        Handler(() => Json("{\"data\":{\"addTodo\":{\"id\":5,\"title\":\"Tea\"}}}"), out var http);
+        var todos = QueryKey.Create("todos");
+        await client.FetchAsync(todos, _ => Task.FromResult(new List<string>()));
+        Assert.False(client.Cache.Describe(todos)!.IsStale);
+        var mutation = client.CreateGraphQLMutation(
+            http,
+            "graphql",
+            AddTodo,
+            GraphQLTestJson.Default.AddTodoVariables,
+            GraphQLTestJson.Default.AddTodoData,
+            new MutationOptions<AddTodoVariables, AddTodoData> { Invalidates = [todos] });
+
+        var result = await mutation.MutateAsync(new AddTodoVariables("Tea"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Tea", result.Data!.AddTodo.Title);
+        Assert.True(client.Cache.Describe(todos)!.IsStale); // invalidated by the mutation
+    }
+
+    [Fact]
+    public async Task GraphQL_errors_carry_their_path_and_code()
+    {
+        Handler(() => Json("{\"errors\":[{\"message\":\"Sign in\",\"path\":[\"addTodo\",0],\"extensions\":{\"code\":\"UNAUTHENTICATED\"}}]}"), out var http);
+        var mutate = http.GraphQLMutationFn("graphql", AddTodo, GraphQLTestJson.Default.AddTodoVariables, GraphQLTestJson.Default.AddTodoData);
+
+        var ex = await Assert.ThrowsAsync<GraphQLException>(() => mutate(new AddTodoVariables("x"), CancellationToken.None));
+
+        var error = Assert.Single(ex.Errors);
+        Assert.Equal("Sign in", error.Message);
+        Assert.Equal(["addTodo", "0"], error.Path);
+        Assert.Equal("UNAUTHENTICATED", error.Code);
+        Assert.True(ex.HasCode("unauthenticated"));
+        Assert.False(ex.HasCode("BAD_USER_INPUT"));
     }
 
     private sealed class CapturingHandler(Func<HttpResponseMessage> responder) : HttpMessageHandler

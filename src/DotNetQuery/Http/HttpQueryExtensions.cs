@@ -25,7 +25,8 @@ public static class HttpQueryExtensions
 
     /// <summary>
     /// Builds a fetcher that GETs <paramref name="requestUri"/> and deserializes the JSON response to
-    /// <typeparamref name="T"/>. Throws <see cref="HttpRequestException"/> on a non-success status and
+    /// <typeparamref name="T"/>. Throws <see cref="HttpRequestException"/> on a non-success status (with its
+    /// <c>Retry-After</c> delay recorded for <see cref="HttpRetryPolicy.RespectRetryAfter"/>) and
     /// <see cref="InvalidOperationException"/> if the body deserializes to <see langword="null"/>.
     /// </summary>
     [RequiresUnreferencedCode(ReflectionMessage)]
@@ -39,7 +40,9 @@ public static class HttpQueryExtensions
         ArgumentNullException.ThrowIfNull(requestUri);
         return async cancellationToken =>
         {
-            var result = await client.GetFromJsonAsync<T>(requestUri, jsonOptions, cancellationToken).ConfigureAwait(false);
+            using var response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            HttpRetryPolicy.EnsureSuccess(response);
+            var result = await response.Content.ReadFromJsonAsync<T>(jsonOptions, cancellationToken).ConfigureAwait(false);
             return result ?? throw NullBody(requestUri);
         };
     }
@@ -59,7 +62,9 @@ public static class HttpQueryExtensions
         ArgumentNullException.ThrowIfNull(requestUri);
         return async cancellationToken =>
         {
-            var result = await client.GetFromJsonAsync<T>(requestUri, jsonOptions, cancellationToken).ConfigureAwait(false);
+            using var response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            HttpRetryPolicy.EnsureSuccess(response);
+            var result = await response.Content.ReadFromJsonAsync<T>(jsonOptions, cancellationToken).ConfigureAwait(false);
             return result ?? throw NullBody(requestUri.ToString());
         };
     }
@@ -78,7 +83,9 @@ public static class HttpQueryExtensions
         ArgumentNullException.ThrowIfNull(typeInfo);
         return async cancellationToken =>
         {
-            var result = await client.GetFromJsonAsync(requestUri, typeInfo, cancellationToken).ConfigureAwait(false);
+            using var response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            HttpRetryPolicy.EnsureSuccess(response);
+            var result = await response.Content.ReadFromJsonAsync(typeInfo, cancellationToken).ConfigureAwait(false);
             return result ?? throw NullBody(requestUri);
         };
     }
@@ -97,7 +104,9 @@ public static class HttpQueryExtensions
         ArgumentNullException.ThrowIfNull(typeInfo);
         return async cancellationToken =>
         {
-            var result = await client.GetFromJsonAsync(requestUri, typeInfo, cancellationToken).ConfigureAwait(false);
+            using var response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            HttpRetryPolicy.EnsureSuccess(response);
+            var result = await response.Content.ReadFromJsonAsync(typeInfo, cancellationToken).ConfigureAwait(false);
             return result ?? throw NullBody(requestUri.ToString());
         };
     }

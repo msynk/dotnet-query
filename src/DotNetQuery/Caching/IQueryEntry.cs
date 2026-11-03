@@ -18,6 +18,9 @@ internal interface IQueryEntry : IDisposable
     /// <summary>Whether the entry has been removed from (or collected by) the cache.</summary>
     bool IsRemoved { get; }
 
+    /// <summary>Whether a fetch is currently in flight.</summary>
+    bool IsFetching { get; }
+
     /// <summary>The configured retention window for the entry once it becomes inactive.</summary>
     TimeSpan CacheTime { get; }
 
@@ -41,6 +44,30 @@ internal interface IQueryEntry : IDisposable
 
     /// <summary>Cancels the in-flight fetch, if any, restoring the previous state.</summary>
     Task CancelAsync();
+
+    /// <summary>
+    /// Resets the entry to its initial state (no data, or its initial data), cancelling and detaching any in-flight
+    /// fetch. Completes once the reset has been applied.
+    /// </summary>
+    Task ResetAsync();
+
+    /// <summary>
+    /// Resets like <see cref="ResetAsync"/> but defers cancelling the detached fetch to the returned action, so the
+    /// caller can start a follow-up refetch first (which then inherits the detached fetch's waiters).
+    /// </summary>
+    Action ResetAndDetach();
+
+    /// <summary>Marks the entry removed if nothing observes it; returns <see langword="false"/> (doing nothing) otherwise.</summary>
+    bool TryRemoveUnobserved();
+
+    /// <summary>Returns whether the entry currently satisfies <paramref name="filter"/>. Runs the filter's predicate outside the entry lock.</summary>
+    bool Matches(QueryFilter filter);
+
+    /// <summary>Atomically marks the entry removed when it is inactive and idle, regardless of its retention window.</summary>
+    bool TryEvict();
+
+    /// <summary>Captures the entry's state for a <see cref="QueryCacheSnapshot"/>, or <see langword="null"/> if removed.</summary>
+    EntrySnapshot? CaptureSnapshot();
 
     /// <summary>Atomically marks the entry removed when it is inactive, idle and past its retention window.</summary>
     bool TryCollect(DateTimeOffset now);

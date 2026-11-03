@@ -88,10 +88,78 @@ new MutationOptions<CreateTodo, Todo>
 {
     RetryCount = 3,
     RetryDelay = RetryPolicy.ExponentialWithJitter(TimeSpan.FromSeconds(1)),
+    ShouldRetry = HttpRetryPolicy.ShouldRetry, // never retry a 400/401/403/404/409
 }
 ```
 
-Only retry idempotent operations.
+Only retry idempotent operations. `ShouldRetry` can only veto retries within the `RetryCount` budget.
+
+## Defaults for families of mutations
+
+```csharp
+builder.Services.AddDotNetQuery(o => o
+    .SetMutationDefaults(new MutationDefaults { ShouldRetry = HttpRetryPolicy.ShouldRetry })            // every mutation
+    .SetMutationDefaults(QueryKey.Create("todos"), new MutationDefaults                                    // MutationKey ["todos", ...]
+    {
+        RetryCount = 2,
+        Scope = "todos",
+        Invalidates = [TodoQueries.All],
+    }));
+```
+
+A mutation's own options win; unset ones come from the most specific matching defaults (`RetryCount` is taken
+from the defaults when the mutation leaves it at 0).
+
+## Progress and deduplication
+
+```csharp
+// Report progress (0..1) from the mutation function: State.Progress updates and observers re-render.
+var upload = client.CreateMutation<Stream, Uri>((file, progress, ct) => api.UploadAsync(file, progress, ct));
+
+// Join a pending run with equal variables instead of starting another (idempotent operations only).
+var markRead = client.CreateMutation<int, Unit>(api.MarkReadAsync, new() { DeduplicatePending = true });
+```
+
+## Serial execution with scopes
+
+Runs that share a `Scope` execute one at a time, in the order they were started - across `Mutation` instances -
+so dependent writes reach the server in order (create a record, then rename it):
+
+```csharp
+var options = new MutationOptions<TodoEdit, Todo> { Scope = $"todo-{id}" };
+var rename = client.CreateMutation<TodoEdit, Todo>(api.RenameAsync, options);
+var toggle = client.CreateMutation<TodoEdit, Todo>(api.ToggleAsync, options);
+```
+
+A run waiting for its turn is `Pending` with `IsPaused = true`; its optimistic updates and `OnMutate` apply
+immediately (the UI updates at once), only the mutation function waits. The scope is released once a run fully
+settles - callbacks and invalidation included - whether it succeeded, failed or was cancelled. A run cancelled
+while waiting rolls back its optimistic updates and never lets later runs overtake the ones still ahead of it.
+
+## The mutation cache
+
+`client.Cache.Mutations` tracks every run - pending ones and, for `QueryClientOptions.MutationCacheTime`
+(default 5 minutes), settled ones - so any part of the app can observe writes without holding the `Mutation`
+instances:
+
+```csharp
+var saving = client.Cache.Mutations.CountPending();                                   // global "saving…" badge
+var failed = client.Cache.Mutations.FindAll(new MutationFilter { Status = MutationStatus.Error });
+var todoWrites = client.Cache.Mutations.FindAll(new MutationFilter { MutationKey = QueryKey.Create("todos") });
+
+// Global lifecycle hook: react to every mutation, wherever it was started.
+client.Cache.Mutations.Changed += change =>
+{
+    if (client.Cache.Mutations.Find(change.MutationId) is { Status: MutationStatus.Error } failedRun)
+    {
+        toasts.Show($"Saving failed: {failedRun.Error!.Message}");
+    }
+};
+```
+
+Each `MutationDescriptor` carries the id (matching the diagnostic events), key, scope, status, `IsPaused`,
+variables, data, error, failure count and timestamps. Settled runs are dropped by the client's garbage
+collector after `MutationCacheTime` (`TimeSpan.Zero` drops them on settle); `Clear()` drops settled runs now.
 
 ## Diagnostics
 

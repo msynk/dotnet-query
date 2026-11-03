@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <PackageId>DotNetQuery.Maui</PackageId>
-    <Description>.NET MAUI adapter for DotNetQuery: dispatcher-aware MVVM binding factories plus a connectivity bridge that drives offline pause/resume from Connectivity.Current.</Description>
+    <PackageId>Msynk.DotNetQuery.Maui</PackageId>
+    <Description>.NET MAUI adapter for DotNetQuery: dispatcher-aware MVVM binding factories, window lifecycle (focus/resume refetch), a connectivity bridge that drives offline pause/resume from Connectivity.Current, and app-data persistence.</Description>
     <!-- Android builds everywhere (incl. the bare .NET CLI and CI). -->
     <TargetFrameworks>net10.0-android</TargetFrameworks>
     <!-- The Windows head pulls WindowsAppSDK, whose PRI/Appx MSBuild tasks live only in full Visual
@@ -27,6 +27,8 @@
        produced package correctly depends on it (resolves MA002). -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Essentials" Version="10.0.20" />
+    <!-- Window lifecycle events for MauiQueryLifecycle (every MAUI app already references Controls). -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
   </ItemGroup>
 
   <ItemGroup>

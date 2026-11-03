@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <PackageId>DotNetQuery.Avalonia</PackageId>
+    <PackageId>Msynk.DotNetQuery.Avalonia</PackageId>
     <Description>Avalonia adapter for DotNetQuery: dispatcher-aware factories over the MVVM bindings (ObservableQuery/ObservableMutation) for cross-platform XAML data binding.</Description>
     <IsAotCompatible>false</IsAotCompatible>
     <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>

@@ -1,0 +1,122 @@
+@page "/todos/{Id:int}"
+@rendermode InteractiveServer
+@inherits DotNetQueryComponentBase
+@inject TodoApi Api
+@inject NavigationManager Navigation
+
+<PageTitle>DotNetQuery · Edit todo</PageTitle>
+
+<h1>Edit todo</h1>
+<p style="color:#666">
+    Opens instantly with the todo taken from the cached list (initial data), saves through a mutation that updates the
+    cache optimistically, and invalidates every todo list so they refetch.
+</p>
+
+@if (_todo.CurrentState.IsLoadingError)
+{
+    <p style="color:#c00">@_todo.CurrentState.Error!.Message</p>
+}
+else if (_model is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SaveAsync" FormName="edit-todo">
+        <DataAnnotationsValidator />
+        <p>
+            <label>Title <InputText @bind-Value="_model.Title" class="title-input" /></label>
+            <ValidationMessage For="() => _model.Title" />
+        </p>
+        <p><label><InputCheckbox @bind-Value="_model.Done" /> Done</label></p>
+        <button type="submit" disabled="@_save.CurrentState.IsPending">Save</button>
+        <button type="button" disabled="@_delete.CurrentState.IsPending" @onclick="DeleteAsync">Delete</button>
+        <a href="/">Back</a>
+    </EditForm>
+
+    @if (_save.CurrentState.IsError)
+    {
+        <p style="color:#c00">Saving failed: @_save.CurrentState.Error!.Message (rolled back)</p>
+    }
+
+    @if (_todo.CurrentState.IsFetching)
+    {
+        <small style="color:#999">refreshing…</small>
+    }
+}
+
+<QueryInfrastructure />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private QueryObserver<Todo> _todo = default!;
+    private Mutation<Todo, Todo> _save = default!;
+    private Mutation<int, int> _delete = default!;
+    private TodoModel? _model;
+    private int? _modelFor;
+
+    protected override void OnParametersSet()
+    {
+        _todo = UseQuery(TodoQueries.ById(Api, QueryClient, Id));
+        _save = UseMutation<Todo, Todo>(
+            (todo, ct) => Api.UpdateAsync(todo, ct),
+            new()
+            {
+                MutationKey = QueryKey.Create("todos", "update"),
+                ThrowOnError = false,
+                OptimisticUpdates =
+                [
+                    OptimisticUpdate.Create<Todo, Todo>(TodoQueries.All.Append("by-id", Id), (_, edited) => edited),
+                    OptimisticUpdate.Create<Todo, List<Todo>>(TodoQueries.All.Append(TodoFilter.All), (list, edited) => (list ?? []).Select(t => t.Id == edited.Id ? edited : t).ToList()),
+                ],
+                Invalidates = [TodoQueries.All],
+            });
+        _delete = UseMutation<int, int>(
+            async (id, ct) => { await Api.DeleteAsync(id, ct); return id; },
+            new() { MutationKey = QueryKey.Create("todos", "delete"), Invalidates = [TodoQueries.All], ThrowOnError = false });
+
+        if (_todo.CurrentState.Data is { } todo && _modelFor != todo.Id)
+        {
+            _modelFor = todo.Id;
+            _model = new TodoModel { Title = todo.Title, Done = todo.Done };
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // The todo may arrive after the first render (no cached list to seed it from).
+        if (_model is null && _todo.CurrentState.Data is { } todo)
+        {
+            _modelFor = todo.Id;
+            _model = new TodoModel { Title = todo.Title, Done = todo.Done };
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await _save.MutateAsync(new Todo(Id, _model!.Title!, _model.Done));
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var result = await _delete.MutateAsync(Id);
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private sealed class TodoModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "A todo needs a title.")]
+        public string? Title { get; set; }
+
+        public bool Done { get; set; }
+    }
+}

@@ -109,3 +109,39 @@ public sealed record MutationCompletedEvent : DotNetQueryEvent
     /// <summary>How long the mutation took.</summary>
     public required TimeSpan Duration { get; init; }
 }
+
+/// <summary>Raised when a failed fetch attempt is about to be retried.</summary>
+public sealed record QueryRetryEvent : DotNetQueryEvent
+{
+    /// <summary>The key of the query being retried.</summary>
+    public required QueryKey Key { get; init; }
+
+    /// <summary>The number of failed attempts so far.</summary>
+    public required int FailureCount { get; init; }
+
+    /// <summary>The error of the failed attempt.</summary>
+    public required Exception Error { get; init; }
+}
+
+/// <summary>Raised when a mutation applied its declarative optimistic updates.</summary>
+public sealed record OptimisticUpdateAppliedEvent : DotNetQueryEvent
+{
+    /// <summary>The mutation run (matches <see cref="MutationStartedEvent.MutationId"/>).</summary>
+    public required long MutationId { get; init; }
+
+    /// <summary>The queries written optimistically.</summary>
+    public required IReadOnlyList<QueryKey> Keys { get; init; }
+}
+
+/// <summary>Raised when a failed or cancelled mutation rolled back its optimistic updates.</summary>
+public sealed record OptimisticUpdateRolledBackEvent : DotNetQueryEvent
+{
+    /// <summary>The mutation run (matches <see cref="MutationStartedEvent.MutationId"/>).</summary>
+    public required long MutationId { get; init; }
+
+    /// <summary>Queries restored to their snapshot (or rebased under other pending optimistic updates).</summary>
+    public required IReadOnlyList<QueryKey> Restored { get; init; }
+
+    /// <summary>Queries that something else wrote meanwhile, invalidated to reconcile with the server instead.</summary>
+    public required IReadOnlyList<QueryKey> Refetched { get; init; }
+}

@@ -12,6 +12,10 @@
     {
         @Error(result.Error!)
     }
+    else if (Empty is not null && result.HasData && !result.IsPlaceholderData && IsEmptyData(result.Data))
+    {
+        @Empty
+    }
     else if (ChildContent is not null)
     {
         @ChildContent(result)

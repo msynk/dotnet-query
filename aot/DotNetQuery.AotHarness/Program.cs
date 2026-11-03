@@ -147,6 +147,90 @@ using var http = new HttpClient(new StubHandler()) { BaseAddress = new Uri("http
 var remote = await client.FetchAsync(http.JsonQuery(QueryKey.Create("remote-user"), "users/5", HarnessJson.Default.User));
 Check(remote.IsSuccess && remote.Data!.Name == "Remote", "HTTP JSON query (source-generated)");
 
+// --- Retry classification -----------------------------------------------------------------------
+var notFoundCalls = 0;
+var notFound = await client.FetchAsync<User>(
+    QueryKey.Create("missing-user"),
+    _ => { notFoundCalls++; throw new HttpRequestException("gone", null, System.Net.HttpStatusCode.NotFound); },
+    new QueryOptions { RetryCount = 3, RetryDelay = RetryPolicy.Constant(TimeSpan.Zero), ShouldRetry = HttpRetryPolicy.ShouldRetry });
+Check(notFound.IsError && notFoundCalls == 1, "HTTP-aware retry predicate");
+
+// --- Structural sharing and selectors -----------------------------------------------------------
+var listKey2 = QueryKey.Create("shared-users");
+var sharing = new QueryOptions { StructuralSharing = true };
+var firstList = (await client.FetchAsync(listKey2, _ => Task.FromResult(new List<User> { new(1, "Ada"), new(2, "Grace") }), sharing)).Data;
+var secondList = (await client.FetchAsync(listKey2, _ => Task.FromResult(new List<User> { new(1, "Ada"), new(2, "Grace") }), sharing, forceRefetch: true)).Data;
+Check(ReferenceEquals(firstList, secondList), "structural sharing keeps equal data");
+using (var names = client.Watch(listKey2, (List<User> users) => users.Select(u => u.Name).ToList(), QueryStateProperties.Data))
+{
+    Check(names.CurrentState.Data is ["Ada", "Grace"], "selector observer");
+}
+
+// --- Filters, transactions, mutation cache ------------------------------------------------------
+Check(client.Cache.FindAll(new QueryFilter { Key = listKey2, Stale = true }).Count == 1, "query filter");
+var commit = client.SetQueriesData(tx => tx.Set(QueryKey.Create("tx", 1), 1).Update<int>(QueryKey.Create("tx", 2), n => n + 2));
+Check(client.GetQueryData<int>(QueryKey.Create("tx", 2)).Data == 2, "atomic multi-query write");
+Check(commit.Rollback().Count == 0 && !client.GetQueryData<int>(QueryKey.Create("tx", 1)).HasData, "transaction rollback");
+await client.CreateMutation<int, int>((v, _) => Task.FromResult(v), new MutationOptions<int, int> { Scope = "harness" }).MutateAsync(1);
+Check(client.Cache.Mutations.FindAll(new MutationFilter { Scope = "harness" }) is [{ Status: MutationStatus.Success }], "mutation cache + scope");
+var withInitial = new QueryDefinition<int>(QueryKey.Create("initial"), _ => Task.FromResult(2)).WithInitialData(1);
+Check((await client.EnsureQueryDataAsync(withInitial)) == 1, "initial data");
+
+// --- Cross-cache synchronization ----------------------------------------------------------------
+var hub = new DotNetQuery.Synchronization.InMemoryQuerySyncHub();
+using (var tabA = new QueryClient())
+using (var tabB = new QueryClient())
+using (new DotNetQuery.Synchronization.QuerySynchronizer(tabA, hub.CreateChannel()).Register(key, HarnessJson.Default.User).Start())
+using (new DotNetQuery.Synchronization.QuerySynchronizer(tabB, hub.CreateChannel()).Register(key, HarnessJson.Default.User).Start())
+{
+    tabA.SetQueryData(key, new User(42, "Synced"));
+    Check(tabB.GetQueryData<User>(key).Data?.Name == "Synced", "query synchronization (source-generated envelope)");
+}
+
+// --- Generated queries, GraphQL mutations, MVVM and lifecycle --------------------------------------
+var users = new UserApi();
+var generated = await client.FetchAsync(UserApiQueries.GetUser(users, 9));
+var rename = await UserApiQueries.Rename(client, users).MutateAsync(new UserApiQueries.RenameVariables(9, "Renamed"));
+Check(generated.Data!.Name == "User 9" && rename.Data!.Name == "Renamed", "source-generated query definitions and mutations");
+
+using (var graphQLHttp = new HttpClient(new StubHandler("{\"data\":{\"id\":3,\"name\":\"GraphQL\"}}")) { BaseAddress = new Uri("https://api.test/") })
+{
+    var graphQLMutation = client.CreateGraphQLMutation(graphQLHttp, "graphql", "mutation($id:Int!){ user(id:$id){ id name } }", HarnessJson.Default.User, HarnessJson.Default.User);
+    Check((await graphQLMutation.MutateAsync(new User(3, "x"))).Data?.Name == "GraphQL", "GraphQL mutation (source-generated)");
+}
+
+using (var feed = new DotNetQuery.Mvvm.ObservableInfiniteQuery<int, Page>(
+    client,
+    QueryKey.Create("feed"),
+    (index, _) => Task.FromResult(new Page(index, [index])),
+    new InfiniteQueryOptions<int, Page>
+    {
+        InitialPageParam = 0,
+        GetNextPageParam = (last, _, _) => last.Index < 1 ? NextPageParam.Of(last.Index + 1) : NextPageParam.None<int>(),
+    }))
+{
+    for (var i = 0; i < 100 && feed.PageCount == 0; i++)
+    {
+        await Task.Delay(10);
+    }
+
+    feed.FetchNextPageCommand.Execute(null);
+    for (var i = 0; i < 100 && feed.PageCount < 2; i++)
+    {
+        await Task.Delay(10);
+    }
+
+    Check(feed.PageCount == 2 && !feed.HasNextPage, "observable infinite query + command");
+}
+
+var focusManager = new FocusManager();
+var focusSignals = 0;
+focusManager.Raised += () => focusSignals++;
+var lifecycle = new AppLifecycleSignals(focusManager);
+lifecycle.NotifyDeactivated();
+lifecycle.NotifyActivated();
+Check(focusSignals == 1, "lifecycle signals");
+
 Console.WriteLine(failures == 0
     ? "\nAOT harness: all checks passed."
     : $"\nAOT harness: {failures} check(s) FAILED.");
@@ -159,11 +243,26 @@ internal sealed record Page(int Index, int[] Items);
 [JsonSerializable(typeof(User))]
 internal sealed partial class HarnessJson : JsonSerializerContext;
 
-internal sealed class StubHandler : HttpMessageHandler
+[GenerateQueries]
+internal interface IUserApi
+{
+    Task<User> GetUserAsync(int id, CancellationToken cancellationToken);
+
+    Task<User> RenameAsync(int id, string name, CancellationToken cancellationToken);
+}
+
+internal sealed class UserApi : IUserApi
+{
+    public Task<User> GetUserAsync(int id, CancellationToken cancellationToken) => Task.FromResult(new User(id, $"User {id}"));
+
+    public Task<User> RenameAsync(int id, string name, CancellationToken cancellationToken) => Task.FromResult(new User(id, name));
+}
+
+internal sealed class StubHandler(string body = "{\"id\":5,\"name\":\"Remote\"}") : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
         Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
         {
-            Content = new StringContent("{\"id\":5,\"name\":\"Remote\"}", System.Text.Encoding.UTF8, "application/json"),
+            Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
         });
 }

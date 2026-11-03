@@ -152,9 +152,16 @@ public interface IQueryClient : IDisposable
     /// </summary>
     Task RefetchQueryAsync(QueryKey key, CancellationToken cancellationToken = default);
 
-    /// <summary>Removes a single query from the cache, cancelling any in-flight fetch.</summary>
+    /// <summary>
+    /// Removes a single query from the cache, cancelling any in-flight fetch. A query that is still observed (for
+    /// example rendered by a component) is reset instead - its data is discarded and it is refetched for its
+    /// observers - because dropping it would leave them on a dead entry that never updates again.
+    /// </summary>
     bool RemoveQuery(QueryKey key);
 
-    /// <summary>Removes every query from the cache.</summary>
+    /// <summary>
+    /// Removes every query from the cache; observed queries are reset and refetched instead (see
+    /// <see cref="RemoveQuery(QueryKey)"/>). No cached data survives - use it to forget a signed-out user's data.
+    /// </summary>
     void Clear();
 }

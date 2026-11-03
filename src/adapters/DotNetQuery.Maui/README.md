@@ -34,9 +34,24 @@ So `dotnet build` / CI build Android only (no breakage), while `MSBuild.exe` fro
 builds the Windows head, and a Mac build adds the Apple heads. The adapter uses only **MAUI Essentials**
 (`MainThread`, `Connectivity`), which supports every MAUI platform, so no code changes are needed per head.
 
-## Focus / resume
+## Focus, resume and connectivity
 
-DotNetQuery refetches stale active queries on focus and app-resume via its signal managers
-(`IFocusManager`, `IResumeManager`). Wire your app lifecycle to them (e.g. from
-`Window.Activated` / `Window.Resumed`, or `ConfigureLifecycleEvents`) by calling `Signal()` on the
-resolved managers.
+`MauiQueryLifecycle` wires a window's `Activated` / `Deactivated` / `Resumed` / `Stopped` events and the device
+connectivity (through `MauiConnectivityBridge`) into the client, so stale on-screen queries refetch when the user
+returns to the app and queries pause while the device is offline:
+
+```csharp
+protected override Window CreateWindow(IActivationState? activationState)
+{
+    var window = new Window(new AppShell());
+    var lifecycle = new MauiQueryLifecycle(window, _services.GetRequiredService<AppLifecycleSignals>());
+    window.Destroying += (_, _) => lifecycle.Dispose();
+    return window;
+}
+```
+
+## Persistence
+
+`MauiQueryPersistence.CreateFileSystemPersister()` returns a `FileSystemQueryPersister` in the app's private data
+directory (`FileSystem.AppDataDirectory`). See [Desktop and mobile](../../../docs/desktop-and-mobile.md) for the
+full guide (MVVM commands, infinite queries, lifecycle on every platform).

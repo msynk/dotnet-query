@@ -8,14 +8,35 @@ internal sealed class QueryRuntime
 {
     private readonly QueryCache _cache;
 
-    public QueryRuntime(QueryCache cache, TimeProvider timeProvider, IQueryEventSink? eventSink, IConnectivityProvider? connectivity, TimeSpan defaultCacheTime)
+    public QueryRuntime(
+        QueryCache cache,
+        TimeProvider timeProvider,
+        IQueryEventSink? eventSink,
+        IConnectivityProvider? connectivity,
+        TimeSpan defaultCacheTime,
+        QueryClientOptions? options = null)
     {
         _cache = cache;
         TimeProvider = timeProvider;
         EventSink = eventSink;
         Connectivity = connectivity;
         DefaultCacheTime = defaultCacheTime;
+        Options = options;
+        Limiter = options?.MaxConcurrentFetches is { } max && max > 0 ? new FetchLimiter(max) : null;
+        Interceptors = options is { Interceptors.Count: > 0 } ? [.. options.Interceptors] : [];
     }
+
+    /// <summary>The owning client's options, when the cache belongs to a client.</summary>
+    public QueryClientOptions? Options { get; }
+
+    /// <summary>The client-wide concurrency limit for fetch attempts, if any.</summary>
+    public FetchLimiter? Limiter { get; }
+
+    /// <summary>The client-wide rate limiter for fetch attempts, if any.</summary>
+    public IFetchRateLimiter? RateLimiter => Options?.FetchRateLimiter;
+
+    /// <summary>Interceptors around every fetch attempt, outermost first.</summary>
+    public IQueryInterceptor[] Interceptors { get; }
 
     public TimeProvider TimeProvider { get; }
 
@@ -27,6 +48,43 @@ internal sealed class QueryRuntime
 
     /// <summary>Whether fetches may hit the network. Always true without a connectivity provider.</summary>
     public bool IsOnline => Connectivity?.IsOnline ?? true;
+
+    /// <summary>Completes when the connectivity provider reports online (immediately if it already does).</summary>
+    public Task WhenOnlineAsync(CancellationToken cancellationToken)
+    {
+        if (Connectivity is not { } connectivity || connectivity.IsOnline)
+        {
+            return Task.CompletedTask;
+        }
+
+        return WaitAsync(connectivity, cancellationToken);
+
+        static async Task WaitAsync(IConnectivityProvider connectivity, CancellationToken cancellationToken)
+        {
+            var online = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void Handler(bool isOnline)
+            {
+                if (isOnline)
+                {
+                    online.TrySetResult();
+                }
+            }
+
+            connectivity.ConnectivityChanged += Handler;
+            try
+            {
+                // Re-check after subscribing so a reconnect between the first check and the subscription is not missed.
+                if (!connectivity.IsOnline)
+                {
+                    await online.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                connectivity.ConnectivityChanged -= Handler;
+            }
+        }
+    }
 
     public void RaiseChanged(QueryKey key, QueryCacheChangeKind kind) => _cache.RaiseChanged(key, kind);
 }

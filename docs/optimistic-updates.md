@@ -25,12 +25,19 @@ For each `OptimisticUpdate`, before the mutation function runs, DotNetQuery:
 1. cancels any in-flight fetch for the key, so a refetch that started earlier cannot overwrite the
    optimistic value when it lands;
 2. snapshots the entry's full state (data, timestamp, staleness);
-3. writes `update(current, variables)` atomically.
+3. writes `update(current, variables)` - all updates of the mutation in **one atomic transaction**, so
+   observers never see one list updated and another not, and an update that throws writes nothing.
 
-If the mutation fails or is cancelled before the server accepts it, every snapshot is restored in reverse
-order - exactly, including timestamps and pending invalidations. If something else wrote to the same query
-in the meantime (another mutation's optimistic update, a refetch), restoring would clobber that write, so
-the query is invalidated and refetched instead.
+If the mutation fails or is cancelled before the server accepts it, every snapshot is restored atomically -
+exactly, including timestamps and pending invalidations (several updates of the same key restore to the
+original value).
+
+**Overlapping mutations.** Optimistic writes on a query stack up as layers. When a mutation whose layer has
+other pending (or already accepted) mutations' layers above it fails, those layers are re-applied on its
+snapshot - the failed item disappears, the others stay, and nothing is refetched. Settling in any order works:
+the query always shows exactly the accepted and still-pending changes. Only when something *other* than an
+optimistic update wrote to the query in between (a refetch, `SetQueryData`), or a re-applied update throws, is
+the query invalidated and refetched instead, so that write is never clobbered.
 
 With a `QueryDefinition`, use the extension: `TodoQueries.List(api).Optimistic<List<Todo>, string>(...)`.
 

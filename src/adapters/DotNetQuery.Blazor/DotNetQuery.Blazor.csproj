@@ -2,19 +2,24 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <PackageId>DotNetQuery.Blazor</PackageId>
+    <PackageId>Msynk.DotNetQuery.Blazor</PackageId>
     <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component (loading/error templates, keep-previous-data pagination, prerender hydration), hook-style UseQuery/UseMutation/UseInfiniteQuery for components, per-circuit client registration, browser focus/online/visibility signal wiring, localStorage/IndexedDB cache persistence, and the visual DevTools panel.</Description>
     <!-- Razor-generated component classes carry no XML docs; their parameters do. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsAotCompatible>false</IsAotCompatible>
+    <!-- Static assets are served from _content/<PackageId> by default; keep the documented, PackageId-independent
+         path (_content/DotNetQuery.Blazor/...) that the JS modules and scoped CSS are imported from. -->
+    <StaticWebAssetBasePath>_content/DotNetQuery.Blazor</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.11" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>

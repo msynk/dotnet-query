@@ -7,7 +7,17 @@ internal sealed record DevToolsExport(
     StatsDto Stats,
     QueryDto[] Queries,
     EventDto[] Events,
-    MutationDto[]? Mutations = null);
+    MutationDto[]? Mutations = null,
+    ProfileDto[]? Profiles = null);
+
+internal sealed record ProfileDto(
+    string Key,
+    int Fetches,
+    int Failures,
+    int Retries,
+    int Cancellations,
+    double AverageDurationMs,
+    double MaxDurationMs);
 
 internal sealed record StatsDto(
     int TotalQueries,

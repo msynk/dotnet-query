@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <PackageId>DotNetQuery</PackageId>
+    <PackageId>Msynk.DotNetQuery</PackageId>
     <Description>Server-state management for .NET: fetching, caching, deduplication, retries, invalidation, mutations, infinite and streaming queries, offline support. Includes AddDotNetQuery for Microsoft.Extensions.DependencyInjection, cache persistence (in-memory and file system) with the durable mutation queue, HTTP/JSON and GraphQL fetchers, MVVM bindings (ObservableQuery/ObservableMutation) and the DevTools model. Zero UI dependencies.</Description>
     <!-- Trim/AOT-safe: persisted envelopes use source-generated JSON; the reflection-based JSON overloads
          (Http, GraphQL, persistence registration, DevTools previews/export) are annotated. -->
@@ -18,6 +18,14 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+  </ItemGroup>
+
+  <!-- The [GenerateQueries] source generator ships inside this package (analyzers/dotnet/cs), so referencing the
+       package is enough to use it. Projects in this repository reference the generator project directly as an
+       analyzer (OutputItemType="Analyzer"). -->
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetQuery.SourceGenerators\DotNetQuery.SourceGenerators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <None Include="..\DotNetQuery.SourceGenerators\bin\$(Configuration)\netstandard2.0\DotNetQuery.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
 </Project>

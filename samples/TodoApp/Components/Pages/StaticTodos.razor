@@ -1,0 +1,26 @@
+@page "/ssr"
+@attribute [StreamRendering]
+@inject TodoApi Api
+
+<PageTitle>DotNetQuery · Static SSR</PageTitle>
+
+<h1>Static SSR</h1>
+<p style="color:#666">
+    No interactivity: this page is rendered once on the server. With <code>[StreamRendering]</code> the
+    <code>Loading</code> template is sent first and the list is streamed into the same response when the query
+    completes - no circuit, no WebAssembly, no JavaScript beyond Blazor's streaming script.
+</p>
+
+<Query Definition="TodoQueries.List(Api, TodoFilter.All)">
+    <Loading>
+        <p class="ssr-loading">Loading…</p>
+    </Loading>
+    <ChildContent Context="todos">
+        <ul class="ssr-todos">
+            @foreach (var todo in todos.Data ?? [])
+            {
+                <li>@todo.Title</li>
+            }
+        </ul>
+    </ChildContent>
+</Query>

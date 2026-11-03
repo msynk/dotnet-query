@@ -92,4 +92,75 @@ public class DevToolsPanelTests : TestContext
 
         cut.WaitForAssertion(() => Assert.Contains("late-arrival", cut.Markup));
     }
+
+    [Fact]
+    public void Disabled_panel_renders_nothing()
+    {
+        var client = Services.GetRequiredService<IQueryClient>();
+        client.SetQueryData(QueryKey.Create("secret-key"), 1);
+
+        var cut = RenderComponent<QueryDevToolsPanel>(ps => ps.Add(p => p.Enabled, false));
+
+        Assert.Equal(string.Empty, cut.Markup.Trim());
+    }
+
+    [Fact]
+    public void ShowData_off_hides_cached_values()
+    {
+        var client = Services.GetRequiredService<IQueryClient>();
+        client.SetQueryData(QueryKey.Create("account"), "IBAN DE00 1234");
+
+        var cut = RenderComponent<QueryDevToolsPanel>(ps => ps.Add(p => p.ShowData, false));
+        cut.FindAll("tbody tr").First(r => r.TextContent.Contains("account")).Click();
+
+        Assert.Contains("hidden", cut.Markup);
+        Assert.DoesNotContain("IBAN", cut.Markup);
+    }
+
+    [Fact]
+    public void Tree_view_and_status_filter_narrow_the_query_list()
+    {
+        var client = Services.GetRequiredService<IQueryClient>();
+        client.SetQueryData(QueryKey.Create("todos", 1), 1);
+        client.SetQueryData(QueryKey.Create("users", 1), 1);
+
+        var cut = RenderComponent<QueryDevToolsPanel>();
+        cut.FindAll("button").First(b => b.TextContent.Trim() == "Tree").Click();
+
+        Assert.NotEmpty(cut.FindAll(".dnq-tree li"));
+        Assert.Contains("\"todos\"", cut.Markup);
+
+        cut.FindAll("button").First(b => b.TextContent.Trim() == "List").Click();
+        cut.Find("select.dnq-filter").Change("Error");
+        Assert.Empty(cut.FindAll(".dnq-table tbody tr"));
+    }
+
+    [Fact]
+    public async Task Selecting_a_query_shows_its_timeline_and_reset_action()
+    {
+        var client = Services.GetRequiredService<IQueryClient>();
+        var cut = RenderComponent<QueryDevToolsPanel>(ps => ps.Add(p => p.RefreshThrottle, TimeSpan.Zero));
+        await client.FetchAsync(QueryKey.Create("traced"), _ => Task.FromResult(1));
+        cut.WaitForAssertion(() => Assert.Contains("traced", cut.Markup));
+
+        cut.FindAll("tbody tr").First(r => r.TextContent.Contains("traced")).Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("completed", cut.Find(".dnq-timeline").TextContent));
+        Assert.Contains(cut.FindAll("button"), b => b.TextContent.Trim() == "Reset");
+    }
+
+    [Fact]
+    public void Snapshots_tab_takes_and_restores_snapshots()
+    {
+        var client = Services.GetRequiredService<IQueryClient>();
+        client.SetQueryData(QueryKey.Create("value"), 1);
+        var cut = RenderComponent<QueryDevToolsPanel>();
+        cut.FindAll("button").First(b => b.TextContent.StartsWith("Snapshots", StringComparison.Ordinal)).Click();
+
+        cut.FindAll("button").First(b => b.TextContent.Trim() == "Take snapshot").Click();
+        client.SetQueryData(QueryKey.Create("value"), 2);
+        cut.FindAll("button").First(b => b.TextContent.Trim() == "Restore").Click();
+
+        Assert.Equal(1, client.GetQueryData<int>(QueryKey.Create("value")).Data);
+    }
 }

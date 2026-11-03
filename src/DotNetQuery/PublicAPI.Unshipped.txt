@@ -934,3 +934,634 @@ DotNetQuery.Mvvm.ObservableQuery<T>.ObservableQuery(DotNetQuery.IQueryClient! cl
 DotNetQuery.Mvvm.ObservableQuery<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
 DotNetQuery.Mvvm.ObservableQuery<T>.RefetchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 DotNetQuery.Mvvm.ObservableQuery<T>.Status.get -> DotNetQuery.QueryStatus
+DotNetQuery.HttpRetryPolicy
+DotNetQuery.MutationOptions<TVariables, TData>.ShouldRetry.get -> DotNetQuery.RetryPredicate?
+DotNetQuery.MutationOptions<TVariables, TData>.ShouldRetry.init -> void
+DotNetQuery.QueryClientOptions.DefaultShouldRetry.get -> DotNetQuery.RetryPredicate?
+DotNetQuery.QueryClientOptions.DefaultShouldRetry.set -> void
+DotNetQuery.QueryOptions.ShouldRetry.get -> DotNetQuery.RetryPredicate?
+DotNetQuery.QueryOptions.ShouldRetry.init -> void
+DotNetQuery.RetryPredicate
+const DotNetQuery.HttpRetryPolicy.RetryAfterDataKey = "DotNetQuery.RetryAfter" -> string!
+static DotNetQuery.HttpRetryPolicy.GetRetryAfter(System.Exception! error) -> System.TimeSpan?
+static DotNetQuery.HttpRetryPolicy.IsTransient(System.Exception! error) -> bool
+static DotNetQuery.HttpRetryPolicy.IsTransient(System.Net.HttpStatusCode status) -> bool
+static DotNetQuery.HttpRetryPolicy.RespectRetryAfter(DotNetQuery.RetryDelayStrategy? fallback = null, System.TimeSpan? maxDelay = null) -> DotNetQuery.RetryDelayStrategy!
+static DotNetQuery.HttpRetryPolicy.ShouldRetry.get -> DotNetQuery.RetryPredicate!
+virtual DotNetQuery.RetryPredicate.Invoke(int failureCount, System.Exception! error) -> bool
+DotNetQuery.QueryCache.FindAll(DotNetQuery.QueryFilter? filter = null) -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryDescriptor!>!
+DotNetQuery.QueryFilter
+DotNetQuery.QueryFilter.<Clone>$() -> DotNetQuery.QueryFilter!
+DotNetQuery.QueryFilter.Equals(DotNetQuery.QueryFilter? other) -> bool
+DotNetQuery.QueryFilter.Exact.get -> bool
+DotNetQuery.QueryFilter.Exact.init -> void
+DotNetQuery.QueryFilter.Fetching.get -> bool?
+DotNetQuery.QueryFilter.Fetching.init -> void
+DotNetQuery.QueryFilter.Key.get -> DotNetQuery.QueryKey?
+DotNetQuery.QueryFilter.Key.init -> void
+DotNetQuery.QueryFilter.Matches(DotNetQuery.QueryDescriptor! query) -> bool
+DotNetQuery.QueryFilter.MatchesKey(DotNetQuery.QueryKey! key) -> bool
+DotNetQuery.QueryFilter.Predicate.get -> System.Func<DotNetQuery.QueryDescriptor!, bool>?
+DotNetQuery.QueryFilter.Predicate.init -> void
+DotNetQuery.QueryFilter.QueryFilter() -> void
+DotNetQuery.QueryFilter.Stale.get -> bool?
+DotNetQuery.QueryFilter.Stale.init -> void
+DotNetQuery.QueryFilter.Status.get -> DotNetQuery.QueryStatus?
+DotNetQuery.QueryFilter.Status.init -> void
+DotNetQuery.QueryFilter.Type.get -> DotNetQuery.QueryTypeFilter
+DotNetQuery.QueryFilter.Type.init -> void
+DotNetQuery.QueryFilterExtensions
+DotNetQuery.QueryTypeFilter
+DotNetQuery.QueryTypeFilter.Active = 1 -> DotNetQuery.QueryTypeFilter
+DotNetQuery.QueryTypeFilter.All = 0 -> DotNetQuery.QueryTypeFilter
+DotNetQuery.QueryTypeFilter.Inactive = 2 -> DotNetQuery.QueryTypeFilter
+DotNetQuery.RefetchType
+DotNetQuery.RefetchType.Active = 1 -> DotNetQuery.RefetchType
+DotNetQuery.RefetchType.All = 3 -> DotNetQuery.RefetchType
+DotNetQuery.RefetchType.Inactive = 2 -> DotNetQuery.RefetchType
+DotNetQuery.RefetchType.None = 0 -> DotNetQuery.RefetchType
+override DotNetQuery.QueryFilter.Equals(object? obj) -> bool
+override DotNetQuery.QueryFilter.GetHashCode() -> int
+override DotNetQuery.QueryFilter.ToString() -> string!
+static DotNetQuery.QueryFilter.All.get -> DotNetQuery.QueryFilter!
+static DotNetQuery.QueryFilter.ForKey(DotNetQuery.QueryKey! key, bool exact = false) -> DotNetQuery.QueryFilter!
+static DotNetQuery.QueryFilter.operator !=(DotNetQuery.QueryFilter? left, DotNetQuery.QueryFilter? right) -> bool
+static DotNetQuery.QueryFilter.operator ==(DotNetQuery.QueryFilter? left, DotNetQuery.QueryFilter? right) -> bool
+static DotNetQuery.QueryFilterExtensions.CancelQueriesAsync(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter! filter, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static DotNetQuery.QueryFilterExtensions.CountFetching(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter? filter = null) -> int
+static DotNetQuery.QueryFilterExtensions.InvalidateQueriesAsync(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter! filter, DotNetQuery.RefetchType refetchType = DotNetQuery.RefetchType.Active, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static DotNetQuery.QueryFilterExtensions.RefetchQueriesAsync(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter? filter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static DotNetQuery.QueryFilterExtensions.RemoveQueries(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter? filter = null) -> int
+static DotNetQuery.QueryFilterExtensions.ResetQueriesAsync(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter? filter = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.QueryClientOptions.DefaultStructuralSharing.get -> bool
+DotNetQuery.QueryClientOptions.DefaultStructuralSharing.set -> void
+DotNetQuery.QueryOptions.StructuralSharing.get -> bool?
+DotNetQuery.QueryOptions.StructuralSharing.init -> void
+DotNetQuery.QuerySelectionExtensions
+DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.All = DotNetQuery.QueryStateProperties.Status | DotNetQuery.QueryStateProperties.Data | DotNetQuery.QueryStateProperties.Error | DotNetQuery.QueryStateProperties.FailureCount | DotNetQuery.QueryStateProperties.DataUpdatedAt | DotNetQuery.QueryStateProperties.ErrorUpdatedAt -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.Data = 2 -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.DataUpdatedAt = 16 -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.Error = 4 -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.ErrorUpdatedAt = 32 -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.FailureCount = 8 -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.None = 0 -> DotNetQuery.QueryStateProperties
+DotNetQuery.QueryStateProperties.Status = 1 -> DotNetQuery.QueryStateProperties
+static DotNetQuery.QuerySelectionExtensions.Watch<T, TResult>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryDefinition<T>! query, System.Func<T, TResult>! select, DotNetQuery.QueryStateProperties notifyOn = DotNetQuery.QueryStateProperties.All, System.Collections.Generic.IEqualityComparer<TResult>? comparer = null) -> DotNetQuery.QueryObserver<TResult>!
+static DotNetQuery.QuerySelectionExtensions.Watch<T, TResult>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<T, TResult>! select, DotNetQuery.QueryStateProperties notifyOn = DotNetQuery.QueryStateProperties.All, System.Collections.Generic.IEqualityComparer<TResult>? comparer = null) -> DotNetQuery.QueryObserver<TResult>!
+static DotNetQuery.QuerySelectionExtensions.Watch<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryDefinition<T>! query, DotNetQuery.QueryStateProperties notifyOn) -> DotNetQuery.QueryObserver<T>!
+static DotNetQuery.QuerySelectionExtensions.Watch<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, DotNetQuery.QueryStateProperties notifyOn) -> DotNetQuery.QueryObserver<T>!
+DotNetQuery.QueryDefinition<T>.InitialData.get -> System.Func<T>?
+DotNetQuery.QueryDefinition<T>.InitialData.init -> void
+DotNetQuery.QueryDefinition<T>.InitialDataUpdatedAt.get -> System.DateTimeOffset?
+DotNetQuery.QueryDefinition<T>.InitialDataUpdatedAt.init -> void
+DotNetQuery.QueryDefinition<T>.PlaceholderData.get -> System.Func<T>?
+DotNetQuery.QueryDefinition<T>.PlaceholderData.init -> void
+DotNetQuery.QueryDefinition<T>.WithInitialData(T data, System.DateTimeOffset? updatedAt = null) -> DotNetQuery.QueryDefinition<T>!
+DotNetQuery.QueryDefinition<T>.WithPlaceholderData(T data) -> DotNetQuery.QueryDefinition<T>!
+DotNetQuery.QueryResult<T>.WithPlaceholderData(T placeholder) -> DotNetQuery.QueryResult<T>
+static DotNetQuery.QueryDefinitionExtensions.SeedInitialData<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryDefinition<T>! query) -> bool
+DotNetQuery.QueryDataBatch
+DotNetQuery.QueryDataBatch.Set<T>(DotNetQuery.QueryDefinition<T>! query, T data) -> DotNetQuery.QueryDataBatch!
+DotNetQuery.QueryDataBatch.Set<T>(DotNetQuery.QueryKey! key, T data) -> DotNetQuery.QueryDataBatch!
+DotNetQuery.QueryDataBatch.Update<T>(DotNetQuery.QueryDefinition<T>! query, System.Func<T?, T>! updater) -> DotNetQuery.QueryDataBatch!
+DotNetQuery.QueryDataBatch.Update<T>(DotNetQuery.QueryKey! key, System.Func<T?, T>! updater) -> DotNetQuery.QueryDataBatch!
+DotNetQuery.QueryDataCommit
+DotNetQuery.QueryDataCommit.Keys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.QueryDataCommit.Rollback() -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.QueryDataTransactionExtensions
+static DotNetQuery.QueryDataTransactionExtensions.SetQueriesData(this DotNetQuery.IQueryClient! client, System.Action<DotNetQuery.QueryDataBatch!>! build) -> DotNetQuery.QueryDataCommit!
+static DotNetQuery.QueryDataTransactionExtensions.SetQueriesData<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryFilter! filter, System.Func<T?, T>! updater) -> DotNetQuery.QueryDataCommit!
+DotNetQuery.MutationCache
+DotNetQuery.MutationCache.Changed -> System.Action<DotNetQuery.MutationCacheChange>?
+DotNetQuery.MutationCache.Clear() -> void
+DotNetQuery.MutationCache.CollectGarbage() -> int
+DotNetQuery.MutationCache.Count.get -> int
+DotNetQuery.MutationCache.CountPending(DotNetQuery.MutationFilter? filter = null) -> int
+DotNetQuery.MutationCache.Find(long mutationId) -> DotNetQuery.MutationDescriptor?
+DotNetQuery.MutationCache.FindAll(DotNetQuery.MutationFilter? filter = null) -> System.Collections.Generic.IReadOnlyList<DotNetQuery.MutationDescriptor!>!
+DotNetQuery.MutationCacheChange
+DotNetQuery.MutationCacheChange.Deconstruct(out long MutationId, out DotNetQuery.MutationCacheChangeKind Kind) -> void
+DotNetQuery.MutationCacheChange.Equals(DotNetQuery.MutationCacheChange other) -> bool
+DotNetQuery.MutationCacheChange.Kind.get -> DotNetQuery.MutationCacheChangeKind
+DotNetQuery.MutationCacheChange.Kind.init -> void
+DotNetQuery.MutationCacheChange.MutationCacheChange() -> void
+DotNetQuery.MutationCacheChange.MutationCacheChange(long MutationId, DotNetQuery.MutationCacheChangeKind Kind) -> void
+DotNetQuery.MutationCacheChange.MutationId.get -> long
+DotNetQuery.MutationCacheChange.MutationId.init -> void
+DotNetQuery.MutationCacheChangeKind
+DotNetQuery.MutationCacheChangeKind.Added = 0 -> DotNetQuery.MutationCacheChangeKind
+DotNetQuery.MutationCacheChangeKind.Removed = 2 -> DotNetQuery.MutationCacheChangeKind
+DotNetQuery.MutationCacheChangeKind.Updated = 1 -> DotNetQuery.MutationCacheChangeKind
+DotNetQuery.MutationDescriptor
+DotNetQuery.MutationDescriptor.<Clone>$() -> DotNetQuery.MutationDescriptor!
+DotNetQuery.MutationDescriptor.Data.get -> object?
+DotNetQuery.MutationDescriptor.Data.init -> void
+DotNetQuery.MutationDescriptor.Equals(DotNetQuery.MutationDescriptor? other) -> bool
+DotNetQuery.MutationDescriptor.Error.get -> System.Exception?
+DotNetQuery.MutationDescriptor.Error.init -> void
+DotNetQuery.MutationDescriptor.FailureCount.get -> int
+DotNetQuery.MutationDescriptor.FailureCount.init -> void
+DotNetQuery.MutationDescriptor.IsPaused.get -> bool
+DotNetQuery.MutationDescriptor.IsPaused.init -> void
+DotNetQuery.MutationDescriptor.MutationDescriptor() -> void
+DotNetQuery.MutationDescriptor.MutationId.get -> long
+DotNetQuery.MutationDescriptor.MutationId.init -> void
+DotNetQuery.MutationDescriptor.MutationKey.get -> DotNetQuery.QueryKey?
+DotNetQuery.MutationDescriptor.MutationKey.init -> void
+DotNetQuery.MutationDescriptor.Scope.get -> string?
+DotNetQuery.MutationDescriptor.Scope.init -> void
+DotNetQuery.MutationDescriptor.SettledAt.get -> System.DateTimeOffset?
+DotNetQuery.MutationDescriptor.SettledAt.init -> void
+DotNetQuery.MutationDescriptor.Status.get -> DotNetQuery.MutationStatus
+DotNetQuery.MutationDescriptor.Status.init -> void
+DotNetQuery.MutationDescriptor.SubmittedAt.get -> System.DateTimeOffset
+DotNetQuery.MutationDescriptor.SubmittedAt.init -> void
+DotNetQuery.MutationDescriptor.Variables.get -> object?
+DotNetQuery.MutationDescriptor.Variables.init -> void
+DotNetQuery.MutationFilter
+DotNetQuery.MutationFilter.<Clone>$() -> DotNetQuery.MutationFilter!
+DotNetQuery.MutationFilter.Equals(DotNetQuery.MutationFilter? other) -> bool
+DotNetQuery.MutationFilter.Exact.get -> bool
+DotNetQuery.MutationFilter.Exact.init -> void
+DotNetQuery.MutationFilter.Matches(DotNetQuery.MutationDescriptor! mutation) -> bool
+DotNetQuery.MutationFilter.MutationFilter() -> void
+DotNetQuery.MutationFilter.MutationKey.get -> DotNetQuery.QueryKey?
+DotNetQuery.MutationFilter.MutationKey.init -> void
+DotNetQuery.MutationFilter.Predicate.get -> System.Func<DotNetQuery.MutationDescriptor!, bool>?
+DotNetQuery.MutationFilter.Predicate.init -> void
+DotNetQuery.MutationFilter.Scope.get -> string?
+DotNetQuery.MutationFilter.Scope.init -> void
+DotNetQuery.MutationFilter.Status.get -> DotNetQuery.MutationStatus?
+DotNetQuery.MutationFilter.Status.init -> void
+DotNetQuery.MutationOptions<TVariables, TData>.Scope.get -> string?
+DotNetQuery.MutationOptions<TVariables, TData>.Scope.init -> void
+DotNetQuery.MutationState<TVariables, TData>.IsPaused.get -> bool
+DotNetQuery.MutationState<TVariables, TData>.IsPaused.init -> void
+DotNetQuery.QueryCache.Mutations.get -> DotNetQuery.MutationCache!
+DotNetQuery.QueryClientOptions.MutationCacheTime.get -> System.TimeSpan
+DotNetQuery.QueryClientOptions.MutationCacheTime.set -> void
+override DotNetQuery.MutationCacheChange.GetHashCode() -> int
+override DotNetQuery.MutationDescriptor.Equals(object? obj) -> bool
+override DotNetQuery.MutationDescriptor.GetHashCode() -> int
+override DotNetQuery.MutationDescriptor.ToString() -> string!
+override DotNetQuery.MutationFilter.Equals(object? obj) -> bool
+override DotNetQuery.MutationFilter.GetHashCode() -> int
+override DotNetQuery.MutationFilter.ToString() -> string!
+static DotNetQuery.MutationCacheChange.operator !=(DotNetQuery.MutationCacheChange left, DotNetQuery.MutationCacheChange right) -> bool
+static DotNetQuery.MutationCacheChange.operator ==(DotNetQuery.MutationCacheChange left, DotNetQuery.MutationCacheChange right) -> bool
+static DotNetQuery.MutationDescriptor.operator !=(DotNetQuery.MutationDescriptor? left, DotNetQuery.MutationDescriptor? right) -> bool
+static DotNetQuery.MutationDescriptor.operator ==(DotNetQuery.MutationDescriptor? left, DotNetQuery.MutationDescriptor? right) -> bool
+static DotNetQuery.MutationFilter.operator !=(DotNetQuery.MutationFilter? left, DotNetQuery.MutationFilter? right) -> bool
+static DotNetQuery.MutationFilter.operator ==(DotNetQuery.MutationFilter? left, DotNetQuery.MutationFilter? right) -> bool
+~override DotNetQuery.MutationCacheChange.Equals(object obj) -> bool
+~override DotNetQuery.MutationCacheChange.ToString() -> string
+DotNetQuery.ConditionalRequestHandler
+DotNetQuery.ConditionalRequestHandler.Clear() -> void
+DotNetQuery.ConditionalRequestHandler.ConditionalRequestHandler() -> void
+DotNetQuery.ConditionalRequestHandler.ConditionalRequestHandler(DotNetQuery.ConditionalRequestOptions! options) -> void
+DotNetQuery.ConditionalRequestHandler.Count.get -> int
+DotNetQuery.ConditionalRequestOptions
+DotNetQuery.ConditionalRequestOptions.<Clone>$() -> DotNetQuery.ConditionalRequestOptions!
+DotNetQuery.ConditionalRequestOptions.ConditionalRequestOptions() -> void
+DotNetQuery.ConditionalRequestOptions.Equals(DotNetQuery.ConditionalRequestOptions? other) -> bool
+DotNetQuery.ConditionalRequestOptions.MaxBodyBytes.get -> long
+DotNetQuery.ConditionalRequestOptions.MaxBodyBytes.init -> void
+DotNetQuery.ConditionalRequestOptions.MaxEntries.get -> int
+DotNetQuery.ConditionalRequestOptions.MaxEntries.init -> void
+DotNetQuery.MutationOptions<TVariables, TData>.NetworkMode.get -> DotNetQuery.NetworkMode?
+DotNetQuery.MutationOptions<TVariables, TData>.NetworkMode.init -> void
+DotNetQuery.NetworkMode
+DotNetQuery.NetworkMode.Always = 1 -> DotNetQuery.NetworkMode
+DotNetQuery.NetworkMode.OfflineFirst = 2 -> DotNetQuery.NetworkMode
+DotNetQuery.NetworkMode.Online = 0 -> DotNetQuery.NetworkMode
+DotNetQuery.QueryClientOptions.DefaultMutationNetworkMode.get -> DotNetQuery.NetworkMode
+DotNetQuery.QueryClientOptions.DefaultMutationNetworkMode.set -> void
+DotNetQuery.QueryClientOptions.DefaultNetworkMode.get -> DotNetQuery.NetworkMode
+DotNetQuery.QueryClientOptions.DefaultNetworkMode.set -> void
+DotNetQuery.QueryOptions.NetworkMode.get -> DotNetQuery.NetworkMode?
+DotNetQuery.QueryOptions.NetworkMode.init -> void
+override DotNetQuery.ConditionalRequestOptions.Equals(object? obj) -> bool
+override DotNetQuery.ConditionalRequestOptions.GetHashCode() -> int
+override DotNetQuery.ConditionalRequestOptions.ToString() -> string!
+static DotNetQuery.ConditionalRequestOptions.operator !=(DotNetQuery.ConditionalRequestOptions? left, DotNetQuery.ConditionalRequestOptions? right) -> bool
+static DotNetQuery.ConditionalRequestOptions.operator ==(DotNetQuery.ConditionalRequestOptions? left, DotNetQuery.ConditionalRequestOptions? right) -> bool
+DotNetQuery.Synchronization.IQuerySyncChannel
+DotNetQuery.Synchronization.IQuerySyncChannel.MessageReceived -> System.Action<string!>?
+DotNetQuery.Synchronization.IQuerySyncChannel.PostAsync(string! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Synchronization.InMemoryQuerySyncHub
+DotNetQuery.Synchronization.InMemoryQuerySyncHub.CreateChannel() -> DotNetQuery.Synchronization.IQuerySyncChannel!
+DotNetQuery.Synchronization.InMemoryQuerySyncHub.InMemoryQuerySyncHub() -> void
+DotNetQuery.Synchronization.QuerySyncOptions
+DotNetQuery.Synchronization.QuerySyncOptions.<Clone>$() -> DotNetQuery.Synchronization.QuerySyncOptions!
+DotNetQuery.Synchronization.QuerySyncOptions.ChannelName.get -> string!
+DotNetQuery.Synchronization.QuerySyncOptions.ChannelName.init -> void
+DotNetQuery.Synchronization.QuerySyncOptions.Equals(DotNetQuery.Synchronization.QuerySyncOptions? other) -> bool
+DotNetQuery.Synchronization.QuerySyncOptions.JsonOptions.get -> System.Text.Json.JsonSerializerOptions?
+DotNetQuery.Synchronization.QuerySyncOptions.JsonOptions.init -> void
+DotNetQuery.Synchronization.QuerySyncOptions.QuerySyncOptions() -> void
+DotNetQuery.Synchronization.QuerySynchronizer
+DotNetQuery.Synchronization.QuerySynchronizer.Dispose() -> void
+DotNetQuery.Synchronization.QuerySynchronizer.Error -> System.Action<System.Exception!>?
+DotNetQuery.Synchronization.QuerySynchronizer.QuerySynchronizer(DotNetQuery.IQueryClient! client, DotNetQuery.Synchronization.IQuerySyncChannel! channel, DotNetQuery.Synchronization.QuerySyncOptions? options = null) -> void
+DotNetQuery.Synchronization.QuerySynchronizer.Register<T>(DotNetQuery.QueryDefinition<T>! query, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> DotNetQuery.Synchronization.QuerySynchronizer!
+DotNetQuery.Synchronization.QuerySynchronizer.Register<T>(DotNetQuery.QueryKey! key) -> DotNetQuery.Synchronization.QuerySynchronizer!
+DotNetQuery.Synchronization.QuerySynchronizer.Register<T>(DotNetQuery.QueryKey! key, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> DotNetQuery.Synchronization.QuerySynchronizer!
+DotNetQuery.Synchronization.QuerySynchronizer.RegisterPrefix<T>(DotNetQuery.QueryKey! prefix, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> DotNetQuery.Synchronization.QuerySynchronizer!
+DotNetQuery.Synchronization.QuerySynchronizer.Start() -> DotNetQuery.Synchronization.QuerySynchronizer!
+override DotNetQuery.Synchronization.QuerySyncOptions.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QuerySyncOptions.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncOptions.ToString() -> string!
+static DotNetQuery.Synchronization.QuerySyncOptions.operator !=(DotNetQuery.Synchronization.QuerySyncOptions? left, DotNetQuery.Synchronization.QuerySyncOptions? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncOptions.operator ==(DotNetQuery.Synchronization.QuerySyncOptions? left, DotNetQuery.Synchronization.QuerySyncOptions? right) -> bool
+DotNetQuery.Persistence.QueryPersistenceManager.RegisterPrefix<T>(DotNetQuery.QueryKey! prefix) -> DotNetQuery.Persistence.QueryPersistenceManager!
+DotNetQuery.Persistence.QueryPersistenceManager.RegisterPrefix<T>(DotNetQuery.QueryKey! prefix, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> DotNetQuery.Persistence.QueryPersistenceManager!
+DotNetQuery.Persistence.QueryPersistenceManager.RegisteredPrefixes.get -> System.Collections.Generic.IReadOnlyCollection<DotNetQuery.QueryKey!>!
+DotNetQuery.Persistence.ProtectedQueryPersister
+DotNetQuery.Persistence.ProtectedQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.ProtectedQueryPersister.Error -> System.Action<string!, System.Exception!>?
+DotNetQuery.Persistence.ProtectedQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.ProtectedQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.ProtectedQueryPersister.ProtectedQueryPersister(DotNetQuery.Persistence.IQueryPersister! inner, System.Func<string!, string!>! protect, System.Func<string!, string!>! unprotect) -> void
+DotNetQuery.Persistence.ProtectedQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.ProtectedQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.DeadLetterMutation
+DotNetQuery.Persistence.DeadLetterMutation.<Clone>$() -> DotNetQuery.Persistence.DeadLetterMutation!
+DotNetQuery.Persistence.DeadLetterMutation.DeadLetterMutation(DotNetQuery.Persistence.PendingMutation! Mutation, string! Error, System.DateTimeOffset FailedAt) -> void
+DotNetQuery.Persistence.DeadLetterMutation.Deconstruct(out DotNetQuery.Persistence.PendingMutation! Mutation, out string! Error, out System.DateTimeOffset FailedAt) -> void
+DotNetQuery.Persistence.DeadLetterMutation.Equals(DotNetQuery.Persistence.DeadLetterMutation? other) -> bool
+DotNetQuery.Persistence.DeadLetterMutation.Error.get -> string!
+DotNetQuery.Persistence.DeadLetterMutation.Error.init -> void
+DotNetQuery.Persistence.DeadLetterMutation.FailedAt.get -> System.DateTimeOffset
+DotNetQuery.Persistence.DeadLetterMutation.FailedAt.init -> void
+DotNetQuery.Persistence.DeadLetterMutation.Mutation.get -> DotNetQuery.Persistence.PendingMutation!
+DotNetQuery.Persistence.DeadLetterMutation.Mutation.init -> void
+DotNetQuery.Persistence.MutationExpiredException
+DotNetQuery.Persistence.MutationExpiredException.MutationExpiredException() -> void
+DotNetQuery.Persistence.MutationExpiredException.MutationExpiredException(string! message) -> void
+DotNetQuery.Persistence.MutationExpiredException.MutationExpiredException(string! message, System.Exception! innerException) -> void
+DotNetQuery.Persistence.PersistentMutationQueue.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.PersistentMutationQueue.DeadLetters.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.DeadLetterMutation!>!
+DotNetQuery.Persistence.PersistentMutationQueue.DiscardDeadLetterAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+DotNetQuery.Persistence.PersistentMutationQueue.IsPaused.get -> bool
+DotNetQuery.Persistence.PersistentMutationQueue.Pause() -> void
+DotNetQuery.Persistence.PersistentMutationQueue.RegisterHandler<TVariables>(string! mutationKey, System.Func<TVariables, DotNetQuery.Persistence.PendingMutation!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! handler) -> DotNetQuery.Persistence.PersistentMutationQueue!
+DotNetQuery.Persistence.PersistentMutationQueue.RegisterHandler<TVariables>(string! mutationKey, System.Func<TVariables, DotNetQuery.Persistence.PendingMutation!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! handler, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TVariables>! typeInfo) -> DotNetQuery.Persistence.PersistentMutationQueue!
+DotNetQuery.Persistence.PersistentMutationQueue.RemoveAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+DotNetQuery.Persistence.PersistentMutationQueue.ResumeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.PersistentMutationQueue.RetryDeadLetterAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+DotNetQuery.Persistence.PersistentMutationQueueOptions.MaxAge.get -> System.TimeSpan?
+DotNetQuery.Persistence.PersistentMutationQueueOptions.MaxAge.init -> void
+DotNetQuery.Persistence.PersistentMutationQueueOptions.MaxAttempts.get -> int
+DotNetQuery.Persistence.PersistentMutationQueueOptions.MaxAttempts.init -> void
+DotNetQuery.Persistence.PersistentMutationQueueOptions.RetryDelay.get -> DotNetQuery.RetryDelayStrategy?
+DotNetQuery.Persistence.PersistentMutationQueueOptions.RetryDelay.init -> void
+DotNetQuery.Persistence.PersistentMutationQueueOptions.ShouldRetry.get -> DotNetQuery.RetryPredicate?
+DotNetQuery.Persistence.PersistentMutationQueueOptions.ShouldRetry.init -> void
+DotNetQuery.Persistence.PersistentMutationQueueOptions.UseDeadLetterQueue.get -> bool
+DotNetQuery.Persistence.PersistentMutationQueueOptions.UseDeadLetterQueue.init -> void
+override DotNetQuery.Persistence.DeadLetterMutation.Equals(object? obj) -> bool
+override DotNetQuery.Persistence.DeadLetterMutation.GetHashCode() -> int
+override DotNetQuery.Persistence.DeadLetterMutation.ToString() -> string!
+static DotNetQuery.Persistence.DeadLetterMutation.operator !=(DotNetQuery.Persistence.DeadLetterMutation? left, DotNetQuery.Persistence.DeadLetterMutation? right) -> bool
+static DotNetQuery.Persistence.DeadLetterMutation.operator ==(DotNetQuery.Persistence.DeadLetterMutation? left, DotNetQuery.Persistence.DeadLetterMutation? right) -> bool
+DotNetQuery.QueryClientOptions.GetQueryDefaults(DotNetQuery.QueryKey! key) -> DotNetQuery.QueryOptions?
+DotNetQuery.QueryClientOptions.SetQueryDefaults(DotNetQuery.QueryKey! prefix, DotNetQuery.QueryOptions! defaults) -> DotNetQuery.QueryClientOptions!
+DotNetQuery.IFetchRateLimiter
+DotNetQuery.IFetchRateLimiter.AcquireAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.IDisposable?>
+DotNetQuery.IQueryInterceptor
+DotNetQuery.IQueryInterceptor.InterceptAsync<T>(DotNetQuery.QueryInterceptorContext! context, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! next, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<T>!
+DotNetQuery.QueryCache.CreateSnapshot(DotNetQuery.QueryFilter? filter = null) -> DotNetQuery.QueryCacheSnapshot!
+DotNetQuery.QueryCache.Trim(int maxInactiveQueries) -> int
+DotNetQuery.QueryCacheSnapshot
+DotNetQuery.QueryCacheSnapshot.CreatedAt.get -> System.DateTimeOffset
+DotNetQuery.QueryCacheSnapshot.Keys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.QueryCacheSnapshot.Restore(bool removeOthers = false) -> int
+DotNetQuery.QueryClientOptions.AddInvalidationDependency(DotNetQuery.QueryKey! source, DotNetQuery.QueryKey! dependent) -> DotNetQuery.QueryClientOptions!
+DotNetQuery.QueryClientOptions.FetchRateLimiter.get -> DotNetQuery.IFetchRateLimiter?
+DotNetQuery.QueryClientOptions.FetchRateLimiter.set -> void
+DotNetQuery.QueryClientOptions.Interceptors.get -> System.Collections.Generic.IList<DotNetQuery.IQueryInterceptor!>!
+DotNetQuery.QueryClientOptions.MaxConcurrentFetches.get -> int?
+DotNetQuery.QueryClientOptions.MaxConcurrentFetches.set -> void
+DotNetQuery.QueryClientOptions.MaxInactiveQueries.get -> int?
+DotNetQuery.QueryClientOptions.MaxInactiveQueries.set -> void
+DotNetQuery.QueryClientOptions.TrimOnMemoryPressure.get -> bool
+DotNetQuery.QueryClientOptions.TrimOnMemoryPressure.set -> void
+DotNetQuery.QueryInterceptorContext
+DotNetQuery.QueryInterceptorContext.<Clone>$() -> DotNetQuery.QueryInterceptorContext!
+DotNetQuery.QueryInterceptorContext.Attempt.get -> int
+DotNetQuery.QueryInterceptorContext.Attempt.init -> void
+DotNetQuery.QueryInterceptorContext.Deconstruct(out DotNetQuery.QueryKey! Key, out int Attempt) -> void
+DotNetQuery.QueryInterceptorContext.Equals(DotNetQuery.QueryInterceptorContext? other) -> bool
+DotNetQuery.QueryInterceptorContext.Key.get -> DotNetQuery.QueryKey!
+DotNetQuery.QueryInterceptorContext.Key.init -> void
+DotNetQuery.QueryInterceptorContext.QueryInterceptorContext(DotNetQuery.QueryKey! Key, int Attempt) -> void
+DotNetQuery.QueryNotifications
+DotNetQuery.QueryOptions.AdaptiveRefetchInterval.get -> System.Func<DotNetQuery.QueryDescriptor!, System.TimeSpan?>?
+DotNetQuery.QueryOptions.AdaptiveRefetchInterval.init -> void
+DotNetQuery.QueryOptions.Priority.get -> int?
+DotNetQuery.QueryOptions.Priority.init -> void
+DotNetQuery.QueryOptions.Timeout.get -> System.TimeSpan?
+DotNetQuery.QueryOptions.Timeout.init -> void
+DotNetQuery.QueryRateLimitedException
+DotNetQuery.QueryRateLimitedException.QueryRateLimitedException() -> void
+DotNetQuery.QueryRateLimitedException.QueryRateLimitedException(string! message) -> void
+DotNetQuery.QueryRateLimitedException.QueryRateLimitedException(string! message, System.Exception! innerException) -> void
+override DotNetQuery.QueryInterceptorContext.Equals(object? obj) -> bool
+override DotNetQuery.QueryInterceptorContext.GetHashCode() -> int
+override DotNetQuery.QueryInterceptorContext.ToString() -> string!
+static DotNetQuery.QueryInterceptorContext.operator !=(DotNetQuery.QueryInterceptorContext? left, DotNetQuery.QueryInterceptorContext? right) -> bool
+static DotNetQuery.QueryInterceptorContext.operator ==(DotNetQuery.QueryInterceptorContext? left, DotNetQuery.QueryInterceptorContext? right) -> bool
+static DotNetQuery.QueryNotifications.Batch() -> System.IDisposable!
+static DotNetQuery.QueryDefinitionExtensions.FetchAllAsync<T>(this DotNetQuery.IQueryClient! client, System.Collections.Generic.IEnumerable<DotNetQuery.QueryDefinition<T>!>! queries, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryResult<T>>!>!
+DotNetQuery.MutationDefaults
+DotNetQuery.MutationDefaults.<Clone>$() -> DotNetQuery.MutationDefaults!
+DotNetQuery.MutationDefaults.Equals(DotNetQuery.MutationDefaults? other) -> bool
+DotNetQuery.MutationDefaults.Invalidates.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>?
+DotNetQuery.MutationDefaults.Invalidates.init -> void
+DotNetQuery.MutationDefaults.MutationDefaults() -> void
+DotNetQuery.MutationDefaults.NetworkMode.get -> DotNetQuery.NetworkMode?
+DotNetQuery.MutationDefaults.NetworkMode.init -> void
+DotNetQuery.MutationDefaults.RetryCount.get -> int?
+DotNetQuery.MutationDefaults.RetryCount.init -> void
+DotNetQuery.MutationDefaults.RetryDelay.get -> DotNetQuery.RetryDelayStrategy?
+DotNetQuery.MutationDefaults.RetryDelay.init -> void
+DotNetQuery.MutationDefaults.Scope.get -> string?
+DotNetQuery.MutationDefaults.Scope.init -> void
+DotNetQuery.MutationDefaults.ShouldRetry.get -> DotNetQuery.RetryPredicate?
+DotNetQuery.MutationDefaults.ShouldRetry.init -> void
+DotNetQuery.MutationDescriptor.Progress.get -> double?
+DotNetQuery.MutationDescriptor.Progress.init -> void
+DotNetQuery.MutationExtensions
+DotNetQuery.MutationOptions<TVariables, TData>.DeduplicatePending.get -> bool
+DotNetQuery.MutationOptions<TVariables, TData>.DeduplicatePending.init -> void
+DotNetQuery.MutationState<TVariables, TData>.Progress.get -> double?
+DotNetQuery.MutationState<TVariables, TData>.Progress.init -> void
+DotNetQuery.QueryClientOptions.GetMutationDefaults(DotNetQuery.QueryKey? mutationKey) -> DotNetQuery.MutationDefaults?
+DotNetQuery.QueryClientOptions.SetMutationDefaults(DotNetQuery.MutationDefaults! defaults) -> DotNetQuery.QueryClientOptions!
+DotNetQuery.QueryClientOptions.SetMutationDefaults(DotNetQuery.QueryKey! mutationKeyPrefix, DotNetQuery.MutationDefaults! defaults) -> DotNetQuery.QueryClientOptions!
+override DotNetQuery.MutationDefaults.Equals(object? obj) -> bool
+override DotNetQuery.MutationDefaults.GetHashCode() -> int
+override DotNetQuery.MutationDefaults.ToString() -> string!
+static DotNetQuery.MutationDefaults.operator !=(DotNetQuery.MutationDefaults? left, DotNetQuery.MutationDefaults? right) -> bool
+static DotNetQuery.MutationDefaults.operator ==(DotNetQuery.MutationDefaults? left, DotNetQuery.MutationDefaults? right) -> bool
+static DotNetQuery.MutationExtensions.CreateMutation<TVariables, TData>(this DotNetQuery.IQueryClient! client, System.Func<TVariables, System.IProgress<double>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> DotNetQuery.Mutation<TVariables, TData>!
+DotNetQuery.BatchLoader<TKey, TValue>
+DotNetQuery.BatchLoader<TKey, TValue>.BatchLoader(System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>!>!>! fetchBatch, DotNetQuery.BatchLoaderOptions? options = null) -> void
+DotNetQuery.BatchLoader<TKey, TValue>.LoadAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TValue>!
+DotNetQuery.BatchLoaderOptions
+DotNetQuery.BatchLoaderOptions.<Clone>$() -> DotNetQuery.BatchLoaderOptions!
+DotNetQuery.BatchLoaderOptions.BatchLoaderOptions() -> void
+DotNetQuery.BatchLoaderOptions.Delay.get -> System.TimeSpan
+DotNetQuery.BatchLoaderOptions.Delay.init -> void
+DotNetQuery.BatchLoaderOptions.Equals(DotNetQuery.BatchLoaderOptions? other) -> bool
+DotNetQuery.BatchLoaderOptions.MaxBatchSize.get -> int
+DotNetQuery.BatchLoaderOptions.MaxBatchSize.init -> void
+DotNetQuery.BatchLoaderOptions.TimeProvider.get -> System.TimeProvider?
+DotNetQuery.BatchLoaderOptions.TimeProvider.init -> void
+DotNetQuery.BearerTokenHandler
+DotNetQuery.BearerTokenHandler.BearerTokenHandler(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<string?>>! getToken, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<string?>>? refreshToken = null) -> void
+DotNetQuery.BrokenCircuitException
+DotNetQuery.BrokenCircuitException.BrokenCircuitException() -> void
+DotNetQuery.BrokenCircuitException.BrokenCircuitException(string! message) -> void
+DotNetQuery.BrokenCircuitException.BrokenCircuitException(string! message, System.Exception! innerException) -> void
+DotNetQuery.CircuitBreakerHandler
+DotNetQuery.CircuitBreakerHandler.CircuitBreakerHandler() -> void
+DotNetQuery.CircuitBreakerHandler.CircuitBreakerHandler(DotNetQuery.CircuitBreakerOptions! options) -> void
+DotNetQuery.CircuitBreakerHandler.Reset() -> void
+DotNetQuery.CircuitBreakerHandler.State.get -> DotNetQuery.CircuitState
+DotNetQuery.CircuitBreakerHandler.StateChanged -> System.Action<DotNetQuery.CircuitState>?
+DotNetQuery.CircuitBreakerOptions
+DotNetQuery.CircuitBreakerOptions.<Clone>$() -> DotNetQuery.CircuitBreakerOptions!
+DotNetQuery.CircuitBreakerOptions.BreakDuration.get -> System.TimeSpan
+DotNetQuery.CircuitBreakerOptions.BreakDuration.init -> void
+DotNetQuery.CircuitBreakerOptions.CircuitBreakerOptions() -> void
+DotNetQuery.CircuitBreakerOptions.Equals(DotNetQuery.CircuitBreakerOptions? other) -> bool
+DotNetQuery.CircuitBreakerOptions.FailureThreshold.get -> int
+DotNetQuery.CircuitBreakerOptions.FailureThreshold.init -> void
+DotNetQuery.CircuitBreakerOptions.IsFailure.get -> System.Func<System.Net.Http.HttpResponseMessage?, System.Exception?, bool>?
+DotNetQuery.CircuitBreakerOptions.IsFailure.init -> void
+DotNetQuery.CircuitBreakerOptions.TimeProvider.get -> System.TimeProvider?
+DotNetQuery.CircuitBreakerOptions.TimeProvider.init -> void
+DotNetQuery.CircuitState
+DotNetQuery.CircuitState.Closed = 0 -> DotNetQuery.CircuitState
+DotNetQuery.CircuitState.HalfOpen = 2 -> DotNetQuery.CircuitState
+DotNetQuery.CircuitState.Open = 1 -> DotNetQuery.CircuitState
+override DotNetQuery.BatchLoaderOptions.Equals(object? obj) -> bool
+override DotNetQuery.BatchLoaderOptions.GetHashCode() -> int
+override DotNetQuery.BatchLoaderOptions.ToString() -> string!
+override DotNetQuery.CircuitBreakerOptions.Equals(object? obj) -> bool
+override DotNetQuery.CircuitBreakerOptions.GetHashCode() -> int
+override DotNetQuery.CircuitBreakerOptions.ToString() -> string!
+static DotNetQuery.BatchLoaderOptions.operator !=(DotNetQuery.BatchLoaderOptions? left, DotNetQuery.BatchLoaderOptions? right) -> bool
+static DotNetQuery.BatchLoaderOptions.operator ==(DotNetQuery.BatchLoaderOptions? left, DotNetQuery.BatchLoaderOptions? right) -> bool
+static DotNetQuery.CircuitBreakerOptions.operator !=(DotNetQuery.CircuitBreakerOptions? left, DotNetQuery.CircuitBreakerOptions? right) -> bool
+static DotNetQuery.CircuitBreakerOptions.operator ==(DotNetQuery.CircuitBreakerOptions? left, DotNetQuery.CircuitBreakerOptions? right) -> bool
+DotNetQuery.Persistence.PersistentMutationQueueOptions.OnReplayFailure.get -> System.Func<DotNetQuery.Persistence.PendingMutation!, System.Exception!, int, DotNetQuery.Persistence.ReplayDecision>?
+DotNetQuery.Persistence.PersistentMutationQueueOptions.OnReplayFailure.init -> void
+DotNetQuery.Persistence.QueryPersistenceOptions.Migrations.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Func<string!, string?>!>?
+DotNetQuery.Persistence.QueryPersistenceOptions.Migrations.init -> void
+DotNetQuery.Persistence.ReplayDecision
+DotNetQuery.Persistence.ReplayDecision.Default = 0 -> DotNetQuery.Persistence.ReplayDecision
+DotNetQuery.Persistence.ReplayDecision.Drop = 3 -> DotNetQuery.Persistence.ReplayDecision
+DotNetQuery.Persistence.ReplayDecision.Fail = 2 -> DotNetQuery.Persistence.ReplayDecision
+DotNetQuery.Persistence.ReplayDecision.Pause = 4 -> DotNetQuery.Persistence.ReplayDecision
+DotNetQuery.Persistence.ReplayDecision.Retry = 1 -> DotNetQuery.Persistence.ReplayDecision
+static DotNetQuery.HttpRetryPolicy.IsConflict(System.Exception! error) -> bool
+DotNetQuery.OptimisticUpdateAppliedEvent
+DotNetQuery.OptimisticUpdateAppliedEvent.Equals(DotNetQuery.OptimisticUpdateAppliedEvent? other) -> bool
+DotNetQuery.OptimisticUpdateAppliedEvent.Keys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.OptimisticUpdateAppliedEvent.Keys.init -> void
+DotNetQuery.OptimisticUpdateAppliedEvent.MutationId.get -> long
+DotNetQuery.OptimisticUpdateAppliedEvent.MutationId.init -> void
+DotNetQuery.OptimisticUpdateAppliedEvent.OptimisticUpdateAppliedEvent() -> void
+DotNetQuery.OptimisticUpdateRolledBackEvent
+DotNetQuery.OptimisticUpdateRolledBackEvent.Equals(DotNetQuery.OptimisticUpdateRolledBackEvent? other) -> bool
+DotNetQuery.OptimisticUpdateRolledBackEvent.MutationId.get -> long
+DotNetQuery.OptimisticUpdateRolledBackEvent.MutationId.init -> void
+DotNetQuery.OptimisticUpdateRolledBackEvent.OptimisticUpdateRolledBackEvent() -> void
+DotNetQuery.OptimisticUpdateRolledBackEvent.Refetched.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.OptimisticUpdateRolledBackEvent.Refetched.init -> void
+DotNetQuery.OptimisticUpdateRolledBackEvent.Restored.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.OptimisticUpdateRolledBackEvent.Restored.init -> void
+DotNetQuery.QueryClientOptions.DiagnosticKeyFormatter.get -> System.Func<DotNetQuery.QueryKey!, string!>?
+DotNetQuery.QueryClientOptions.DiagnosticKeyFormatter.set -> void
+DotNetQuery.QueryClientOptions.IncludeVariablesInDiagnostics.get -> bool
+DotNetQuery.QueryClientOptions.IncludeVariablesInDiagnostics.set -> void
+DotNetQuery.QueryRetryEvent
+DotNetQuery.QueryRetryEvent.Equals(DotNetQuery.QueryRetryEvent? other) -> bool
+DotNetQuery.QueryRetryEvent.Error.get -> System.Exception!
+DotNetQuery.QueryRetryEvent.Error.init -> void
+DotNetQuery.QueryRetryEvent.FailureCount.get -> int
+DotNetQuery.QueryRetryEvent.FailureCount.init -> void
+DotNetQuery.QueryRetryEvent.Key.get -> DotNetQuery.QueryKey!
+DotNetQuery.QueryRetryEvent.Key.init -> void
+DotNetQuery.QueryRetryEvent.QueryRetryEvent() -> void
+override DotNetQuery.OptimisticUpdateAppliedEvent.<Clone>$() -> DotNetQuery.OptimisticUpdateAppliedEvent!
+override DotNetQuery.OptimisticUpdateAppliedEvent.Equals(object? obj) -> bool
+override DotNetQuery.OptimisticUpdateAppliedEvent.GetHashCode() -> int
+override DotNetQuery.OptimisticUpdateAppliedEvent.ToString() -> string!
+override DotNetQuery.OptimisticUpdateRolledBackEvent.<Clone>$() -> DotNetQuery.OptimisticUpdateRolledBackEvent!
+override DotNetQuery.OptimisticUpdateRolledBackEvent.Equals(object? obj) -> bool
+override DotNetQuery.OptimisticUpdateRolledBackEvent.GetHashCode() -> int
+override DotNetQuery.OptimisticUpdateRolledBackEvent.ToString() -> string!
+override DotNetQuery.QueryRetryEvent.<Clone>$() -> DotNetQuery.QueryRetryEvent!
+override DotNetQuery.QueryRetryEvent.Equals(object? obj) -> bool
+override DotNetQuery.QueryRetryEvent.GetHashCode() -> int
+override DotNetQuery.QueryRetryEvent.ToString() -> string!
+override sealed DotNetQuery.OptimisticUpdateAppliedEvent.Equals(DotNetQuery.DotNetQueryEvent? other) -> bool
+override sealed DotNetQuery.OptimisticUpdateRolledBackEvent.Equals(DotNetQuery.DotNetQueryEvent? other) -> bool
+override sealed DotNetQuery.QueryRetryEvent.Equals(DotNetQuery.DotNetQueryEvent? other) -> bool
+static DotNetQuery.OptimisticUpdateAppliedEvent.operator !=(DotNetQuery.OptimisticUpdateAppliedEvent? left, DotNetQuery.OptimisticUpdateAppliedEvent? right) -> bool
+static DotNetQuery.OptimisticUpdateAppliedEvent.operator ==(DotNetQuery.OptimisticUpdateAppliedEvent? left, DotNetQuery.OptimisticUpdateAppliedEvent? right) -> bool
+static DotNetQuery.OptimisticUpdateRolledBackEvent.operator !=(DotNetQuery.OptimisticUpdateRolledBackEvent? left, DotNetQuery.OptimisticUpdateRolledBackEvent? right) -> bool
+static DotNetQuery.OptimisticUpdateRolledBackEvent.operator ==(DotNetQuery.OptimisticUpdateRolledBackEvent? left, DotNetQuery.OptimisticUpdateRolledBackEvent? right) -> bool
+static DotNetQuery.QueryRetryEvent.operator !=(DotNetQuery.QueryRetryEvent? left, DotNetQuery.QueryRetryEvent? right) -> bool
+static DotNetQuery.QueryRetryEvent.operator ==(DotNetQuery.QueryRetryEvent? left, DotNetQuery.QueryRetryEvent? right) -> bool
+DotNetQuery.DevTools.DevToolsSnapshot
+DotNetQuery.DevTools.DevToolsSnapshot.<Clone>$() -> DotNetQuery.DevTools.DevToolsSnapshot!
+DotNetQuery.DevTools.DevToolsSnapshot.Deconstruct(out string! Label, out DotNetQuery.QueryCacheSnapshot! Snapshot) -> void
+DotNetQuery.DevTools.DevToolsSnapshot.DevToolsSnapshot(string! Label, DotNetQuery.QueryCacheSnapshot! Snapshot) -> void
+DotNetQuery.DevTools.DevToolsSnapshot.Equals(DotNetQuery.DevTools.DevToolsSnapshot? other) -> bool
+DotNetQuery.DevTools.DevToolsSnapshot.Label.get -> string!
+DotNetQuery.DevTools.DevToolsSnapshot.Label.init -> void
+DotNetQuery.DevTools.DevToolsSnapshot.Snapshot.get -> DotNetQuery.QueryCacheSnapshot!
+DotNetQuery.DevTools.DevToolsSnapshot.Snapshot.init -> void
+DotNetQuery.DevTools.MutationRecord.OptimisticKeys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.DevTools.MutationRecord.OptimisticKeys.init -> void
+DotNetQuery.DevTools.MutationRecord.RefetchedKeys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.DevTools.MutationRecord.RefetchedKeys.init -> void
+DotNetQuery.DevTools.MutationRecord.RolledBackKeys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.DevTools.MutationRecord.RolledBackKeys.init -> void
+DotNetQuery.DevTools.QueryDevTools.AttachQueue(DotNetQuery.Persistence.PersistentMutationQueue! queue) -> void
+DotNetQuery.DevTools.QueryDevTools.DeadLetters.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.DeadLetterMutation!>!
+DotNetQuery.DevTools.QueryDevTools.KeyTree() -> System.Collections.Generic.IReadOnlyList<DotNetQuery.DevTools.QueryKeyNode!>!
+DotNetQuery.DevTools.QueryDevTools.ProfileQueries() -> System.Collections.Generic.IReadOnlyList<DotNetQuery.DevTools.QueryProfile!>!
+DotNetQuery.DevTools.QueryDevTools.Queue.get -> DotNetQuery.Persistence.PersistentMutationQueue?
+DotNetQuery.DevTools.QueryDevTools.QueuedMutations.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PendingMutation!>!
+DotNetQuery.DevTools.QueryDevTools.ResetAsync(DotNetQuery.QueryKey! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.DevTools.QueryDevTools.RestoreSnapshot(DotNetQuery.DevTools.DevToolsSnapshot! snapshot) -> int
+DotNetQuery.DevTools.QueryDevTools.Snapshots.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.DevTools.DevToolsSnapshot!>!
+DotNetQuery.DevTools.QueryDevTools.TakeSnapshot(string? label = null) -> DotNetQuery.DevTools.DevToolsSnapshot!
+DotNetQuery.DevTools.QueryDevTools.Timeline(DotNetQuery.QueryKey! key) -> System.Collections.Generic.IReadOnlyList<DotNetQuery.DotNetQueryEvent!>!
+DotNetQuery.DevTools.QueryKeyNode
+DotNetQuery.DevTools.QueryKeyNode.<Clone>$() -> DotNetQuery.DevTools.QueryKeyNode!
+DotNetQuery.DevTools.QueryKeyNode.Children.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.DevTools.QueryKeyNode!>!
+DotNetQuery.DevTools.QueryKeyNode.Children.init -> void
+DotNetQuery.DevTools.QueryKeyNode.Equals(DotNetQuery.DevTools.QueryKeyNode? other) -> bool
+DotNetQuery.DevTools.QueryKeyNode.Key.get -> DotNetQuery.QueryKey!
+DotNetQuery.DevTools.QueryKeyNode.Key.init -> void
+DotNetQuery.DevTools.QueryKeyNode.Query.get -> DotNetQuery.QueryDescriptor?
+DotNetQuery.DevTools.QueryKeyNode.Query.init -> void
+DotNetQuery.DevTools.QueryKeyNode.QueryCount.get -> int
+DotNetQuery.DevTools.QueryKeyNode.QueryCount.init -> void
+DotNetQuery.DevTools.QueryKeyNode.QueryKeyNode() -> void
+DotNetQuery.DevTools.QueryKeyNode.Segment.get -> string!
+DotNetQuery.DevTools.QueryKeyNode.Segment.init -> void
+DotNetQuery.DevTools.QueryProfile
+DotNetQuery.DevTools.QueryProfile.<Clone>$() -> DotNetQuery.DevTools.QueryProfile!
+DotNetQuery.DevTools.QueryProfile.AverageDurationMs.get -> double
+DotNetQuery.DevTools.QueryProfile.AverageDurationMs.init -> void
+DotNetQuery.DevTools.QueryProfile.Cancellations.get -> int
+DotNetQuery.DevTools.QueryProfile.Cancellations.init -> void
+DotNetQuery.DevTools.QueryProfile.Equals(DotNetQuery.DevTools.QueryProfile? other) -> bool
+DotNetQuery.DevTools.QueryProfile.Failures.get -> int
+DotNetQuery.DevTools.QueryProfile.Failures.init -> void
+DotNetQuery.DevTools.QueryProfile.Fetches.get -> int
+DotNetQuery.DevTools.QueryProfile.Fetches.init -> void
+DotNetQuery.DevTools.QueryProfile.Key.get -> DotNetQuery.QueryKey!
+DotNetQuery.DevTools.QueryProfile.Key.init -> void
+DotNetQuery.DevTools.QueryProfile.MaxDurationMs.get -> double
+DotNetQuery.DevTools.QueryProfile.MaxDurationMs.init -> void
+DotNetQuery.DevTools.QueryProfile.QueryProfile() -> void
+DotNetQuery.DevTools.QueryProfile.Retries.get -> int
+DotNetQuery.DevTools.QueryProfile.Retries.init -> void
+override DotNetQuery.DevTools.DevToolsSnapshot.Equals(object? obj) -> bool
+override DotNetQuery.DevTools.DevToolsSnapshot.GetHashCode() -> int
+override DotNetQuery.DevTools.DevToolsSnapshot.ToString() -> string!
+override DotNetQuery.DevTools.QueryKeyNode.Equals(object? obj) -> bool
+override DotNetQuery.DevTools.QueryKeyNode.GetHashCode() -> int
+override DotNetQuery.DevTools.QueryKeyNode.ToString() -> string!
+override DotNetQuery.DevTools.QueryProfile.Equals(object? obj) -> bool
+override DotNetQuery.DevTools.QueryProfile.GetHashCode() -> int
+override DotNetQuery.DevTools.QueryProfile.ToString() -> string!
+static DotNetQuery.DevTools.DevToolsSnapshot.operator !=(DotNetQuery.DevTools.DevToolsSnapshot? left, DotNetQuery.DevTools.DevToolsSnapshot? right) -> bool
+static DotNetQuery.DevTools.DevToolsSnapshot.operator ==(DotNetQuery.DevTools.DevToolsSnapshot? left, DotNetQuery.DevTools.DevToolsSnapshot? right) -> bool
+static DotNetQuery.DevTools.QueryKeyNode.operator !=(DotNetQuery.DevTools.QueryKeyNode? left, DotNetQuery.DevTools.QueryKeyNode? right) -> bool
+static DotNetQuery.DevTools.QueryKeyNode.operator ==(DotNetQuery.DevTools.QueryKeyNode? left, DotNetQuery.DevTools.QueryKeyNode? right) -> bool
+static DotNetQuery.DevTools.QueryProfile.operator !=(DotNetQuery.DevTools.QueryProfile? left, DotNetQuery.DevTools.QueryProfile? right) -> bool
+static DotNetQuery.DevTools.QueryProfile.operator ==(DotNetQuery.DevTools.QueryProfile? left, DotNetQuery.DevTools.QueryProfile? right) -> bool
+DotNetQuery.InfiniteQuery<TParam, TPage>.FetchPagesAsync(int count, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.InfiniteQueryState<TParam, TPage>!>!
+DotNetQuery.InfiniteQueryExtensions
+DotNetQuery.InfiniteQueryState<TParam, TPage>.PageCount.get -> int
+static DotNetQuery.InfiniteQueryExtensions.Items<TParam, TPage, TItem>(this DotNetQuery.InfiniteData<TParam, TPage>! data, System.Func<TPage, System.Collections.Generic.IEnumerable<TItem>!>! items) -> System.Collections.Generic.IReadOnlyList<TItem>!
+static DotNetQuery.InfiniteQueryExtensions.PrefetchInfiniteQueryAsync<TParam, TPage>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<TParam, System.Threading.CancellationToken, System.Threading.Tasks.Task<TPage>!>! fetcher, DotNetQuery.InfiniteQueryOptions<TParam, TPage>! options, int pages = 1, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.AppLifecycleSignals
+DotNetQuery.AppLifecycleSignals.AppLifecycleSignals(DotNetQuery.FocusManager? focus = null, DotNetQuery.ResumeManager? resume = null, DotNetQuery.ConnectivityProvider? connectivity = null) -> void
+DotNetQuery.AppLifecycleSignals.Connectivity.get -> DotNetQuery.ConnectivityProvider?
+DotNetQuery.AppLifecycleSignals.IsActive.get -> bool
+DotNetQuery.AppLifecycleSignals.NotifyActivated() -> void
+DotNetQuery.AppLifecycleSignals.NotifyDeactivated() -> void
+DotNetQuery.AppLifecycleSignals.NotifyNetworkAvailability(bool available) -> void
+DotNetQuery.AppLifecycleSignals.NotifyResumed() -> void
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.Data.get -> DotNetQuery.InfiniteData<TParam, TPage>!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.DataUpdatedAt.get -> System.DateTimeOffset?
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.Dispose() -> void
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.Error.get -> System.Exception?
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.FailureCount.get -> int
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.FetchNextPageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.FetchNextPageCommand.get -> System.Windows.Input.ICommand!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.FetchPreviousPageAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.FetchPreviousPageCommand.get -> System.Windows.Input.ICommand!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.HasNextPage.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.HasPreviousPage.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsError.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsFetching.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsFetchingNextPage.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsFetchingPreviousPage.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsLoading.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsPending.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.IsSuccess.get -> bool
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.Key.get -> DotNetQuery.QueryKey!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.ObservableInfiniteQuery(DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<TParam, System.Threading.CancellationToken, System.Threading.Tasks.Task<TPage>!>! fetcher, DotNetQuery.InfiniteQueryOptions<TParam, TPage>! options) -> void
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.PageCount.get -> int
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.Pages.get -> System.Collections.Generic.IReadOnlyList<TPage>!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.RefetchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.RefetchCommand.get -> System.Windows.Input.ICommand!
+DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>.Status.get -> DotNetQuery.QueryStatus
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.MutateCommand.get -> System.Windows.Input.ICommand!
+DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>.ResetCommand.get -> System.Windows.Input.ICommand!
+DotNetQuery.Mvvm.ObservableQuery<T>.RefetchCommand.get -> System.Windows.Input.ICommand!
+DotNetQuery.NetworkConnectivityMonitor
+DotNetQuery.NetworkConnectivityMonitor.Dispose() -> void
+DotNetQuery.NetworkConnectivityMonitor.NetworkConnectivityMonitor(DotNetQuery.ConnectivityProvider! provider) -> void
+DotNetQuery.GraphQL.GraphQLError.Code.get -> string?
+DotNetQuery.GraphQL.GraphQLError.Code.init -> void
+DotNetQuery.GraphQL.GraphQLError.Path.get -> System.Collections.Generic.IReadOnlyList<string!>?
+DotNetQuery.GraphQL.GraphQLError.Path.init -> void
+DotNetQuery.GraphQL.GraphQLException.HasCode(string! code) -> bool
+static DotNetQuery.GraphQLQueryExtensions.CreateGraphQLMutation<TVariables, TData>(this DotNetQuery.IQueryClient! client, System.Net.Http.HttpClient! http, string! requestUri, string! mutation, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TVariables>! variablesTypeInfo, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TData>! dataTypeInfo, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> DotNetQuery.Mutation<TVariables, TData>!
+static DotNetQuery.GraphQLQueryExtensions.GraphQLMutationFn<TVariables, TData>(this System.Net.Http.HttpClient! client, string! requestUri, string! mutation, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>!
+static DotNetQuery.GraphQLQueryExtensions.GraphQLMutationFn<TVariables, TData>(this System.Net.Http.HttpClient! client, string! requestUri, string! mutation, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TVariables>! variablesTypeInfo, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TData>! dataTypeInfo) -> System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>!
+DotNetQuery.GenerateQueriesAttribute
+DotNetQuery.GenerateQueriesAttribute.Api.get -> System.Type?
+DotNetQuery.GenerateQueriesAttribute.ClassName.get -> string?
+DotNetQuery.GenerateQueriesAttribute.ClassName.set -> void
+DotNetQuery.GenerateQueriesAttribute.GenerateQueriesAttribute() -> void
+DotNetQuery.GenerateQueriesAttribute.GenerateQueriesAttribute(System.Type! api) -> void
+DotNetQuery.GenerateQueriesAttribute.KeyPrefix.get -> string?
+DotNetQuery.GenerateQueriesAttribute.KeyPrefix.set -> void
+DotNetQuery.MutationMethodAttribute
+DotNetQuery.MutationMethodAttribute.Invalidates.get -> string![]?
+DotNetQuery.MutationMethodAttribute.Invalidates.set -> void
+DotNetQuery.MutationMethodAttribute.MutationMethodAttribute() -> void
+DotNetQuery.MutationMethodAttribute.Name.get -> string?
+DotNetQuery.MutationMethodAttribute.Name.set -> void
+DotNetQuery.QueryIgnoreAttribute
+DotNetQuery.QueryIgnoreAttribute.QueryIgnoreAttribute() -> void
+DotNetQuery.QueryMethodAttribute
+DotNetQuery.QueryMethodAttribute.Name.get -> string?
+DotNetQuery.QueryMethodAttribute.Name.set -> void
+DotNetQuery.QueryMethodAttribute.QueryMethodAttribute() -> void

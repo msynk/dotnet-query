@@ -1,0 +1,16 @@
+@using DotNetQuery.Synchronization
+@inject BroadcastChannelQuerySync Channel
+@inject QuerySynchronizer Synchronizer
+
+@* Invisible component: place once in an interactive layout to keep registered queries in sync across browser
+   tabs (see AddCrossTabSync). The services are scoped and owned by DI; this component only starts them. *@
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Channel.StartAsync();
+        }
+    }
+}

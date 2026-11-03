@@ -33,6 +33,9 @@ public sealed class QueryDevTools : IDisposable
     private readonly Action<DotNetQueryEvent> _handler;
     private readonly Action<QueryCacheChange> _cacheHandler;
 
+    private readonly Dictionary<QueryKey, ProfileAccumulator> _profiles = [];
+    private readonly List<DevToolsSnapshot> _snapshots = [];
+    private Persistence.PersistentMutationQueue? _queue;
     private long _fetchesStarted;
     private long _fetchesSucceeded;
     private long _fetchesFailed;
@@ -170,6 +173,125 @@ public sealed class QueryDevTools : IDisposable
         }
     }
 
+    /// <summary>
+    /// Returns the recorded lifecycle of one query, oldest first: fetch starts, retries, completions, failures,
+    /// cancellations, invalidations and observer errors - why it fetched, refetched, failed or became stale.
+    /// </summary>
+    public IReadOnlyList<DotNetQueryEvent> Timeline(QueryKey key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        lock (_gate)
+        {
+            return _events.Where(e => e switch
+            {
+                QueryStartedEvent q => q.Key == key,
+                QueryCompletedEvent q => q.Key == key,
+                QueryFailedEvent q => q.Key == key,
+                QueryCancelledEvent q => q.Key == key,
+                QueryRetryEvent q => q.Key == key,
+                QueryObserverErrorEvent q => q.Key == key,
+                QueryInvalidatedEvent q => q.Keys.Contains(key),
+                OptimisticUpdateAppliedEvent o => o.Keys.Contains(key),
+                OptimisticUpdateRolledBackEvent o => o.Restored.Contains(key) || o.Refetched.Contains(key),
+                _ => false,
+            }).ToArray();
+        }
+    }
+
+    /// <summary>Returns per-query fetch statistics (fetches, failures, retries, cancellations, durations), slowest first.</summary>
+    public IReadOnlyList<QueryProfile> ProfileQueries()
+    {
+        lock (_gate)
+        {
+            return _profiles.Select(p => p.Value.ToProfile(p.Key)).OrderByDescending(p => p.AverageDurationMs).ToArray();
+        }
+    }
+
+    /// <summary>Builds the hierarchy of cached query keys (one node per key prefix), for a tree view.</summary>
+    public IReadOnlyList<QueryKeyNode> KeyTree()
+    {
+        var queries = InspectQueries();
+        return Build(queries, depth: 0, prefix: null);
+
+        static IReadOnlyList<QueryKeyNode> Build(IReadOnlyList<QueryDescriptor> queries, int depth, QueryKey? prefix)
+        {
+            return queries
+                .Where(q => q.Key.Count > depth)
+                .GroupBy(q => q.Key[depth], SegmentComparer.Instance)
+                .Select(group =>
+                {
+                    var key = prefix is null ? QueryKey.Create(group.Key) : prefix.Append(group.Key);
+                    var members = group.ToArray();
+                    return new QueryKeyNode
+                    {
+                        Key = key,
+                        Segment = QueryKey.Create(group.Key).ToString()[1..^1],
+                        Query = members.FirstOrDefault(q => q.Key.Count == depth + 1),
+                        Children = Build(members, depth + 1, key),
+                        QueryCount = members.Length,
+                    };
+                })
+                .OrderBy(n => n.Segment, StringComparer.Ordinal)
+                .ToArray();
+        }
+    }
+
+    /// <summary>Captures the whole cache (see <see cref="QueryCache.CreateSnapshot"/>) into the snapshot list, newest last.</summary>
+    public DevToolsSnapshot TakeSnapshot(string? label = null)
+    {
+        var snapshot = _client.Cache.CreateSnapshot();
+        var entry = new DevToolsSnapshot(label ?? snapshot.CreatedAt.ToLocalTime().ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture), snapshot);
+        lock (_gate)
+        {
+            _snapshots.Add(entry);
+            if (_snapshots.Count > 20)
+            {
+                _snapshots.RemoveAt(0);
+            }
+        }
+
+        RaiseChanged();
+        return entry;
+    }
+
+    /// <summary>Gets the recorded snapshots, oldest first.</summary>
+    public IReadOnlyList<DevToolsSnapshot> Snapshots
+    {
+        get { lock (_gate) { return _snapshots.ToArray(); } }
+    }
+
+    /// <summary>Time travel: restores the cache to a recorded snapshot exactly (queries added since are removed or reset).</summary>
+    public int RestoreSnapshot(DevToolsSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return snapshot.Snapshot.Restore(removeOthers: true);
+    }
+
+    /// <summary>Resets a query to its initial state and refetches it when observed (controlled state editing).</summary>
+    public Task ResetAsync(QueryKey key, CancellationToken cancellationToken = default) =>
+        _client.ResetQueriesAsync(QueryFilter.ForKey(key, exact: true), cancellationToken);
+
+    /// <summary>
+    /// Attaches a durable offline queue so its pending and dead-lettered mutations can be inspected and managed
+    /// (<see cref="QueuedMutations"/>, <see cref="DeadLetters"/>).
+    /// </summary>
+    public void AttachQueue(Persistence.PersistentMutationQueue queue)
+    {
+        ArgumentNullException.ThrowIfNull(queue);
+        _queue = queue;
+        queue.PendingChanged += RaiseChanged;
+        RaiseChanged();
+    }
+
+    /// <summary>Gets the attached queue (see <see cref="AttachQueue"/>), if any.</summary>
+    public Persistence.PersistentMutationQueue? Queue => _queue;
+
+    /// <summary>Gets the attached queue's pending mutations, oldest first (empty without a queue).</summary>
+    public IReadOnlyList<Persistence.PendingMutation> QueuedMutations => _queue?.Pending ?? [];
+
+    /// <summary>Gets the attached queue's dead letters (empty without a queue).</summary>
+    public IReadOnlyList<Persistence.DeadLetterMutation> DeadLetters => _queue?.DeadLetters ?? [];
+
     /// <summary>Manually invalidates a query hierarchy.</summary>
     public Task InvalidateAsync(QueryKey key, CancellationToken cancellationToken = default) =>
         _client.InvalidateQueriesAsync(key, cancellationToken);
@@ -193,6 +315,7 @@ public sealed class QueryDevTools : IDisposable
             _events.Clear();
             _mutations.Clear();
             _mutationsById.Clear();
+            _profiles.Clear();
             _fetchesStarted = _fetchesSucceeded = _fetchesFailed = _fetchesCancelled = 0;
             _mutationsStarted = _mutationsCompleted = _mutationsFailed = 0;
             _totalDurationMs = 0;
@@ -213,6 +336,16 @@ public sealed class QueryDevTools : IDisposable
             Stats = GetStats(),
             Queries = InspectQueries().Select(ToExport).ToArray(),
             Mutations = RecentMutations().Select(ToExport).ToArray(),
+            Profiles = ProfileQueries().Select(p => new
+            {
+                Key = p.Key.ToString(),
+                p.Fetches,
+                p.Failures,
+                p.Retries,
+                p.Cancellations,
+                p.AverageDurationMs,
+                p.MaxDurationMs,
+            }).ToArray(),
             Events = RecentEvents().Select(ToExport).ToArray(),
         };
         return JsonSerializer.Serialize(export, options);
@@ -230,21 +363,35 @@ public sealed class QueryDevTools : IDisposable
 
             switch (@event)
             {
-                case QueryStartedEvent:
+                case QueryStartedEvent s:
                     _fetchesStarted++;
+                    Profile(s.Key).Fetches++;
                     break;
                 case QueryCompletedEvent c:
                     _fetchesSucceeded++;
                     _totalDurationMs += c.Duration.TotalMilliseconds;
                     _durationSamples++;
+                    Profile(c.Key).Settled(c.Duration);
                     break;
                 case QueryFailedEvent f:
                     _fetchesFailed++;
                     _totalDurationMs += f.Duration.TotalMilliseconds;
                     _durationSamples++;
+                    Profile(f.Key).Failures++;
+                    Profile(f.Key).Settled(f.Duration);
                     break;
-                case QueryCancelledEvent:
+                case QueryCancelledEvent x:
                     _fetchesCancelled++;
+                    Profile(x.Key).Cancellations++;
+                    break;
+                case QueryRetryEvent r:
+                    Profile(r.Key).Retries++;
+                    break;
+                case OptimisticUpdateAppliedEvent o when _mutationsById.TryGetValue(o.MutationId, out var applied):
+                    applied.Value = applied.Value with { OptimisticKeys = o.Keys };
+                    break;
+                case OptimisticUpdateRolledBackEvent o when _mutationsById.TryGetValue(o.MutationId, out var rolledBack):
+                    rolledBack.Value = rolledBack.Value with { RolledBackKeys = o.Restored, RefetchedKeys = o.Refetched };
                     break;
                 case MutationStartedEvent m:
                     _mutationsStarted++;
@@ -280,6 +427,65 @@ public sealed class QueryDevTools : IDisposable
         }
 
         RaiseChanged();
+    }
+
+    // Must hold _gate.
+    private ProfileAccumulator Profile(QueryKey key)
+    {
+        if (!_profiles.TryGetValue(key, out var profile))
+        {
+            if (_profiles.Count >= _eventLogCapacity)
+            {
+                _profiles.Remove(_profiles.Keys.First());
+            }
+
+            _profiles[key] = profile = new ProfileAccumulator();
+        }
+
+        return profile;
+    }
+
+    private sealed class ProfileAccumulator
+    {
+        private int _settled;
+        private double _totalMs;
+        private double _maxMs;
+
+        public int Fetches { get; set; }
+
+        public int Failures { get; set; }
+
+        public int Retries { get; set; }
+
+        public int Cancellations { get; set; }
+
+        public void Settled(TimeSpan duration)
+        {
+            _settled++;
+            _totalMs += duration.TotalMilliseconds;
+            _maxMs = Math.Max(_maxMs, duration.TotalMilliseconds);
+        }
+
+        public QueryProfile ToProfile(QueryKey key) => new()
+        {
+            Key = key,
+            Fetches = Fetches,
+            Failures = Failures,
+            Retries = Retries,
+            Cancellations = Cancellations,
+            AverageDurationMs = _settled == 0 ? 0 : _totalMs / _settled,
+            MaxDurationMs = _maxMs,
+        };
+    }
+
+    // Groups key segments the way QueryKey compares them.
+    private sealed class SegmentComparer : IEqualityComparer<object?>
+    {
+        public static SegmentComparer Instance { get; } = new();
+
+        public new bool Equals(object? x, object? y) => QueryKey.Create(x) == QueryKey.Create(y);
+
+        public int GetHashCode(object? obj) => QueryKey.Create(obj).GetHashCode();
     }
 
     private void AddMutationLocked(MutationRecord record)
@@ -340,6 +546,9 @@ public sealed class QueryDevTools : IDisposable
         QueryCancelledEvent q => new EventExport("QueryCancelled", e.Timestamp, q.Key.ToString(), q.Duration.TotalMilliseconds, null, null),
         QueryInvalidatedEvent q => new EventExport("QueryInvalidated", e.Timestamp, string.Join(", ", q.Keys), null, null, null),
         QueryObserverErrorEvent q => new EventExport("ObserverError", e.Timestamp, q.Key.ToString(), null, null, q.Error.Message),
+        QueryRetryEvent q => new EventExport("QueryRetry", e.Timestamp, q.Key.ToString(), null, null, q.Error.Message),
+        OptimisticUpdateAppliedEvent o => new EventExport("OptimisticApplied", e.Timestamp, string.Join(", ", o.Keys), null, null, null),
+        OptimisticUpdateRolledBackEvent o => new EventExport("OptimisticRolledBack", e.Timestamp, string.Join(", ", o.Restored.Concat(o.Refetched)), null, null, null),
         MutationStartedEvent m => new EventExport("MutationStarted", e.Timestamp, m.MutationKey?.ToString(), null, null, null),
         MutationCompletedEvent m => new EventExport("MutationCompleted", e.Timestamp, m.MutationKey?.ToString(), m.Duration.TotalMilliseconds, m.Succeeded, m.Error?.Message),
         _ => new EventExport(e.GetType().Name, e.Timestamp, null, null, null, null),
@@ -358,5 +567,9 @@ public sealed class QueryDevTools : IDisposable
     {
         _client.DiagnosticEvent -= _handler;
         _client.Cache.Changed -= _cacheHandler;
+        if (_queue is not null)
+        {
+            _queue.PendingChanged -= RaiseChanged;
+        }
     }
 }

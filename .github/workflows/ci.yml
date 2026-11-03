@@ -32,9 +32,18 @@ jobs:
       - name: Restore
         run: dotnet restore DotNetQuery.slnx
 
+      # Fails on any known-vulnerable direct or transitive package (samples and tests included).
+      - name: Vulnerability scan
+        shell: bash
+        run: |
+          dotnet list DotNetQuery.slnx package --vulnerable --include-transitive | tee vulnerable.txt
+          if grep -q "has the following vulnerable packages" vulnerable.txt; then exit 1; fi
+
       - name: Build
         run: dotnet build DotNetQuery.slnx -c Release --no-restore
 
+      # Includes the Playwright browser end-to-end tests (tests/DotNetQuery.E2E), which drive the TodoApp sample
+      # in the runner's preinstalled Chrome.
       - name: Test
         run: dotnet test DotNetQuery.slnx -c Release --no-build --verbosity normal
 
@@ -56,13 +65,16 @@ jobs:
       - name: Dashboard sample end-to-end smoke test (dedup + background refresh)
         run: dotnet run --project samples/DotNetQuery.Sample.Dashboard -c Release --no-build
 
-      - name: TodoApp smoke test (Blazor prerender with persisted query state)
+      - name: TodoApp smoke test (Blazor Server and WebAssembly prerender with persisted query state, API)
         shell: bash
         run: |
           dotnet run --project samples/TodoApp -c Release --no-build --urls http://localhost:5199 > todoapp.log 2>&1 &
           for i in $(seq 1 90); do curl -sf http://localhost:5199/ -o page.html && break; sleep 1; done
           grep -q "Learn DotNetQuery" page.html || { cat todoapp.log; exit 1; }
           grep -q "Blazor-Server-Component-State" page.html || { cat todoapp.log; exit 1; }
+          curl -sf http://localhost:5199/wasm -o wasm.html || { cat todoapp.log; exit 1; }
+          grep -q "Blazor-WebAssembly-Component-State" wasm.html || { cat todoapp.log; exit 1; }
+          curl -sf http://localhost:5199/api/todos | grep -q "Learn DotNetQuery" || { cat todoapp.log; exit 1; }
 
       - name: Pack
         run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts

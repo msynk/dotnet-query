@@ -7,3 +7,9 @@ DotNetQuery.Maui.MauiQueryExtensions
 static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableMutation<TVariables, TData>(this DotNetQuery.IQueryClient! client, System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null) -> DotNetQuery.Mvvm.ObservableMutation<TVariables, TData>!
 static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryDefinition<T>! query) -> DotNetQuery.Mvvm.ObservableQuery<T>!
 static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableQuery<T>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null) -> DotNetQuery.Mvvm.ObservableQuery<T>!
+DotNetQuery.Maui.MauiQueryLifecycle
+DotNetQuery.Maui.MauiQueryLifecycle.Dispose() -> void
+DotNetQuery.Maui.MauiQueryLifecycle.MauiQueryLifecycle(Microsoft.Maui.Controls.Window! window, DotNetQuery.AppLifecycleSignals! signals, bool monitorConnectivity = true) -> void
+DotNetQuery.Maui.MauiQueryPersistence
+static DotNetQuery.Maui.MauiQueryExtensions.CreateObservableInfiniteQuery<TParam, TPage>(this DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Func<TParam, System.Threading.CancellationToken, System.Threading.Tasks.Task<TPage>!>! fetcher, DotNetQuery.InfiniteQueryOptions<TParam, TPage>! options) -> DotNetQuery.Mvvm.ObservableInfiniteQuery<TParam, TPage>!
+static DotNetQuery.Maui.MauiQueryPersistence.CreateFileSystemPersister(string! folderName = "dotnetquery", System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> DotNetQuery.Persistence.FileSystemQueryPersister!

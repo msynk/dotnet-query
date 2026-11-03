@@ -25,6 +25,18 @@ public sealed record MutationState<TVariables, TData>
     /// <summary>Gets the number of failed attempts within the current run.</summary>
     public int FailureCount { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether the pending run is waiting for earlier runs in its
+    /// <see cref="MutationOptions{TVariables, TData}.Scope"/> to settle before its mutation function starts.
+    /// </summary>
+    public bool IsPaused { get; init; }
+
+    /// <summary>
+    /// Gets the progress the mutation function last reported (typically 0 to 1), when it was created with a progress
+    /// callback; <see langword="null"/> otherwise.
+    /// </summary>
+    public double? Progress { get; init; }
+
     /// <summary>Gets a value indicating whether the mutation has never run.</summary>
     public bool IsIdle => Status is MutationStatus.Idle;
 

@@ -85,3 +85,18 @@ new InfiniteQueryOptions<int, Page> { /* ... */ MaxPages = 3 }
 **re-deriving** later parameters from the fresh pages - so cursor-based APIs stay correct even when items
 were inserted or removed, and pages that no longer exist are dropped. Invalidating the key (or a prefix of
 it) does the same for active infinite queries.
+
+## Loading several pages, prefetching, flattening
+
+```csharp
+await feed.FetchPagesAsync(5);                                         // restore a scrolled list: ensure 5 pages
+await client.PrefetchInfiniteQueryAsync(FeedKey, api.GetPageAsync, options, pages: 2);   // before navigating
+var rows = feed.CurrentState.Data.Items(page => page.Items);          // all loaded rows, in order
+var pages = feed.CurrentState.PageCount;
+```
+
+**Changing the page size** (or a filter) changes what the pages mean: put it in the key
+(`FeedKey.Append(pageSize)`), so each size is cached separately and switching back is instant.
+
+In Blazor, `infiniteQuery.ToItemsProvider(...)` feeds `<Virtualize>` and `<ScrollRestoration>` brings the user back
+to where they were - see the [Blazor guide](blazor.md#long-lists-virtualize-and-scroll-restoration).

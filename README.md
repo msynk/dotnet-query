@@ -7,30 +7,38 @@ optimistic mutations, pagination, prefetching, prerender hydration, persistence,
 visual inspector - built around `Task`, `CancellationToken`, immutable state, and dependency injection.
 
 > **Status: path to 1.0.** Feature-complete core with a frozen public API (PublicApiAnalyzers baselines),
-> 249 tests (unit, concurrency/regression, bUnit component), a verified NativeAOT publish, BenchmarkDotNet
-> suite, CI, and seven runnable samples. See the [roadmap](ROADMAP.md) and [changelog](CHANGELOG.md).
+> 412 tests (unit, concurrency/regression, bUnit component, Playwright browser end-to-end), a verified NativeAOT publish, BenchmarkDotNet
+> suite, CI, and seven runnable samples. See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md) and
+> [implementation status](IMPLEMENTATION-STATUS.md).
 
 ## Why
 
 | You need | DotNetQuery gives you |
 | --- | --- |
-| Typed query keys and reusable query definitions | `QueryKey` (hierarchical, structural) + `QueryDefinition<T>` (key + fetcher + options) |
+| Typed query keys and reusable query definitions | `QueryKey` (hierarchical, structural) + `QueryDefinition<T>` (key + fetcher + options), or generated from a Refit/OpenAPI interface with `[GenerateQueries]` |
 | Request deduplication and configurable freshness | One in-flight fetch per key; `StaleTime`/`CacheTime` per query or globally |
 | Cache invalidation and dependency-aware refresh | Prefix/predicate invalidation that cancels outdated fetches; `Invalidates` on mutations |
 | Optimistic mutations with rollback | Declarative `OptimisticUpdates`, exact rollback, automatic reconciliation |
-| Retries, cancellation, pagination, infinite queries | Back-off policies, `CancelQueriesAsync`, `KeepPreviousData`, cache-backed infinite queries |
-| Prefetching and hydration for server rendering | `PrefetchAsync`/`EnsureQueryDataAsync`, `HydrateQueryData`, automatic Blazor prerender hydration |
+| Retries, cancellation, pagination, infinite queries | Back-off policies with HTTP-aware `ShouldRetry`/`Retry-After`, timeouts, priorities and concurrency limits, circuit breaker and token refresh handlers, `CancelQueriesAsync`, `KeepPreviousData`, cache-backed infinite queries with Virtualize integration |
+| Initial data, placeholders, selectors, structural sharing | `InitialData`/`PlaceholderData` on definitions, `Watch(key, select, notifyOn)` fine-grained observers, opt-in structural sharing |
+| Bulk operations and atomic multi-query writes | `QueryFilter` (key, activity, staleness, status) for invalidate/refetch/reset/remove, `SetQueriesData` transactions with rollback |
+| Mutation tracking and ordering | `client.Cache.Mutations` (inspect, filter, count pending, global hooks), `Scope` for serial execution |
+| Prefetching and hydration for server rendering | `PrefetchAsync`/`EnsureQueryDataAsync`, `HydrateQueryData`, automatic Blazor prerender hydration (`<Query>` and hooks) |
+| Multi-user safety | Scoped per-circuit clients, `ResetOnUserChange()` clears the cache when the signed-in user or tenant changes |
 | Cache persistence and offline mutation queues | Persisters (file, SQLite, Redis, localStorage, IndexedDB), offline pause/resume, durable mutation queue |
-| A visual inspector for cached records and mutation history | DevTools model, Blazor panel (inline/floating) with data previews, CLI dashboard |
+| A visual inspector for cached records and mutation history | DevTools model, Blazor panel (inline/floating) with data previews, timelines, profiles, snapshots (time travel) and offline-queue inspection, CLI dashboard |
+| Desktop and mobile apps | MVVM bindings with commands (`ObservableQuery`, `ObservableInfiniteQuery`, `ObservableMutation`), lifecycle classes that refetch when the user returns and pause while offline |
 
 ## Packages
 
+Package IDs carry the owner-scoped `Msynk.` prefix (namespaces do not: `using DotNetQuery;`).
+
 | Package | Description |
 | --- | --- |
-| `DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers, MVVM bindings (`ObservableQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
-| `DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, `localStorage`/IndexedDB persisters, and the visual DevTools panel. |
-| `DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers. |
-| `DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` | Dispatcher-aware factories over the MVVM bindings for XAML apps. |
+| `Msynk.DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers and mutations, the `[GenerateQueries]` source generator, MVVM bindings (`ObservableQuery`/`ObservableInfiniteQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
+| `Msynk.DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, `localStorage`/IndexedDB persisters, and the visual DevTools panel. |
+| `Msynk.DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers. |
+| `Msynk.DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` | Dispatcher-aware factories over the MVVM bindings and lifecycle classes (focus/resume refetch, connectivity) for XAML apps. |
 
 Namespaces follow the feature, not the package: `DotNetQuery.Persistence`, `DotNetQuery.Mvvm`,
 `DotNetQuery.DevTools`, `DotNetQuery.GraphQL` and `DotNetQuery.DevTools.Blazor` all ship inside the packages
@@ -40,7 +48,8 @@ above. The portable libraries target **.NET 8 (LTS) and .NET 10**, including the
 
 ```csharp
 // Program.cs - a scoped client: one private cache per user circuit, one per tab in WebAssembly.
-builder.Services.AddDotNetQueryBlazor(options => options.DefaultStaleTime = TimeSpan.FromSeconds(30));
+builder.Services.AddDotNetQueryBlazor(options => options.DefaultStaleTime = TimeSpan.FromSeconds(30))
+    .ResetOnUserChange();   // forget cached data when the signed-in user changes
 ```
 
 ```csharp
@@ -152,6 +161,10 @@ persistence.StartAutoPersist();        // saves whenever registered data changes
 var todo = http.JsonQuery(QueryKey.Create<Todo>(7), "todos/7", AppJson.Default.Todo);   // HTTP/JSON, AOT-safe
 await client.FetchGraphQLAsync<UserResponse>(key, http, "graphql", "query { me { id name } }");   // GraphQL
 
+// Keys, definitions and mutations generated from a Refit / OpenAPI-generated interface
+[assembly: GenerateQueries(typeof(IPetStoreApi))]
+await client.FetchAsync(PetStoreApiQueries.GetPetById(petStore, 7));
+
 // Fold any IAsyncEnumerable (SignalR, channels, gRPC streaming) into the cache, atomically.
 _ = client.StreamIntoCacheAsync<List<Message>, Message>(QueryKey.Create("chat", roomId),
         hub.StreamAsync<Message>("Messages", roomId), (messages, m) => [.. messages ?? [], m], ct);
@@ -172,8 +185,10 @@ meterProviderBuilder.AddMeter(DotNetQueryDiagnostics.MeterName);              //
 - **No stuck states.** A cancelled or superseded fetch restores the previous state; a failing subscriber or
   diagnostics handler can never fail, retry, or block a fetch.
 - **Ordered notifications.** Observers see every transition exactly once, in order.
-- **Safe writes.** `SetQueryData` updaters are atomic; optimistic rollbacks never clobber newer writes;
-  mutation callbacks never re-run the mutation.
+- **Safe writes.** `SetQueryData` updaters are atomic; `SetQueriesData` and optimistic updates apply across
+  keys atomically; rollbacks never clobber newer writes; mutation callbacks never re-run the mutation.
+- **No stranded observers.** Removing or clearing a query that is still rendered resets and refetches it
+  instead of leaving its observers on a dead entry.
 - **Multi-user safe.** Scoped registration gives every Blazor Server circuit its own cache.
 - **Offline-aware.** Every refetch path pauses offline and resumes on reconnect; deferred work is never
   garbage collected.
@@ -184,18 +199,22 @@ Guides live in [`docs/`](docs/README.md): [Getting Started](docs/getting-started
 [Blazor](docs/blazor.md) · [Caching](docs/caching.md) · [Mutations](docs/mutations.md) ·
 [Optimistic Updates](docs/optimistic-updates.md) · [Infinite Queries](docs/infinite-queries.md) ·
 [Offline Mode](docs/offline-mode.md) · [Diagnostics](docs/diagnostics.md) ·
-[Performance](docs/performance.md) · [Advanced Scenarios](docs/advanced-scenarios.md)
+[Performance](docs/performance.md) · [Advanced Scenarios](docs/advanced-scenarios.md) ·
+[Generated queries](docs/source-generation.md) · [Desktop and mobile](docs/desktop-and-mobile.md) ·
+[Tutorials](docs/tutorials.md) · [Architecture](docs/architecture.md) · [Troubleshooting](docs/troubleshooting.md) ·
+[Coming from TanStack Query](docs/tanstack-migration.md) · [Migrating between releases](docs/migration.md) ·
+[Versioning](docs/releasing.md)
 
 ## Samples
 
 | Sample | Shows |
 | --- | --- |
-| `samples/TodoApp` | Blazor Web App: definitions, prerender hydration, keep-previous-data filters, optimistic mutations, floating DevTools |
+| `samples/TodoApp` (+ `TodoApp.Client`) | Blazor Web App with per-page Server / WebAssembly / Auto / static-SSR render modes: prerender hydration, optimistic mutations, `EditForm`, 10,000-row `Virtualize`, `QuickGrid`, multi-tenant keys, floating DevTools |
 | `samples/DotNetQuery.Sample.Chat` | Infinite history pagination + live streaming into the cache |
 | `samples/DotNetQuery.Sample.OfflineFirst` | Persist → restart offline → restore → offline queue → reconnect replay |
 | `samples/DotNetQuery.Sample.ECommerce` | Optimistic cart updates with rollback |
 | `samples/DotNetQuery.Sample.Dashboard` | Deduplication and background refresh |
-| `samples/DotNetQuery.Sample.Avalonia` / `.Maui` | MVVM bindings on Avalonia (headless-verified in CI) and MAUI |
+| `samples/DotNetQuery.Sample.Avalonia` / `.Maui` | MVVM bindings, commands and lifecycle refetch on Avalonia (headless-verified in CI) and MAUI |
 
 Run the Blazor sample with `dotnet run --project samples/TodoApp`. The console samples and the Avalonia
 headless check run as CI smoke tests.

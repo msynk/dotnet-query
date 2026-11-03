@@ -103,6 +103,29 @@ public readonly record struct QueryResult<T>
     }
 
     /// <summary>
+    /// Shows <paramref name="placeholder"/> while this query is still pending its first result (no data and no
+    /// error yet). The returned result reports <see cref="IsPlaceholderData"/>, a status of
+    /// <see cref="QueryStatus.Refetching"/> while a fetch runs (otherwise <see cref="QueryStatus.Success"/>), and
+    /// <see cref="DataUpdatedAt"/> of <see cref="DateTimeOffset.MinValue"/> (the placeholder was never fetched).
+    /// Returns this result unchanged once it has data or an error. Nothing is written to the cache.
+    /// </summary>
+    public QueryResult<T> WithPlaceholderData(T placeholder)
+    {
+        if (!IsPending)
+        {
+            return this;
+        }
+
+        var state = State with
+        {
+            Status = IsFetching ? QueryStatus.Refetching : QueryStatus.Success,
+            Data = placeholder,
+            DataUpdatedAt = DateTimeOffset.MinValue,
+        };
+        return new QueryResult<T>(Key, state, isPlaceholderData: true);
+    }
+
+    /// <summary>
     /// Keeps showing <paramref name="previous"/>'s data while this query is still pending its first result
     /// - the building block for flicker-free pagination and filtering, where the key changes but the UI
     /// should keep the last page visible until the next one arrives. The returned result reports

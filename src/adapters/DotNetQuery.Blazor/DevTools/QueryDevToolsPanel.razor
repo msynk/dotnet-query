@@ -1,7 +1,11 @@
 @implements IDisposable
-@inject IQueryClient QueryClient
+@inject IQueryClient InjectedClient
 
-@if (Floating && !_open)
+@if (!Enabled)
+{
+    @* Disabled (for example outside Development): render nothing and observe nothing. *@
+}
+else if (Floating && !_open)
 {
     <button class="dnq-fab" title="Open DotNetQuery DevTools" @onclick="Toggle">
         DNQ <span class="dnq-fab-count">@_stats.TotalQueries</span>
@@ -34,9 +38,22 @@ else
             <button class="dnq-tab @(_tab == Tab.Queries ? "dnq-active" : null)" @onclick="() => _tab = Tab.Queries">Queries (@_queries.Count)</button>
             <button class="dnq-tab @(_tab == Tab.Mutations ? "dnq-active" : null)" @onclick="() => _tab = Tab.Mutations">Mutations (@_mutations.Count)</button>
             <button class="dnq-tab @(_tab == Tab.Events ? "dnq-active" : null)" @onclick="() => _tab = Tab.Events">Events (@_events.Count)</button>
+            <button class="dnq-tab @(_tab == Tab.Snapshots ? "dnq-active" : null)" @onclick="() => _tab = Tab.Snapshots">Snapshots (@_snapshots.Count)</button>
+            @if (_devtools?.Queue is not null)
+            {
+                <button class="dnq-tab @(_tab == Tab.Queue ? "dnq-active" : null)" @onclick="() => _tab = Tab.Queue">Offline queue (@_devtools.QueuedMutations.Count)</button>
+            }
             @if (_tab == Tab.Queries)
             {
                 <input class="dnq-filter" placeholder="Filter keys…" @bind="_filter" @bind:event="oninput" />
+                <select class="dnq-filter" title="Filter by status" @bind="_statusFilter">
+                    <option value="">All statuses</option>
+                    @foreach (var status in Enum.GetValues<QueryStatus>())
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </select>
+                <button class="dnq-btn" title="Show the key hierarchy" @onclick="() => _tree = !_tree">@(_tree ? "List" : "Tree")</button>
             }
         </nav>
 
@@ -44,6 +61,24 @@ else
         {
             case Tab.Queries:
                 <div class="dnq-split">
+                    @if (_tree)
+                    {
+                        <ul class="dnq-tree">
+                            @foreach (var (node, depth) in FlattenTree())
+                            {
+                                <li style="padding-left:@(depth)rem" class="@(Equals(node.Key, _selected) ? "dnq-selected" : null)" @onclick="() => SelectNode(node)">
+                                    <code>@node.Segment</code>
+                                    @if (node.Query is { } query)
+                                    {
+                                        <span class="dnq-status dnq-@query.Status.ToString().ToLowerInvariant()">@query.Status</span>
+                                    }
+                                    <small>(@node.QueryCount)</small>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
                     <table class="dnq-table">
                         <thead>
                             <tr>
@@ -74,6 +109,7 @@ else
                             }
                         </tbody>
                     </table>
+                    }
 
                     @if (SelectedQuery is { } selected)
                     {
@@ -91,7 +127,22 @@ else
                                     <dt>Error</dt><dd class="dnq-error-text">@error</dd>
                                 }
                             </dl>
-                            <pre class="dnq-json">@(_preview ?? "(no data)")</pre>
+                            <pre class="dnq-json">@(ShowData ? _preview ?? "(no data)" : "(hidden - ShowData is off)")</pre>
+                            @if (_profile is { } profile)
+                            {
+                                <p class="dnq-profile">
+                                    @profile.Fetches fetches · @profile.Failures failed · @profile.Retries retries · @profile.Cancellations cancelled ·
+                                    avg @profile.AverageDurationMs.ToString("0.0")ms · max @profile.MaxDurationMs.ToString("0.0")ms
+                                </p>
+                            }
+                            <button class="dnq-btn" title="Reset to the initial state and refetch if observed" @onclick="() => Reset(selected.Key)">Reset</button>
+                            <h5>Timeline</h5>
+                            <ul class="dnq-log dnq-timeline">
+                                @foreach (var e in _timeline.Reverse().Take(50))
+                                {
+                                    <li>@Describe(e)</li>
+                                }
+                            </ul>
                         </section>
                     }
                 </div>
@@ -100,7 +151,7 @@ else
             case Tab.Mutations:
                 <table class="dnq-table">
                     <thead>
-                        <tr><th>#</th><th>Key</th><th>Status</th><th>Submitted</th><th>Duration</th><th>Failures</th><th>Variables</th><th>Error</th></tr>
+                        <tr><th>#</th><th>Key</th><th>Status</th><th>Submitted</th><th>Duration</th><th>Failures</th><th>Variables</th><th>Optimistic</th><th>Error</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var m in _mutations)
@@ -108,12 +159,78 @@ else
                             <tr>
                                 <td>@m.MutationId</td>
                                 <td><code>@(m.MutationKey?.ToString() ?? "-")</code></td>
-                                <td><span class="dnq-status dnq-m-@m.Status.ToString().ToLowerInvariant()">@m.Status</span></td>
+                                <td>
+                                    <span class="dnq-status dnq-m-@m.Status.ToString().ToLowerInvariant()">@m.Status</span>
+                                    @if (QueryClient.Cache.Mutations.Find(m.MutationId) is { IsPaused: true } waiting)
+                                    {
+                                        <small title="Waiting for @(waiting.Scope is null ? "connectivity" : $"scope '{waiting.Scope}'")"> (paused)</small>
+                                    }
+                                </td>
                                 <td>@m.SubmittedAt.ToLocalTime().ToString("HH:mm:ss.fff")</td>
                                 <td>@(m.Duration is { } d ? $"{d.TotalMilliseconds:0.0}ms" : "…")</td>
                                 <td>@m.FailureCount</td>
-                                <td><code class="dnq-inline-json">@Truncate(QueryDevTools.Preview(m.Variables), 120)</code></td>
+                                <td><code class="dnq-inline-json">@(ShowData ? Truncate(QueryDevTools.Preview(m.Variables), 120) : "(hidden)")</code></td>
+                                <td>
+                                    @if (m.OptimisticKeys.Count > 0)
+                                    {
+                                        <span title="Written optimistically">@string.Join(", ", m.OptimisticKeys)</span>
+                                    }
+                                    @if (m.RolledBackKeys.Count > 0)
+                                    {
+                                        <small> · rolled back @string.Join(", ", m.RolledBackKeys)</small>
+                                    }
+                                    @if (m.RefetchedKeys.Count > 0)
+                                    {
+                                        <small> · refetched @string.Join(", ", m.RefetchedKeys)</small>
+                                    }
+                                </td>
                                 <td class="dnq-error-text">@m.ErrorMessage</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                break;
+
+            case Tab.Snapshots:
+                <div class="dnq-snapshots">
+                    <button class="dnq-btn" @onclick="TakeSnapshot">Take snapshot</button>
+                    <ul class="dnq-log">
+                        @foreach (var snapshot in _snapshots.Reverse())
+                        {
+                            <li>
+                                <strong>@snapshot.Label</strong> · @snapshot.Snapshot.Keys.Count queries
+                                <button class="dnq-btn" title="Restore the cache to this snapshot (time travel)" @onclick="() => Restore(snapshot)">Restore</button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                break;
+
+            case Tab.Queue:
+                <table class="dnq-table">
+                    <thead><tr><th>Id</th><th>Mutation</th><th>Queued</th><th>State</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        @foreach (var pending in _devtools!.QueuedMutations)
+                        {
+                            <tr>
+                                <td><code>@pending.Id</code></td>
+                                <td>@pending.MutationKey</td>
+                                <td>@pending.EnqueuedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                                <td>@(_devtools.Queue!.IsPaused ? "paused" : "pending")</td>
+                                <td><button class="dnq-btn dnq-danger" @onclick="() => RemoveQueued(pending.Id)">Remove</button></td>
+                            </tr>
+                        }
+                        @foreach (var dead in _devtools.DeadLetters)
+                        {
+                            <tr>
+                                <td><code>@dead.Mutation.Id</code></td>
+                                <td>@dead.Mutation.MutationKey</td>
+                                <td>@dead.FailedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                                <td class="dnq-error-text">dead letter: @dead.Error</td>
+                                <td>
+                                    <button class="dnq-btn" @onclick="() => RetryDead(dead.Mutation.Id)">Retry</button>
+                                    <button class="dnq-btn dnq-danger" @onclick="() => DiscardDead(dead.Mutation.Id)">Discard</button>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -133,7 +250,7 @@ else
 }
 
 @code {
-    private enum Tab { Queries, Mutations, Events }
+    private enum Tab { Queries, Mutations, Events, Snapshots, Queue }
 
     private QueryDevTools? _devtools;
     private IReadOnlyList<QueryDescriptor> _queries = [];
@@ -142,6 +259,11 @@ else
     private QueryDevToolsStats _stats = EmptyStats;
     private Tab _tab = Tab.Queries;
     private string _filter = string.Empty;
+    private string _statusFilter = string.Empty;
+    private bool _tree;
+    private IReadOnlyList<DotNetQueryEvent> _timeline = [];
+    private QueryProfile? _profile;
+    private IReadOnlyList<DevToolsSnapshot> _snapshots = [];
     private QueryKey? _selected;
     private string? _preview;
     private bool _open;
@@ -163,20 +285,63 @@ else
     /// <summary>Whether a floating panel starts open.</summary>
     [Parameter] public bool InitiallyOpen { get; set; }
 
+    /// <summary>
+    /// Whether the panel renders at all (default <see langword="true"/>). Evaluated when the panel initializes; a
+    /// disabled panel renders nothing and does not observe the client. Tie it to the environment so the panel never
+    /// ships to production users, for example <c>Enabled="@Environment.IsDevelopment()"</c>.
+    /// </summary>
+    [Parameter] public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Whether cached data and mutation variables are shown (default <see langword="true"/>). Turn it off when the
+    /// panel is visible to people who must not see the data, for example in a staging environment with real accounts.
+    /// </summary>
+    [Parameter] public bool ShowData { get; set; } = true;
+
     /// <summary>Minimum time between live refreshes, so bursts of cache activity cause one re-render. Default 150 ms.</summary>
     [Parameter] public TimeSpan RefreshThrottle { get; set; } = TimeSpan.FromMilliseconds(150);
 
-    private IEnumerable<QueryDescriptor> FilteredQueries => string.IsNullOrWhiteSpace(_filter)
-        ? _queries
-        : _queries.Where(q => q.Key.ToString().Contains(_filter, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<QueryDescriptor> FilteredQueries => _queries
+        .Where(q => string.IsNullOrWhiteSpace(_filter) || q.Key.ToString().Contains(_filter, StringComparison.OrdinalIgnoreCase))
+        .Where(q => _statusFilter.Length == 0 || q.Status.ToString() == _statusFilter);
+
+    /// <summary>A client supplied by a <c>QueryClientProvider</c>; takes precedence over the registered one.</summary>
+    [CascadingParameter] public IQueryClient? CascadedClient { get; set; }
+
+    private IQueryClient QueryClient => CascadedClient ?? InjectedClient;
+
+    /// <summary>A durable offline queue to inspect and manage in the "Offline queue" tab.</summary>
+    [Parameter] public DotNetQuery.Persistence.PersistentMutationQueue? Queue { get; set; }
+
+    private IEnumerable<(QueryKeyNode Node, int Depth)> FlattenTree()
+    {
+        var stack = new Stack<(QueryKeyNode Node, int Depth)>(_devtools!.KeyTree().Reverse().Select(n => (n, 0)));
+        while (stack.TryPop(out var item))
+        {
+            yield return item;
+            foreach (var child in item.Node.Children.Reverse())
+            {
+                stack.Push((child, item.Depth + 1));
+            }
+        }
+    }
 
     private QueryDescriptor? SelectedQuery => _selected is null ? null : _queries.FirstOrDefault(q => q.Key == _selected);
 
     protected override void OnInitialized()
     {
+        if (!Enabled)
+        {
+            return;
+        }
+
         _open = InitiallyOpen;
         _devtools = new QueryDevTools(QueryClient, EventLogCapacity, MutationHistoryCapacity);
         _devtools.Changed += OnChanged;
+        if (Queue is not null)
+        {
+            _devtools.AttachQueue(Queue);
+        }
         Refresh();
     }
 
@@ -219,7 +384,10 @@ else
         _events = _devtools.RecentEvents();
         _mutations = _devtools.RecentMutations();
         _stats = _devtools.GetStats();
-        _preview = _selected is null ? null : _devtools.PreviewData(_selected);
+        _preview = _selected is null || !ShowData ? null : _devtools.PreviewData(_selected);
+        _timeline = _selected is null ? [] : _devtools.Timeline(_selected);
+        _profile = _selected is null ? null : _devtools.ProfileQueries().FirstOrDefault(p => p.Key == _selected);
+        _snapshots = _devtools.Snapshots;
         StateHasChanged();
     }
 
@@ -236,6 +404,26 @@ else
     }
 
     private void ClearLog() => _devtools!.ClearLog();
+
+    private void SelectNode(QueryKeyNode node)
+    {
+        if (node.Query is not null)
+        {
+            Select(node.Key);
+        }
+    }
+
+    private async Task Reset(QueryKey key) { await _devtools!.ResetAsync(key); Refresh(); }
+
+    private void TakeSnapshot() { _devtools!.TakeSnapshot(); Refresh(); }
+
+    private void Restore(DevToolsSnapshot snapshot) { _devtools!.RestoreSnapshot(snapshot); Refresh(); }
+
+    private async Task RemoveQueued(string id) { await _devtools!.Queue!.RemoveAsync(id); Refresh(); }
+
+    private async Task RetryDead(string id) { await _devtools!.Queue!.RetryDeadLetterAsync(id); Refresh(); }
+
+    private async Task DiscardDead(string id) { await _devtools!.Queue!.DiscardDeadLetterAsync(id); Refresh(); }
 
     private async Task Refetch(QueryKey key) { await _devtools!.RefetchAsync(key); Refresh(); }
 
@@ -286,10 +474,16 @@ else
         QueryCancelledEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⦸ cancelled {q.Key} ({q.Duration.TotalMilliseconds:0.0}ms)",
         QueryInvalidatedEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ↻ invalidated {string.Join(", ", q.Keys)}",
         QueryObserverErrorEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⚠ observer of {q.Key} threw: {q.Error.Message}",
+        QueryRetryEvent q => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⟳ retrying {q.Key} after failure {q.FailureCount}: {q.Error.Message}",
+        OptimisticUpdateAppliedEvent o => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ✎ mutation #{o.MutationId} wrote {string.Join(", ", o.Keys)} optimistically",
+        OptimisticUpdateRolledBackEvent o => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ↶ mutation #{o.MutationId} rolled back {string.Join(", ", o.Restored)}{RefetchedSuffix(o)}",
         MutationStartedEvent m => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ▶ mutation #{m.MutationId} {m.MutationKey} started",
         MutationCompletedEvent m => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  {(m.Succeeded ? "✔" : "✖")} mutation #{m.MutationId} {m.MutationKey} ({m.Duration.TotalMilliseconds:0.0}ms){(m.Error is null ? null : ": " + m.Error.Message)}",
         _ => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  {e.GetType().Name}",
     };
+
+    private static string RefetchedSuffix(OptimisticUpdateRolledBackEvent e) =>
+        e.Refetched.Count > 0 ? "; refetched " + string.Join(", ", e.Refetched) : string.Empty;
 
     private static readonly QueryDevToolsStats EmptyStats = new()
     {

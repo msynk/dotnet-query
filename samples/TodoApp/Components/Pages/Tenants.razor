@@ -1,0 +1,50 @@
+@page "/tenants"
+@rendermode InteractiveServer
+@inject TodoApi Api
+@inject IQueryClient Client
+
+<PageTitle>DotNetQuery · Tenants</PageTitle>
+
+<h1>Tenants</h1>
+<p style="color:#666">
+    The tenant is part of every key, so tenants never share cached data. Switching tenants removes the previous
+    tenant's queries (<code>RemoveQueries</code> by prefix), so nothing of it stays in memory.
+</p>
+
+<nav style="display:flex; gap:8px; margin-bottom:1rem;">
+    @foreach (var tenant in new[] { "contoso", "fabrikam" })
+    {
+        <button class="tenant" @onclick="() => SwitchAsync(tenant)" disabled="@(_tenant == tenant)">@tenant</button>
+    }
+</nav>
+
+<Query Definition="TodoQueries.Projects(Api, _tenant)">
+    <Loading><p>Loading…</p></Loading>
+    <ChildContent Context="projects">
+        <ul class="projects">
+            @foreach (var project in projects.Data ?? [])
+            {
+                <li>@project</li>
+            }
+        </ul>
+    </ChildContent>
+</Query>
+<p class="cached-tenants">Cached tenants: @string.Join(", ", Client.Cache.FindAll(QueryFilter.ForKey(QueryKey.Create("tenant"))).Select(q => q.Key[1]).Distinct())</p>
+
+<QueryInfrastructure />
+
+@code {
+    private string _tenant = "contoso";
+
+    private async Task SwitchAsync(string tenant)
+    {
+        var previous = _tenant;
+        _tenant = tenant;
+
+        // Render first so the components stop observing the previous tenant's keys, then drop its cached data
+        // (removing a query that is still observed would only make its observer fetch it again).
+        StateHasChanged();
+        await Task.Yield();
+        Client.RemoveQueries(QueryFilter.ForKey(QueryKey.Create("tenant", previous)));
+    }
+}

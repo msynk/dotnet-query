@@ -29,6 +29,26 @@ dotnet run -c Release --project tests/DotNetQuery.Benchmarks -- --list flat
 | `FetchBenchmarks` | `CachedHit` (fresh-cache fast path, the baseline) vs. `ColdFetch` (entry creation + full fetch cycle) vs. `ForcedRefetch` (re-running the cycle on a live entry). |
 | `DedupBenchmarks` | Request deduplication: 2/8/32 concurrent callers for the same in-flight key collapsing onto one shared fetch. |
 | `NotificationBenchmarks` | Fanning one state change out to 1/10/100 subscribed observers - the cost every `SetQueryData` and fetch completion pays. |
+| `SelectorBenchmarks` | 100 plain observers vs 100 selection observers whose selected value does not change. |
+| `StructuralSharingBenchmarks` | Refetching a 1,000-record list with sharing off/on, equal vs one item changed. |
+| `TransactionBenchmarks` | Four separate atomic updates vs one four-key `SetQueriesData` transaction. |
+| `CacheFootprintBenchmarks` | Allocation for caching 1,000 queries, and filtering them. |
+| `CacheComparisonBenchmarks` | Serving a cached value: `ConcurrentDictionary` of tasks (floor), `MemoryCache.GetOrCreateAsync`, a DotNetQuery fresh hit. |
+| `LargeUpdateBenchmarks` | Replacing a 10,000-item list observed by 100 observers; one transaction updating 100 keys. |
+| `InfiniteQueryMemoryBenchmarks` | Loading 50 pages of 100 items into a cache-backed infinite query. |
+| `PersistenceBenchmarks` | Persisting and restoring 100 queries (source-generated JSON, in-memory store). |
+| `EvictionBenchmarks` | Garbage-collecting 10,000 expired inactive queries; trimming them to 100 (LRU). |
+| `BlazorRenderBenchmarks` | Mounting `<Query>` over cached data, and the re-render a cache write triggers (through bUnit's renderer). |
+
+## Baselines
+
+- [Baselines/2026-11-02-shortrun.md](Baselines/2026-11-02-shortrun.md) - first committed baseline (ShortRun job,
+  indicative).
+- [Baselines/2026-11-03-shortrun.md](Baselines/2026-11-03-shortrun.md) - after the hot-path allocation work, with
+  the new suites and the `MemoryCache` comparison.
+
+Allocation regressions on the hottest paths are also caught by `AllocationBudgetTests` in the regular test suite,
+which runs on every CI build (BenchmarkDotNet runs are too slow and noisy for that).
 
 ## Publishing a baseline
 

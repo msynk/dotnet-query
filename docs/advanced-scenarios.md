@@ -31,16 +31,60 @@ await manager.PersistAllAsync();
   failing startup. Writes for the same key are serialized, so an older snapshot can never overwrite a newer
   one.
 
+### Schema changes and migrations
+
+Bump `Buster` when the shape of persisted data changes, and either let old data be discarded or migrate it:
+
+```csharp
+new QueryPersistenceOptions
+{
+    Buster = "v3",
+    Migrations = new Dictionary<string, Func<string, string?>>
+    {
+        ["v2"] = payload => payload.Replace("\"name\":", "\"title\":"),   // rewrite, or return null to drop
+        [""] = payload => payload,                                         // data persisted before busters existed
+    },
+}
+```
+
+Migrated records are re-saved under the current buster and the old ones deleted during `RestoreAllAsync`.
+
+### Dynamic keys
+
+Queries with per-id keys (`["todo", 7]`) are registered by prefix. A key cannot be rebuilt from its persisted
+text, so `RestoreAllAsync` applies prefixed records to matching queries already in the cache and keeps the rest
+ready: the moment the app first fetches or watches such a query, its record is hydrated synchronously - before
+the fetch decides whether the data is fresh, so fresh records are served without a request.
+
+```csharp
+manager.RegisterPrefix(QueryKey.Create("todo"), AppJson.Default.Todo);   // every Todo query under ["todo", ...]
+```
+
+Exact registrations win over prefixes; only queries of the registered type are persisted (another type under
+the same prefix is skipped).
+
+### Encrypting persisted data
+
+Wrap any persister in `ProtectedQueryPersister` to transform payloads at rest - with ASP.NET Core Data
+Protection or any encryption you trust. It also protects the variables of a `PersistentMutationQueue` built on
+it. Records that cannot be unprotected (rotated key, tampering, plain data from before) are skipped and
+reported through its `Error` event, so a key change degrades to refetching instead of failing.
+
+```csharp
+var protector = dataProtection.CreateProtector("DotNetQuery.Cache.v1");
+var persister = new ProtectedQueryPersister(new FileSystemQueryPersister(dir), protector.Protect, protector.Unprotect);
+```
+
 ### Choosing a persister
 
 | Persister | Package | Use for |
 | --- | --- | --- |
-| `InMemoryQueryPersister` | `DotNetQuery` | tests, transient caches |
-| `FileSystemQueryPersister` | `DotNetQuery` | desktop/mobile, one JSON file per query |
-| `SqliteQueryPersister` | `DotNetQuery.Persistence.Sqlite` | durable single-file store, many queries |
-| `RedisQueryPersister` | `DotNetQuery.Persistence.Redis` | shared / server-side caches |
-| `LocalStorageQueryPersister` | `DotNetQuery.Blazor` | Blazor WebAssembly (survives reloads) |
-| `IndexedDbQueryPersister` | `DotNetQuery.Blazor` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
+| `InMemoryQueryPersister` | `Msynk.DotNetQuery` | tests, transient caches |
+| `FileSystemQueryPersister` | `Msynk.DotNetQuery` | desktop/mobile, one JSON file per query |
+| `SqliteQueryPersister` | `Msynk.DotNetQuery.Persistence.Sqlite` | durable single-file store, many queries |
+| `RedisQueryPersister` | `Msynk.DotNetQuery.Persistence.Redis` | shared / server-side caches |
+| `LocalStorageQueryPersister` | `Msynk.DotNetQuery.Blazor` | Blazor WebAssembly (survives reloads) |
+| `IndexedDbQueryPersister` | `Msynk.DotNetQuery.Blazor` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
 
 ```csharp
 await using var persister = SqliteQueryPersister.ForFile("cache.db");
@@ -107,6 +151,30 @@ The returned task completes when the stream ends or the token cancels - run it i
 it to a component's lifetime) and cancel the token to stop. The accumulate overload is an atomic
 read-modify-write, so several streams (or optimistic updates) can write to the same key without losing
 items.
+
+## Synchronizing caches (tabs, windows, processes)
+
+`QuerySynchronizer` keeps registered queries consistent between several caches over any `IQuerySyncChannel`
+(a transport of opaque string messages): data written in one cache - a fetch, `SetQueryData`, an optimistic
+update or its rollback - appears in the others, and invalidations reach every cache.
+
+```csharp
+var sync = new QuerySynchronizer(client, channel, new QuerySyncOptions { ChannelName = "v3" })
+    .Register(TodoQueries.All, AppJson.Default.ListTodo)              // an exact key
+    .RegisterPrefix(QueryKey.Create("todo"), AppJson.Default.Todo)    // every cached query under a prefix
+    .Start();
+```
+
+- Conflicts resolve by timestamp (last writer wins), so caches converge; the sender of the current value may
+  always revise it, which is how a rollback to an older snapshot propagates.
+- Prefix registrations update only matching queries the receiving cache already holds (a key cannot be rebuilt
+  from its text form).
+- Removals are not synchronized: garbage collection removes entries too, and that is local memory management.
+- `ChannelName` isolates incompatible participants (use your app or schema version).
+- Transports: `InMemoryQuerySyncHub` (several clients in one process, tests), the Blazor `BroadcastChannel`
+  transport (`AddCrossTabSync`, see the [Blazor guide](blazor.md)), or your own over named pipes, Redis pub/sub
+  or SignalR - implement `PostAsync` and raise `MessageReceived`.
+- Messages carry serialized data: synchronize only what every participant may see.
 
 ## Building keys safely
 

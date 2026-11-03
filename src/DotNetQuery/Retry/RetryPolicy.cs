@@ -9,6 +9,15 @@ namespace DotNetQuery;
 public delegate TimeSpan RetryDelayStrategy(int attempt, Exception error);
 
 /// <summary>
+/// Decides whether a failed query or mutation attempt should be retried. Consulted only while the retry
+/// budget (<c>RetryCount</c>) is not exhausted, so it can veto retries but never extend them.
+/// </summary>
+/// <param name="failureCount">The number of consecutive failures so far, including this one (1 = first failure).</param>
+/// <param name="error">The exception that caused the failure.</param>
+/// <returns><see langword="true"/> to retry; <see langword="false"/> to fail immediately with <paramref name="error"/>.</returns>
+public delegate bool RetryPredicate(int failureCount, Exception error);
+
+/// <summary>
 /// Factory helpers for common retry back-off strategies.
 /// </summary>
 public static class RetryPolicy

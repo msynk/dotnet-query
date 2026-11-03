@@ -124,6 +124,83 @@ public static class GraphQLQueryExtensions
     }
 
     /// <summary>
+    /// Builds a trim/AOT-safe mutation function that POSTs the GraphQL <paramref name="mutation"/> document with the
+    /// mutation's variables (serialized with <paramref name="variablesTypeInfo"/>) as the GraphQL <c>variables</c>, and
+    /// returns its <c>data</c> deserialized with <paramref name="dataTypeInfo"/>. Errors behave as for queries: a
+    /// populated <c>errors</c> array throws <see cref="GraphQLException"/>.
+    /// </summary>
+    /// <typeparam name="TVariables">The GraphQL variables object (for example <c>record AddTodo(string Title)</c>).</typeparam>
+    /// <typeparam name="TData">The shape of the GraphQL <c>data</c> payload.</typeparam>
+    /// <example>
+    /// <code>
+    /// var addTodo = client.CreateMutation(
+    ///     http.GraphQLMutationFn("graphql", "mutation($title:String!){ addTodo(title:$title){ id title } }",
+    ///         AppJson.Default.AddTodoVariables, AppJson.Default.AddTodoData),
+    ///     new() { Invalidates = [TodoKeys.All] });
+    /// </code>
+    /// </example>
+    public static Func<TVariables, CancellationToken, Task<TData>> GraphQLMutationFn<TVariables, TData>(
+        this HttpClient client,
+        string requestUri,
+        string mutation,
+        JsonTypeInfo<TVariables> variablesTypeInfo,
+        JsonTypeInfo<TData> dataTypeInfo)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentException.ThrowIfNullOrEmpty(mutation);
+        ArgumentNullException.ThrowIfNull(variablesTypeInfo);
+        ArgumentNullException.ThrowIfNull(dataTypeInfo);
+        return (variables, cancellationToken) => SendAsync(
+            client,
+            requestUri,
+            BuildRequestBody(mutation, writer => JsonSerializer.Serialize(writer, variables, variablesTypeInfo)),
+            dataTypeInfo,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Builds a mutation function that POSTs the GraphQL <paramref name="mutation"/> document with the mutation's
+    /// variables serialized as the GraphQL <c>variables</c> by reflection, and returns its <c>data</c> deserialized to
+    /// <typeparamref name="TData"/>.
+    /// </summary>
+    /// <typeparam name="TVariables">The GraphQL variables object.</typeparam>
+    /// <typeparam name="TData">The shape of the GraphQL <c>data</c> payload.</typeparam>
+    [RequiresUnreferencedCode(ReflectionMessage)]
+    [RequiresDynamicCode(DynamicCodeMessage)]
+    public static Func<TVariables, CancellationToken, Task<TData>> GraphQLMutationFn<TVariables, TData>(
+        this HttpClient client,
+        string requestUri,
+        string mutation,
+        JsonSerializerOptions? jsonOptions = null)
+    {
+        var options = WithResolver(jsonOptions ?? DefaultJson);
+        return client.GraphQLMutationFn(
+            requestUri,
+            mutation,
+            (JsonTypeInfo<TVariables>)options.GetTypeInfo(typeof(TVariables)),
+            (JsonTypeInfo<TData>)options.GetTypeInfo(typeof(TData)));
+    }
+
+    /// <summary>
+    /// Creates a <see cref="Mutation{TVariables, TData}"/> for a GraphQL mutation (see
+    /// <see cref="GraphQLMutationFn{TVariables, TData}(HttpClient, string, string, JsonTypeInfo{TVariables}, JsonTypeInfo{TData})"/>),
+    /// with the usual optimistic updates, invalidation, retries and offline behavior. Trim/AOT-safe.
+    /// </summary>
+    public static Mutation<TVariables, TData> CreateGraphQLMutation<TVariables, TData>(
+        this IQueryClient client,
+        HttpClient http,
+        string requestUri,
+        string mutation,
+        JsonTypeInfo<TVariables> variablesTypeInfo,
+        JsonTypeInfo<TData> dataTypeInfo,
+        MutationOptions<TVariables, TData>? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(http);
+        return client.CreateMutation(http.GraphQLMutationFn(requestUri, mutation, variablesTypeInfo, dataTypeInfo), options);
+    }
+
+    /// <summary>
     /// Creates a reusable <see cref="QueryDefinition{T}"/> for a GraphQL query. Trim/AOT-safe.
     /// </summary>
     public static QueryDefinition<T> GraphQLQuery<T>(
@@ -151,34 +228,36 @@ public static class GraphQLQueryExtensions
         JsonNode? variables,
         JsonTypeInfo<T> dataTypeInfo)
     {
-        var body = BuildRequestBody(query, variables);
-        return async cancellationToken =>
-        {
-            using var content = new ByteArrayContent(body);
-            content.Headers.ContentType = JsonContentType;
-            using var response = await client.PostAsync(requestUri, content, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-
-            var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            await using (stream.ConfigureAwait(false))
-            {
-                using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-                return ReadData(document.RootElement, requestUri, dataTypeInfo);
-            }
-        };
+        var body = BuildRequestBody(query, variables is null ? null : writer => variables.WriteTo(writer));
+        return cancellationToken => SendAsync(client, requestUri, body, dataTypeInfo, cancellationToken);
     }
 
-    private static byte[] BuildRequestBody(string query, JsonNode? variables)
+    private static async Task<T> SendAsync<T>(HttpClient client, string requestUri, byte[] body, JsonTypeInfo<T> dataTypeInfo, CancellationToken cancellationToken)
+    {
+        using var content = new ByteArrayContent(body);
+        content.Headers.ContentType = JsonContentType;
+        using var response = await client.PostAsync(requestUri, content, cancellationToken).ConfigureAwait(false);
+        HttpRetryPolicy.EnsureSuccess(response);
+
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using (stream.ConfigureAwait(false))
+        {
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return ReadData(document.RootElement, requestUri, dataTypeInfo);
+        }
+    }
+
+    private static byte[] BuildRequestBody(string query, Action<Utf8JsonWriter>? writeVariables)
     {
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
             writer.WriteString("query", query);
-            if (variables is not null)
+            if (writeVariables is not null)
             {
                 writer.WritePropertyName("variables");
-                variables.WriteTo(writer);
+                writeVariables(writer);
             }
 
             writer.WriteEndObject();
@@ -199,10 +278,7 @@ public static class GraphQLQueryExtensions
             var list = new List<GraphQLError>(errors.GetArrayLength());
             foreach (var error in errors.EnumerateArray())
             {
-                var message = error.ValueKind is JsonValueKind.Object && TryGetProperty(error, "message", out var m) && m.ValueKind is JsonValueKind.String
-                    ? m.GetString()!
-                    : error.ToString();
-                list.Add(new GraphQLError(message));
+                list.Add(ReadError(error));
             }
 
             throw new GraphQLException(list);
@@ -215,6 +291,26 @@ public static class GraphQLQueryExtensions
 
         return data.Deserialize(dataTypeInfo)
             ?? throw new InvalidOperationException($"The GraphQL response from '{requestUri}' contained no data.");
+    }
+
+    private static GraphQLError ReadError(JsonElement error)
+    {
+        if (error.ValueKind is not JsonValueKind.Object)
+        {
+            return new GraphQLError(error.ToString());
+        }
+
+        var message = TryGetProperty(error, "message", out var m) && m.ValueKind is JsonValueKind.String ? m.GetString()! : error.ToString();
+        IReadOnlyList<string>? path = TryGetProperty(error, "path", out var p) && p.ValueKind is JsonValueKind.Array
+            ? p.EnumerateArray().Select(segment => segment.ValueKind is JsonValueKind.String ? segment.GetString()! : segment.ToString()).ToArray()
+            : null;
+        var code = TryGetProperty(error, "extensions", out var extensions)
+            && extensions.ValueKind is JsonValueKind.Object
+            && TryGetProperty(extensions, "code", out var c)
+            && c.ValueKind is JsonValueKind.String
+                ? c.GetString()
+                : null;
+        return new GraphQLError(message) { Path = path, Code = code };
     }
 
     // GraphQL property names are lower-case by spec, but tolerate other casings.

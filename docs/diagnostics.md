@@ -20,9 +20,25 @@ client.DiagnosticEvent += e =>
         case QueryObserverErrorEvent o: logger.LogError(o.Error, "a subscriber of {Key} threw", o.Key); break;
         case MutationStartedEvent m:   logger.LogDebug("mutation #{Id} {Key}", m.MutationId, m.MutationKey); break;
         case MutationCompletedEvent m: logger.LogDebug("mutation #{Id} ok={Ok}", m.MutationId, m.Succeeded); break;
+        case QueryRetryEvent r:        logger.LogDebug(r.Error, "retrying {Key} (failure {N})", r.Key, r.FailureCount); break;
+        case OptimisticUpdateAppliedEvent a:    logger.LogDebug("mutation #{Id} wrote {Keys} optimistically", a.MutationId, a.Keys); break;
+        case OptimisticUpdateRolledBackEvent b: logger.LogDebug("mutation #{Id} rolled back {Keys}", b.MutationId, b.Restored); break;
     }
 };
 ```
+
+### Keeping secrets out of diagnostics
+
+```csharp
+builder.Services.AddDotNetQuery(o =>
+{
+    o.IncludeVariablesInDiagnostics = false;               // MutationStartedEvent.Variables (and DevTools) stay empty
+    o.DiagnosticKeyFormatter = key => $"{key[0]}/...";     // OpenTelemetry key tags without personal data
+});
+```
+
+Events carry query keys, error objects and (unless disabled) mutation variables; cached data never appears in
+events. The DevTools panel's `ShowData="false"` hides data previews in the UI.
 
 - Query events are **deduplication-accurate**: two callers of the same in-flight key produce one
   `QueryStartedEvent`. Every start ends in exactly one completed, failed, or cancelled event.
@@ -75,3 +91,22 @@ see [Blazor](blazor.md#devtools)):
 
 For any app, `src/DotNetQuery.DevTools.Cli` renders an `ExportJson()` dump (file or stdin) as a console
 dashboard.
+
+### Debugging with DevTools
+
+The `QueryDevTools` model (and the Blazor panel on top of it) answers "why did this query fetch, refetch, fail
+or go stale?":
+
+| Feature | Model API | Panel |
+| --- | --- | --- |
+| Per-query lifecycle timeline (starts, retries, completions, failures, cancellations, invalidations, optimistic writes) | `Timeline(key)` | details pane |
+| Per-query profile (fetches, failures, retries, cancellations, average/max duration) | `ProfileQueries()` | details pane, CLI "Slowest queries" |
+| Key hierarchy | `KeyTree()` | "Tree" toggle |
+| Status filter and key search | `Cache.FindAll(filter)` | filter box, status select |
+| Optimistic writes and rollbacks per mutation | `RecentMutations()` (`OptimisticKeys`, `RolledBackKeys`, `RefetchedKeys`) | Mutations tab |
+| Snapshots and time travel | `TakeSnapshot`, `Snapshots`, `RestoreSnapshot` | Snapshots tab |
+| Controlled state editing | `ResetAsync`, `RefetchAsync`, `InvalidateAsync`, `CancelAsync`, `RemoveQuery` | row and details actions |
+| Durable offline queue inspection (pending, dead letters, retry, discard) | `AttachQueue(queue)`, `QueuedMutations`, `DeadLetters` | Offline queue tab (`Queue` parameter) |
+| Diagnostic report | `ExportJson()` (stats, queries, mutations, profiles, events) | CLI renders it |
+
+The event log and profiles are bounded by `eventLogCapacity`; the snapshot list keeps the last 20.

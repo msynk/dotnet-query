@@ -36,7 +36,20 @@ public partial class Query<TData> : ComponentBase, IDisposable
     private PersistingComponentStateSubscription? _persisting;
 
     [Inject]
-    private IQueryClient QueryClient { get; set; } = default!;
+    private IQueryClient InjectedClient { get; set; } = default!;
+
+    /// <summary>A client supplied by a <see cref="QueryClientProvider"/>; takes precedence over the registered one.</summary>
+    [CascadingParameter]
+    public IQueryClient? CascadedClient { get; set; }
+
+    private IQueryClient QueryClient => CascadedClient ?? InjectedClient;
+
+    /// <summary>
+    /// Which state properties re-render the component (default: every change). For example
+    /// <c>QueryStateProperties.Data | QueryStateProperties.Error</c> ignores background-refetch status flips.
+    /// </summary>
+    [Parameter]
+    public QueryStateProperties NotifyOn { get; set; } = QueryStateProperties.All;
 
     [Inject]
     private IServiceProvider Services { get; set; } = default!;
@@ -100,15 +113,54 @@ public partial class Query<TData> : ComponentBase, IDisposable
     [Parameter]
     public RenderFragment<Exception>? Error { get; set; }
 
-    /// <summary>Gets the result currently being rendered (including placeholder data).</summary>
+    /// <summary>
+    /// Optional template rendered when the query succeeded with empty data - <see langword="null"/>, or a collection
+    /// without items - instead of <see cref="ChildContent"/>. Customize what counts as empty with <see cref="IsEmpty"/>.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Empty { get; set; }
+
+    /// <summary>Decides whether data is empty for the <see cref="Empty"/> template (default: null or a collection without items).</summary>
+    [Parameter]
+    public Func<TData?, bool>? IsEmpty { get; set; }
+
+    /// <summary>
+    /// Gets the result currently being rendered: while the query is pending, the previous key's data (with
+    /// <see cref="KeepPreviousData"/>) or else the definition's <see cref="QueryDefinition{T}.PlaceholderData"/>,
+    /// flagged with <see cref="QueryResult{T}.IsPlaceholderData"/>.
+    /// </summary>
     protected QueryResult<TData> CurrentResult
     {
         get
         {
-            var result = _observer?.CurrentResult ?? default;
-            return KeepPreviousData && _previousResult is { } previous ? result.KeepPreviousData(previous) : result;
+            if (_observer is null)
+            {
+                return default;
+            }
+
+            if (KeepPreviousData && _previousResult is { } previous)
+            {
+                var kept = new QueryResult<TData>(_observer.Key, _observer.CurrentState).KeepPreviousData(previous);
+                if (kept.IsPlaceholderData)
+                {
+                    return kept;
+                }
+            }
+
+            return _observer.CurrentResult;
         }
     }
+
+    private bool IsEmptyData(TData? data) => IsEmpty is { } isEmpty
+        ? isEmpty(data)
+        : data switch
+        {
+            null => true,
+            string => false,
+            System.Collections.ICollection collection => collection.Count == 0,
+            System.Collections.IEnumerable sequence => !sequence.GetEnumerator().MoveNext(),
+            _ => false,
+        };
 
     /// <summary>Forces a refetch of the rendered query, cancelling any fetch in flight.</summary>
     public Task RefetchAsync() => _key is null ? Task.CompletedTask : QueryClient.RefetchQueryAsync(_key);
@@ -116,6 +168,8 @@ public partial class Query<TData> : ComponentBase, IDisposable
     /// <inheritdoc />
     protected override void OnInitialized()
     {
+        // Activates the user-change guard when ResetOnUserChange() registered one.
+        _ = Services.GetService<QueryAuthenticationGuard>();
         _applicationState = Services.GetService<PersistentComponentState>();
         if (_applicationState is not null)
         {
@@ -144,7 +198,11 @@ public partial class Query<TData> : ComponentBase, IDisposable
         if (_observer is null)
         {
             HydrateFromPrerender(_key);
-            _observer = QueryClient.Watch<TData>(_key);
+
+            // The definition overload seeds its initial data and exposes its placeholder data.
+            _observer = Definition is { } definition
+                ? (NotifyOn is QueryStateProperties.All ? QueryClient.Watch(definition) : QueryClient.Watch(definition, NotifyOn))
+                : QueryClient.Watch<TData>(_key, NotifyOn);
             _observer.StateChanged += OnStateChanged;
             _needsFetch = true;
             _lastInputs = Inputs;

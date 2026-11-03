@@ -3,6 +3,135 @@
 All notable changes to DotNetQuery. The project is pre-1.0; public API baselines live in each package's
 `PublicAPI.Unshipped.txt`.
 
+## Unreleased (on top of the 0.8.0 notes below)
+
+Production-readiness work driven by the improvement plan (see `IMPROVEMENT-PLAN.md` and
+`IMPLEMENTATION-STATUS.md`). All changes are additive unless listed under "Changed".
+
+### Added
+
+- **Retry classification:** `QueryOptions.ShouldRetry` / `QueryClientOptions.DefaultShouldRetry` /
+  `MutationOptions.ShouldRetry` (`RetryPredicate`) veto retries for permanent errors; `HttpRetryPolicy`
+  (`IsTransient`, `ShouldRetry`, `RespectRetryAfter`, `GetRetryAfter`). HTTP and GraphQL fetchers record the
+  response's `Retry-After` on the thrown `HttpRequestException`.
+- **Hierarchical defaults:** `QueryClientOptions.SetQueryDefaults(prefix, options)`.
+- **Query filters and bulk operations:** `QueryFilter` (key prefix/exact, active/inactive, stale, fetching,
+  status, predicate), `InvalidateQueriesAsync(filter, RefetchType)`, `RefetchQueriesAsync`,
+  `CancelQueriesAsync(filter)`, `ResetQueriesAsync`, `RemoveQueries`, `CountFetching`, `QueryCache.FindAll`.
+- **Structural sharing** (opt-in, `StructuralSharing` / `DefaultStructuralSharing`): equal refetches keep the
+  cached instance; partially changed lists and dictionaries reuse unchanged elements. Reflection-free.
+- **Selectors and fine-grained notifications:** `Watch(key, select, notifyOn, comparer)`,
+  `Watch<T>(key, notifyOn)`, `QueryStateProperties`.
+- **Initial and placeholder data** on `QueryDefinition<T>` (`InitialData`, `InitialDataUpdatedAt`,
+  `PlaceholderData`, `WithInitialData`, `WithPlaceholderData`), `SeedInitialData`,
+  `QueryResult<T>.WithPlaceholderData`; honored by `<Query>`, `UseQuery`, `ObservableQuery` and selectors.
+- **Atomic multi-query writes:** `SetQueriesData(tx => ...)` and `SetQueriesData<T>(filter, updater)` with
+  `QueryDataCommit.Rollback()`.
+- **Mutation cache:** `QueryCache.Mutations` (`FindAll`, `Find`, `CountPending`, `Changed`, `Clear`,
+  retention via `QueryClientOptions.MutationCacheTime`), `MutationDescriptor`, `MutationFilter`.
+- **Mutation scopes:** `MutationOptions.Scope` runs mutations sharing a scope serially in start order;
+  `MutationState.IsPaused` while waiting.
+- **Blazor:** `AddDotNetQueryBlazor().ResetOnUserChange(identity?)` / `QueryAuthenticationGuard` clears the
+  cache when the signed-in user (or tenant) changes; hook-style `UseQuery`/`UseInfiniteQuery` now persist and
+  hydrate prerendered data and make prerendering wait for their fetches (`PersistQueryState` to opt out).
+
+- **Network modes:** `NetworkMode` (`Online`, `Always`, `OfflineFirst`) for queries and mutations; `Online`
+  mutations wait for connectivity (`IsPaused`) instead of failing. Defaults keep the previous behavior.
+- **Conditional requests:** `ConditionalRequestHandler` revalidates GETs with `ETag`/`Last-Modified` and replays
+  the remembered body on `304 Not Modified`.
+- **Blazor templates and DevTools:** `<Query Empty IsEmpty>`; `QueryDevToolsPanel` `Enabled` and `ShowData`
+  parameters, paused-mutation marker.
+- **Persistence:** `RegisterPrefix<T>` persists dynamic keys and restores them on first use;
+  `ProtectedQueryPersister` encrypts payloads at rest (cache and durable queue).
+- **Durable queue:** retries with classification (`MaxAttempts`, `RetryDelay`, `ShouldRetry`), expiration
+  (`MaxAge`, `MutationExpiredException`), a durable dead-letter queue, handlers receiving the stable mutation id
+  as an idempotency key, `Pause`/`ResumeAsync`, `RemoveAsync`, `ClearAsync`.
+- **Synchronization:** `QuerySynchronizer` over any `IQuerySyncChannel` keeps registered queries consistent
+  across caches (last-writer-wins, rollbacks propagate, invalidations propagate); `InMemoryQuerySyncHub`; Blazor
+  `AddCrossTabSync(...)` + `<DotNetQueryCrossTabSync />` over the browser `BroadcastChannel`.
+- **Testing:** Playwright browser end-to-end tests for the Blazor sample (`tests/DotNetQuery.E2E`), new benchmark
+  suites and a committed benchmark baseline.
+- **Fetch scheduling:** `QueryOptions.Timeout` (per attempt, `TimeoutException`), `Priority` and
+  `AdaptiveRefetchInterval`; `QueryClientOptions.MaxConcurrentFetches` (priority-ordered, cancellation-aware),
+  `FetchRateLimiter` (`IFetchRateLimiter`, `QueryRateLimitedException`) and `Interceptors` (`IQueryInterceptor`).
+- **Memory bounds:** `QueryClientOptions.MaxInactiveQueries` (least recently used inactive queries are evicted),
+  `TrimOnMemoryPressure`, `QueryCache.Trim(count)`.
+- **Cache snapshots and notification batching:** `QueryCache.CreateSnapshot(filter)` /
+  `QueryCacheSnapshot.Restore(removeOthers)`; `QueryNotifications.Batch()` delivers the changes made inside the
+  scope once it ends.
+- **Invalidation dependencies:** `QueryClientOptions.AddInvalidationDependency(source, dependent)` (transitive,
+  cycle-safe).
+- **Overlapping optimistic updates:** optimistic writes to one key form layers; rolling back one mutation
+  re-applies the updates of the others on top of the restored value instead of reverting them.
+- **Mutations:** `QueryClientOptions.SetMutationDefaults(...)` / `GetMutationDefaults` (`MutationDefaults`),
+  `MutationOptions.DeduplicatePending`, progress-reporting `CreateMutation((variables, progress, ct) => ...)` with
+  `MutationState.Progress`.
+- **HTTP:** `CircuitBreakerHandler` (`CircuitBreakerOptions`, `CircuitState`, `BrokenCircuitException`),
+  `BearerTokenHandler` (single-flight token refresh on 401), `HttpRetryPolicy.IsConflict`;
+  `BatchLoader<TKey, TValue>` coalesces individual lookups into batched requests; `FetchAllAsync(definitions)`.
+- **Persistence and offline queue:** `QueryPersistenceOptions.Migrations` rewrite or drop payloads saved under an
+  older buster; `PersistentMutationQueueOptions.OnReplayFailure` (`ReplayDecision`: retry, fail, drop, pause).
+- **Diagnostics:** `QueryRetryEvent`, `OptimisticUpdateAppliedEvent`, `OptimisticUpdateRolledBackEvent`;
+  `QueryClientOptions.IncludeVariablesInDiagnostics` and `DiagnosticKeyFormatter` keep secrets out of telemetry.
+- **DevTools:** per-query timelines, profiles (slowest queries), key hierarchy, snapshots with restore (time
+  travel), reset, offline-queue inspection (`AttachQueue`), optimistic/rollback history; the Blazor panel gained
+  Snapshots and Offline queue tabs, a tree view and a status filter; the CLI renders profiles.
+- **Pagination:** `InfiniteQuery.FetchPagesAsync(count)`, `PrefetchInfiniteQueryAsync(..., pages)`,
+  `InfiniteData.Items(...)`, `InfiniteQueryState.PageCount`.
+- **Blazor:** `InfiniteQuery.ToItemsProvider(...)` for `<Virtualize>`, `<ScrollRestoration>`,
+  `<QueryClientProvider>`, `<DotNetQueryNavigation>` (cancels fetches of pages left behind), `<Query NotifyOn>`,
+  `UseQueries(definitions)`.
+- **Desktop and mobile:** `AppLifecycleSignals` (registered by `AddDotNetQuery`) and `NetworkConnectivityMonitor`;
+  `WpfQueryLifecycle`, `WinUIQueryLifecycle`, `AvaloniaQueryLifecycle` and `MauiQueryLifecycle` refetch stale data
+  when the user returns and pause queries while offline; `MauiQueryPersistence.CreateFileSystemPersister()`.
+- **MVVM:** `ObservableInfiniteQuery<TParam, TPage>` (`CreateObservableInfiniteQuery` in every XAML adapter);
+  bindable commands `ObservableQuery.RefetchCommand`, `ObservableMutation.MutateCommand` / `ResetCommand`,
+  `ObservableInfiniteQuery.FetchNextPageCommand` / `FetchPreviousPageCommand` / `RefetchCommand`.
+- **Source generator:** `[GenerateQueries]` (on an API interface, or `[assembly: GenerateQueries(typeof(IApi))]` for
+  Refit/OpenAPI-generated interfaces) generates key factories, query definitions and mutations with invalidation;
+  `[QueryMethod]`, `[MutationMethod]`, `[QueryIgnore]`. Ships inside the `Msynk.DotNetQuery` package; trim/AOT-safe.
+- **GraphQL:** `GraphQLMutationFn` and `CreateGraphQLMutation`; `GraphQLError.Path` / `Code` and
+  `GraphQLException.HasCode`.
+- **Performance:** allocation-free cache lookups and fresh hits (`FetchAsync` served from the cache allocates 32 B
+  instead of 488 B; `SetQueryData` with an observer 120 B instead of 216 B); new benchmark suites including a
+  `MemoryCache` comparison; allocation budgets in the test suite.
+- **Structural sharing** now also applies to `SetQueryData`, updaters, hydration and synchronized data.
+- **Documentation:** architecture, troubleshooting, tutorials, migration and release-policy guides, and a DocFX
+  site with an API reference published to GitHub Pages.
+- **Samples:** the TodoApp now has per-page render modes (Interactive Server, WebAssembly and Auto, plus a
+  static streaming-SSR page), an `EditForm` page, a 10,000-row virtualized list, a `QuickGrid` page and a
+  multi-tenant page, and the WebAssembly page works offline (a todo added offline syncs on reconnect); the
+  Playwright suite covers each of them.
+
+### Fixed
+
+- Skipping an unchanged state compared `QueryState<T>` records, which called the cached data's `Equals` (user code)
+  while the entry lock was held; it now compares the state fields without calling it.
+- Blazor refetched every active query twice on a reconnect (connectivity provider and online manager both
+  reported it); the duplicate signal is now coalesced.
+- `DotNetQuery.Sample.Avalonia` pulled `Tmds.DBus.Protocol 0.20.0` (GHSA-xrw6-gwf8-vvr9); pinned 0.21.3.
+
+### Changed
+
+- **Package IDs are now prefixed with `Msynk.`** (`Msynk.DotNetQuery`, `Msynk.DotNetQuery.Blazor`,
+  `Msynk.DotNetQuery.Persistence.Sqlite`, `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`): `DotNetQuery.Core` and
+  `DotNetQuery.Blazor` on NuGet belong to an unrelated library, so the previous IDs could not all be published.
+  Namespaces, assembly names and the Blazor static asset path (`_content/DotNetQuery.Blazor/...`) are unchanged -
+  only `PackageReference`s need updating.
+- Declarative `OptimisticUpdates` are applied (and rolled back) as one atomic transaction across keys. Two
+  updates of the same key now roll back to the original value instead of triggering a refetch.
+- Removing (`RemoveQuery`, `RemoveQueries`, `Clear`) a query that is still observed now resets it (data
+  discarded, in-flight fetch cancelled and detached) and refetches it for its observers. Previously the entry
+  was dropped and its observers were stranded on a dead entry that never updated again. `QueryClient.Dispose`
+  still disposes every entry.
+- `ResetQueriesAsync`/reset detaches the in-flight fetch so an outdated result can never land over the reset,
+  even when the fetcher ignores cancellation.
+- `ObservableQuery<T>` raises `PropertyChanged` only for properties whose value changed.
+- `DotNetQuery.Blazor` now references `Microsoft.AspNetCore.Components.Authorization` (first-party).
+- `DotNetQuery.Maui` now references `Microsoft.Maui.Controls` (for window lifecycle events; every MAUI app already
+  references it).
+- Package `PackageProjectUrl`/`RepositoryUrl` point to `https://github.com/msynk/dotnet-query`.
+
 ## 0.8.0 (unreleased)
 
 A correctness, Blazor and developer-experience overhaul driven by a full review of the library.

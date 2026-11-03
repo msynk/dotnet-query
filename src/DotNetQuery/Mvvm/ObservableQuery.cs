@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Windows.Input;
 
 namespace DotNetQuery.Mvvm;
 
@@ -16,14 +17,6 @@ namespace DotNetQuery.Mvvm;
 /// <typeparam name="T">The type of data produced by the query.</typeparam>
 public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
 {
-    private static readonly string[] PropertyNames =
-    [
-        nameof(Key), nameof(Data), nameof(Error), nameof(Status), nameof(IsLoading), nameof(IsPending),
-        nameof(IsFetching), nameof(IsRefetching), nameof(IsSuccess), nameof(IsError), nameof(IsLoadingError),
-        nameof(IsRefetchError), nameof(IsPaused), nameof(HasData), nameof(IsPlaceholderData), nameof(DataUpdatedAt),
-        nameof(FailureCount),
-    ];
-
     private readonly IQueryClient _client;
     private readonly SynchronizationContext? _syncContext;
     private QueryObserver<T> _observer;
@@ -58,8 +51,9 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
         ArgumentNullException.ThrowIfNull(query);
 
         _syncContext = SynchronizationContext.Current;
-        _observer = Subscribe(query.Key);
+        _observer = Subscribe(query);
         _result = _observer.CurrentResult;
+        RefetchCommand = new AsyncCommand(_ => RefetchAsync());
         Fetch(query, forceRefetch: false);
     }
 
@@ -117,6 +111,9 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
     /// <summary>Gets the number of failed attempts in the current fetch cycle.</summary>
     public int FailureCount => _result.FailureCount;
 
+    /// <summary>A command that refetches the query (for a refresh button or pull-to-refresh).</summary>
+    public ICommand RefetchCommand { get; }
+
     /// <summary>Forces a refetch of the query, cancelling any fetch in flight.</summary>
     public Task RefetchAsync(CancellationToken cancellationToken = default) =>
         _client.RefetchQueryAsync(_observer.Key, cancellationToken);
@@ -146,7 +143,7 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
             _keepPreviousData = keepPreviousData;
             _previous = keepPreviousData ? _result : null;
             previousObserver = _observer;
-            _observer = Subscribe(query.Key);
+            _observer = Subscribe(query);
         }
 
         Unsubscribe(previousObserver);
@@ -154,9 +151,10 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
         Fetch(query, forceRefetch: false);
     }
 
-    private QueryObserver<T> Subscribe(QueryKey key)
+    private QueryObserver<T> Subscribe(QueryDefinition<T> query)
     {
-        var observer = _client.Watch<T>(key);
+        // The definition overload seeds initial data and carries the placeholder into CurrentResult.
+        var observer = _client.Watch(query);
         observer.StateChanged += state => OnStateChanged(observer, state);
         return observer;
     }
@@ -203,6 +201,8 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
 
     private void Apply(QueryObserver<T> source, QueryState<T> state, long sequence)
     {
+        QueryResult<T> before;
+        QueryResult<T> after;
         lock (_applyGate)
         {
             // Ignore late notifications from a query this binding has already switched away from, and
@@ -213,18 +213,75 @@ public sealed class ObservableQuery<T> : INotifyPropertyChanged, IDisposable
             }
 
             _applied = sequence;
+            before = _result;
             ApplyLocked(state);
+            after = _result;
         }
 
-        foreach (var name in PropertyNames)
+        // Announce only what changed: re-raising Data on every status flip makes list controls rebuild (losing
+        // scroll position and selection) even when the data instance is unchanged.
+        foreach (var name in ChangedProperties(before, after))
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
 
+    private static IEnumerable<string> ChangedProperties(QueryResult<T> before, QueryResult<T> after)
+    {
+        if (before.Key != after.Key)
+        {
+            yield return nameof(Key);
+        }
+
+        if (before.HasData != after.HasData || !SameData(before.Data, after.Data))
+        {
+            yield return nameof(Data);
+        }
+
+        if (!ReferenceEquals(before.Error, after.Error))
+        {
+            yield return nameof(Error);
+        }
+
+        if (before.Status != after.Status)
+        {
+            yield return nameof(Status);
+        }
+
+        foreach (var (name, changed) in new[]
+        {
+            (nameof(IsLoading), before.IsLoading != after.IsLoading),
+            (nameof(IsPending), before.IsPending != after.IsPending),
+            (nameof(IsFetching), before.IsFetching != after.IsFetching),
+            (nameof(IsRefetching), before.IsRefetching != after.IsRefetching),
+            (nameof(IsSuccess), before.IsSuccess != after.IsSuccess),
+            (nameof(IsError), before.IsError != after.IsError),
+            (nameof(IsLoadingError), before.IsLoadingError != after.IsLoadingError),
+            (nameof(IsRefetchError), before.IsRefetchError != after.IsRefetchError),
+            (nameof(IsPaused), before.IsPaused != after.IsPaused),
+            (nameof(HasData), before.HasData != after.HasData),
+            (nameof(IsPlaceholderData), before.IsPlaceholderData != after.IsPlaceholderData),
+            (nameof(DataUpdatedAt), before.DataUpdatedAt != after.DataUpdatedAt),
+            (nameof(FailureCount), before.FailureCount != after.FailureCount),
+        })
+        {
+            if (changed)
+            {
+                yield return name;
+            }
+        }
+    }
+
+    // Reference identity for reference types (a new instance must reach the UI even if it compares equal);
+    // value equality for value types.
+    private static bool SameData(T? x, T? y) =>
+        typeof(T).IsValueType ? EqualityComparer<T>.Default.Equals(x, y) : ReferenceEquals(x, y);
+
     private void ApplyLocked(QueryState<T> state)
     {
-        var result = new QueryResult<T>(_observer.Key, state);
+        // Previous data (keep-previous-data) takes precedence over the definition's placeholder.
+        var result = _keepPreviousData && _previous is not null ? new QueryResult<T>(_observer.Key, state) : _observer.ToResult(state);
+
         if (_keepPreviousData && _previous is { } previous)
         {
             if (result.HasData || result.IsError)

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DotNetQuery.Maui;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetQuery.Sample.Maui;
 
@@ -15,6 +16,12 @@ public partial class App : Application
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
 		// Resolve the page from DI so its IQueryClient / TodoService / ConnectivityProvider inject.
-		return new Window(new NavigationPage(_services.GetRequiredService<MainPage>()));
+		var window = new Window(new NavigationPage(_services.GetRequiredService<MainPage>()));
+
+		// Returning to the app refetches stale data, resuming from the background does too, and the device's
+		// connectivity pauses and resumes queries.
+		var lifecycle = new MauiQueryLifecycle(window, _services.GetRequiredService<AppLifecycleSignals>());
+		window.Destroying += (_, _) => lifecycle.Dispose();
+		return window;
 	}
 }

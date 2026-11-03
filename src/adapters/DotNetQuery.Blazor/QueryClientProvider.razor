@@ -1,0 +1,15 @@
+@* Supplies a specific query client to the components below it (instead of the one registered in DI) - for example
+   a separate client for public reference data, or an isolated client in a test or a preview. <Query>,
+   DotNetQueryComponentBase and the DevTools panel use the nearest provided client. *@
+
+<CascadingValue TValue="IQueryClient" Value="Client" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>The client the content uses.</summary>
+    [Parameter, EditorRequired] public IQueryClient Client { get; set; } = default!;
+
+    /// <summary>The content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

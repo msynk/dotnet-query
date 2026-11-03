@@ -76,6 +76,14 @@ internal interface IQueryEventSink
 
     void ObserverFailed(QueryKey key, Exception error);
 
+    void QueriesInvalidated(IReadOnlyList<QueryKey> keys);
+
+    void QueryFetchRetried(QueryKey key, int failureCount, Exception error);
+
+    void OptimisticApplied(long mutationId, IReadOnlyList<QueryKey> keys);
+
+    void OptimisticRolledBack(long mutationId, IReadOnlyList<QueryKey> restored, IReadOnlyList<QueryKey> refetched);
+
     /// <summary>Reports a mutation start and returns its id and an opaque token for the matching end call.</summary>
     (long Id, object? Token) MutationStarted(QueryKey? mutationKey, object? variables);
 

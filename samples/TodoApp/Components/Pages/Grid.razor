@@ -1,0 +1,40 @@
+@page "/grid"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject TodoApi Api
+@inject IQueryClient Client
+
+<PageTitle>DotNetQuery · Grid</PageTitle>
+
+<h1>QuickGrid</h1>
+<p style="color:#666">
+    QuickGrid's <code>ItemsProvider</code> asks for one page at a time; each page is a query keyed by its offset, so
+    paging back and forth is served from the cache and every page is deduplicated and refreshed like any query.
+</p>
+
+<QuickGrid ItemsProvider="_provider" Pagination="_pagination" Class="rows-grid">
+    <PropertyColumn Property="r => r.Id" />
+    <PropertyColumn Property="r => r.Name" />
+    <PropertyColumn Property="r => r.Score" />
+</QuickGrid>
+<Paginator State="_pagination" />
+
+<QueryInfrastructure />
+
+@code {
+    private readonly PaginationState _pagination = new() { ItemsPerPage = 10 };
+    private GridItemsProvider<Row> _provider = default!;
+
+    protected override void OnInitialized() => _provider = async request =>
+    {
+        var offset = request.StartIndex;
+        var count = request.Count ?? 10;
+        var page = await Client.FetchAsync(
+            QueryKey.Create("grid", offset, count),
+            ct => Api.GetRowsAsync(offset, count, ct),
+            new QueryOptions { StaleTime = TimeSpan.FromMinutes(1) },
+            cancellationToken: request.CancellationToken);
+        var data = page.EnsureData();
+        return GridItemsProviderResult.From(data.Rows, data.Total);
+    };
+}

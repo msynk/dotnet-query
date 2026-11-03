@@ -1,8 +1,14 @@
 @inherits LayoutComponentBase
 
 <main style="max-width: 760px; margin: 2rem auto; font-family: system-ui, sans-serif;">
+    <nav class="site-nav" style="display:flex; gap:12px; margin-bottom:1rem;">
+        <a href="/">Todos</a>
+        <a href="/large">Large list</a>
+        <a href="/grid">Grid</a>
+        <a href="/tenants">Tenants</a>
+        <a href="/wasm">WebAssembly</a>
+        <a href="/auto">Auto</a>
+        <a href="/ssr">Static SSR</a>
+    </nav>
     @Body
 </main>
-
-@* Enables focus / reconnect / visibility refetching for this circuit. *@
-<DotNetQueryBrowserSignals />

@@ -1,0 +1,88 @@
+@inherits DotNetQueryComponentBase
+@inject ITodoClient Todos
+@inject IConnectivityProvider Connectivity
+
+@* Rendered interactively in the browser (WebAssembly) or, on /auto, on the server first and in the browser once the
+   runtime has downloaded. Prerendered data is hydrated, so no request is repeated after the switch. Offline, the list
+   stays on screen and a new todo waits (shown optimistically) until the browser is back online. *@
+
+<DotNetQueryBrowserSignals />
+
+<h2>@Title</h2>
+<p class="render-mode">Rendering: @(RendererInfo.IsInteractive ? RendererInfo.Name : "static (prerendered)")</p>
+<p class="connectivity">@(Connectivity.IsOnline ? "Online" : "Offline")</p>
+
+@if (_todos.CurrentState.IsSuccess)
+{
+    <ul class="client-todos">
+        @foreach (var todo in _todos.CurrentState.Data!)
+        {
+            <li>@todo.Title @(todo.Id < 0 ? "(saving…)" : null)</li>
+        }
+    </ul>
+}
+else if (_todos.CurrentState.IsError)
+{
+    <p style="color:#c00">@_todos.CurrentState.Error!.Message</p>
+}
+else
+{
+    <p>Loading…</p>
+}
+
+@if (_add.CurrentState.IsPaused)
+{
+    <p class="sync-status">Offline: the new todo is saved when the connection returns.</p>
+}
+
+<form @onsubmit="AddAsync">
+    <input @bind="_title" @bind:event="oninput" placeholder="New client todo" />
+    <button type="submit" disabled="@(!RendererInfo.IsInteractive)">Add</button>
+</form>
+
+@code {
+    private QueryObserver<List<TodoItem>> _todos = default!;
+    private Mutation<string, TodoItem> _add = default!;
+    private string _title = string.Empty;
+
+    [Parameter] public string Title { get; set; } = "Todos";
+
+    protected override void OnInitialized() => Connectivity.ConnectivityChanged += OnConnectivityChanged;
+
+    protected override void OnParametersSet()
+    {
+        _todos = UseQuery(ClientTodoQueries.List(Todos));
+        _add = UseMutation<string, TodoItem>(
+            (title, ct) => Todos.AddAsync(title, ct),
+            new()
+            {
+                OptimisticUpdates = [OptimisticUpdate.Create<string, List<TodoItem>>(ClientTodoQueries.All, (list, title) => [.. list ?? [], new TodoItem(-1, title, false)])],
+                Invalidates = [ClientTodoQueries.All],
+                // Wait for connectivity instead of failing while offline; the optimistic todo stays visible meanwhile.
+                NetworkMode = NetworkMode.Online,
+                ThrowOnError = false,
+            });
+    }
+
+    private void OnConnectivityChanged(bool online) => _ = InvokeAsync(StateHasChanged);
+
+    private async Task AddAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_title))
+        {
+            var title = _title;
+            _title = string.Empty;
+            await _add.MutateAsync(title);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Connectivity.ConnectivityChanged -= OnConnectivityChanged;
+        }
+
+        base.Dispose(disposing);
+    }
+}

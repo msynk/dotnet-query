@@ -34,6 +34,9 @@ public sealed record InfiniteQueryState<TParam, TPage>
     /// <summary>Gets the number of failed attempts in the current fetch cycle.</summary>
     public int FailureCount { get; init; }
 
+    /// <summary>Gets the number of loaded pages.</summary>
+    public int PageCount => Data.Pages.Count;
+
     /// <summary>Gets a value indicating whether the query is loading its first page.</summary>
     public bool IsLoading => Status is QueryStatus.Loading;
 

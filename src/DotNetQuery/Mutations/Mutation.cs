@@ -35,24 +35,37 @@ public sealed class Mutation<TVariables, TData>
     private readonly TimeProvider _timeProvider;
     private readonly IQueryEventSink? _eventSink;
     private readonly IQueryClient? _client;
+    private readonly MutationCache? _mutationCache;
+    private readonly QueryRuntime? _runtime;
+    private readonly NetworkMode _defaultNetworkMode;
     private readonly object _gate = new();
     private readonly Queue<MutationState<TVariables, TData>> _outbox = new();
     private MutationState<TVariables, TData> _state = MutationState<TVariables, TData>.Idle;
     private long _latestRun;
     private bool _draining;
+    private readonly List<(TVariables Variables, Task<MutationResult<TVariables, TData>> Run)> _pendingRuns = [];
+
+    /// <summary>The progress-reporting mutation function, when the mutation was created with one.</summary>
+    internal Func<TVariables, IProgress<double>, CancellationToken, Task<TData>>? ProgressFn { get; init; }
 
     internal Mutation(
         Func<TVariables, CancellationToken, Task<TData>> mutationFn,
         MutationOptions<TVariables, TData>? options,
         TimeProvider timeProvider,
         IQueryEventSink? eventSink = null,
-        IQueryClient? client = null)
+        IQueryClient? client = null,
+        MutationCache? mutationCache = null,
+        QueryRuntime? runtime = null,
+        NetworkMode defaultNetworkMode = NetworkMode.Always)
     {
+        _runtime = runtime;
+        _defaultNetworkMode = defaultNetworkMode;
         _mutationFn = mutationFn;
         _options = options ?? new MutationOptions<TVariables, TData>();
         _timeProvider = timeProvider;
         _eventSink = eventSink;
         _client = client;
+        _mutationCache = mutationCache;
     }
 
     /// <summary>Raised whenever the mutation's state changes.</summary>
@@ -83,7 +96,43 @@ public sealed class Mutation<TVariables, TData>
     /// The settled result of this run. Throws the captured error if
     /// <see cref="MutationOptions{TVariables, TData}.ThrowOnError"/> is set.
     /// </returns>
-    public async Task<MutationResult<TVariables, TData>> MutateAsync(TVariables variables, CancellationToken cancellationToken = default)
+    public Task<MutationResult<TVariables, TData>> MutateAsync(TVariables variables, CancellationToken cancellationToken = default)
+    {
+        if (!_options.DeduplicatePending)
+        {
+            return RunAsync(variables, cancellationToken);
+        }
+
+        lock (_pendingRuns)
+        {
+            foreach (var (pendingVariables, pendingRun) in _pendingRuns)
+            {
+                if (EqualityComparer<TVariables>.Default.Equals(pendingVariables, variables))
+                {
+                    return pendingRun.WaitAsync(cancellationToken);
+                }
+            }
+
+            var started = RunAsync(variables, CancellationToken.None);
+            _pendingRuns.Add((variables, started));
+            _ = started.ContinueWith(
+                (task, state) =>
+                {
+                    var list = (List<(TVariables, Task<MutationResult<TVariables, TData>>)>)state!;
+                    lock (list)
+                    {
+                        list.RemoveAll(p => ReferenceEquals(p.Item2, task));
+                    }
+                },
+                _pendingRuns,
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+            return started.WaitAsync(cancellationToken);
+        }
+    }
+
+    private async Task<MutationResult<TVariables, TData>> RunAsync(TVariables variables, CancellationToken cancellationToken)
     {
         var run = Interlocked.Increment(ref _latestRun);
         var submittedAt = _timeProvider.GetUtcNow();
@@ -96,10 +145,12 @@ public sealed class Mutation<TVariables, TData>
         Publish(run, state);
 
         var (mutationId, sinkToken) = _eventSink?.MutationStarted(_options.MutationKey, variables) ?? (0, null);
+        var tracked = _mutationCache?.Add(mutationId, _options.MutationKey, _options.Scope, variables, submittedAt);
         var started = _timeProvider.GetTimestamp();
 
         object? context = null;
-        List<Func<Task>>? rollbacks = null;
+        QueryDataCommit? optimistic = null;
+        IDisposable? scopeLease = null;
         var failures = 0;
         var committed = false;
         var settledCalled = false;
@@ -107,66 +158,113 @@ public sealed class Mutation<TVariables, TData>
 
         try
         {
-            if (_options.OptimisticUpdates is { Count: > 0 } updates && _client is not null)
+            try
             {
-                rollbacks = new List<Func<Task>>(updates.Count);
-                foreach (var update in updates)
+                if (_options.OptimisticUpdates is { Count: > 0 } updates && _client is not null)
                 {
-                    rollbacks.Add(await update.ApplyAsync(_client, variables, cancellationToken).ConfigureAwait(false));
+                    optimistic = await ApplyOptimisticUpdatesAsync(_client, updates, variables, cancellationToken).ConfigureAwait(false);
+                    _eventSink?.OptimisticApplied(mutationId, optimistic.Keys);
                 }
-            }
 
-            if (_options.OnMutate is not null)
-            {
-                context = await _options.OnMutate(variables, cancellationToken).ConfigureAwait(false);
-            }
-
-            while (true)
-            {
-                try
+                if (_options.OnMutate is not null)
                 {
-                    data = await _mutationFn(variables, cancellationToken).ConfigureAwait(false);
-                    committed = true;
-                    break;
+                    context = await _options.OnMutate(variables, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < _options.RetryCount)
-                {
-                    failures++;
-                    state = state with { FailureCount = failures, Error = ex };
-                    Publish(run, state);
 
-                    var delay = (_options.RetryDelay ?? RetryPolicy.Constant(TimeSpan.Zero))(failures - 1, ex);
-                    if (delay > TimeSpan.Zero)
+                if (_options.Scope is { } scope && _mutationCache is not null)
+                {
+                    scopeLease = await _mutationCache.EnterScopeAsync(scope, () => Report(state = state with { IsPaused = true }), cancellationToken).ConfigureAwait(false);
+                    if (state.IsPaused)
                     {
-                        await Task.Delay(delay < MaxRetryDelay ? delay : MaxRetryDelay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                        Report(state = state with { IsPaused = false });
                     }
                 }
+
+                var networkMode = _options.NetworkMode ?? _defaultNetworkMode;
+                if (networkMode is NetworkMode.Online)
+                {
+                    await WaitForConnectivityAsync().ConfigureAwait(false);
+                }
+
+                while (true)
+                {
+                    try
+                    {
+                        data = ProgressFn is { } withProgress
+                            ? await withProgress(variables, new ActionProgress(value => Report(state = state with { Progress = value })), cancellationToken).ConfigureAwait(false)
+                            : await _mutationFn(variables, cancellationToken).ConfigureAwait(false);
+                        committed = true;
+                        break;
+                    }
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < _options.RetryCount && ShouldRetry(failures + 1, ex))
+                    {
+                        failures++;
+                        state = state with { FailureCount = failures, Error = ex };
+                        Report(state);
+
+                        var delay = (_options.RetryDelay ?? RetryPolicy.Constant(TimeSpan.Zero))(failures - 1, ex);
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay < MaxRetryDelay ? delay : MaxRetryDelay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        if (networkMode is not NetworkMode.Always)
+                        {
+                            await WaitForConnectivityAsync().ConfigureAwait(false);
+                        }
+                    }
+                }
+
+                // From here on the server has accepted the write. A throwing callback still fails the run (so
+                // the caller learns about it), but the write is never undone or retried because of it.
+                if (_options.OnSuccess is not null)
+                {
+                    await _options.OnSuccess(data, variables, context, CallbackToken()).ConfigureAwait(false);
+                }
+
+                if (_options.OnSettled is not null)
+                {
+                    settledCalled = true;
+                    await _options.OnSettled(data, null, variables, context, CallbackToken()).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                return await FailAsync(ex).ConfigureAwait(false);
             }
 
-            // From here on the server has accepted the write. A throwing callback still fails the run (so
-            // the caller learns about it), but the write is never undone or retried because of it.
-            if (_options.OnSuccess is not null)
-            {
-                await _options.OnSuccess(data, variables, context, CallbackToken()).ConfigureAwait(false);
-            }
+            optimistic?.Complete();
+            await ReconcileAsync().ConfigureAwait(false);
 
-            if (_options.OnSettled is not null)
-            {
-                settledCalled = true;
-                await _options.OnSettled(data, null, variables, context, CallbackToken()).ConfigureAwait(false);
-            }
+            state = state with { Status = MutationStatus.Success, Data = data, Error = null, FailureCount = failures };
+            Report(state);
+            _eventSink?.MutationCompleted(mutationId, _options.MutationKey, true, null, failures, _timeProvider.GetElapsedTime(started), sinkToken);
+            return new MutationResult<TVariables, TData>(state);
         }
-        catch (Exception ex)
+        finally
         {
-            return await FailAsync(ex).ConfigureAwait(false);
+            // Release the scope only once this run fully settled (callbacks and invalidation included).
+            scopeLease?.Dispose();
         }
 
-        await ReconcileAsync().ConfigureAwait(false);
+        // Waits (pending + paused) while the connectivity provider reports offline.
+        async Task WaitForConnectivityAsync()
+        {
+            if (_runtime is null || _runtime.IsOnline)
+            {
+                return;
+            }
 
-        state = state with { Status = MutationStatus.Success, Data = data, Error = null, FailureCount = failures };
-        Publish(run, state);
-        _eventSink?.MutationCompleted(mutationId, _options.MutationKey, true, null, failures, _timeProvider.GetElapsedTime(started), sinkToken);
-        return new MutationResult<TVariables, TData>(state);
+            Report(state = state with { IsPaused = true });
+            await _runtime.WhenOnlineAsync(cancellationToken).ConfigureAwait(false);
+            Report(state = state with { IsPaused = false });
+        }
+
+        void Report(MutationState<TVariables, TData> next)
+        {
+            Publish(run, next);
+            tracked?.Update(next.Status, next.Data, next.Error, next.FailureCount, next.IsPaused, next.Progress);
+        }
 
         // After the write is committed, cancelling the caller's wait must not cancel follow-up work.
         CancellationToken CallbackToken() => committed ? CancellationToken.None : cancellationToken;
@@ -197,12 +295,13 @@ public sealed class Mutation<TVariables, TData>
             var settleToken = cancelled || committed ? CancellationToken.None : cancellationToken;
 
             // Roll back optimistic updates only if the server did not accept the write.
-            if (rollbacks is not null && !committed)
+            if (optimistic is not null && !committed)
             {
-                for (var i = rollbacks.Count - 1; i >= 0; i--)
-                {
-                    await RunQuietlyAsync(rollbacks[i]).ConfigureAwait(false);
-                }
+                await RunQuietlyAsync(() => RollBackAsync(_client!, optimistic, mutationId)).ConfigureAwait(false);
+            }
+            else
+            {
+                optimistic?.Complete();
             }
 
             if (_options.OnError is not null)
@@ -217,8 +316,8 @@ public sealed class Mutation<TVariables, TData>
 
             await RunQuietlyAsync(() => InvalidateAsync(CancellationToken.None)).ConfigureAwait(false);
 
-            state = state with { Status = MutationStatus.Error, Error = error, FailureCount = failures };
-            Publish(run, state);
+            state = state with { Status = MutationStatus.Error, Error = error, FailureCount = failures, IsPaused = false };
+            Report(state);
             _eventSink?.MutationCompleted(mutationId, _options.MutationKey, false, error, failures, _timeProvider.GetElapsedTime(started), sinkToken);
 
             if (cancelled || _options.ThrowOnError)
@@ -237,6 +336,48 @@ public sealed class Mutation<TVariables, TData>
         Publish(run, MutationState<TVariables, TData>.Idle);
     }
 
+    // Cancels in-flight fetches for every target key (so a pending refetch cannot overwrite the optimistic values
+    // when it lands), then writes all optimistic values in one atomic transaction: observers never see some keys
+    // updated and others not, and an updater that throws leaves the cache untouched.
+    private static async Task<QueryDataCommit> ApplyOptimisticUpdatesAsync(
+        IQueryClient client,
+        IReadOnlyList<OptimisticUpdate<TVariables>> updates,
+        TVariables variables,
+        CancellationToken cancellationToken)
+    {
+        var cancellations = new Task[updates.Count];
+        for (var i = 0; i < updates.Count; i++)
+        {
+            var key = updates[i].Key;
+            cancellations[i] = client.CancelQueriesAsync(k => k == key, cancellationToken);
+        }
+
+        await Task.WhenAll(cancellations).ConfigureAwait(false);
+        var batch = new QueryDataBatch();
+        foreach (var update in updates)
+        {
+            update.AddTo(batch, variables);
+        }
+
+        // Optimistic commits join each entry's optimistic layers, so overlapping mutations roll back independently.
+        return QueryDataTransaction.Commit(client.Cache, batch.Writes, optimistic: true);
+    }
+
+    // Restores the exact pre-mutation snapshots atomically. A key that something else wrote on top of meanwhile
+    // (another mutation's optimistic update, a refetch) is not restored - that would clobber the newer write - but
+    // invalidated, so it is reconciled with the server instead.
+    private Task RollBackAsync(IQueryClient client, QueryDataCommit optimistic, long mutationId)
+    {
+        var conflicts = optimistic.Rollback();
+        _eventSink?.OptimisticRolledBack(mutationId, optimistic.Keys.Except(conflicts).ToArray(), conflicts);
+        if (conflicts.Count == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Task.WhenAll(conflicts.Select(key => client.InvalidateQueriesAsync(k => k == key, CancellationToken.None)));
+    }
+
     private async Task InvalidateAsync(CancellationToken cancellationToken)
     {
         if (_options.Invalidates is not { Count: > 0 } keys || _client is null)
@@ -251,6 +392,30 @@ public sealed class Mutation<TVariables, TData>
         }
 
         await Task.WhenAll(invalidations).ConfigureAwait(false);
+    }
+
+    // Reports progress synchronously on the reporting thread (System.Progress would post to a captured context).
+    private sealed class ActionProgress(Action<double> report) : IProgress<double>
+    {
+        public void Report(double value) => report(value);
+    }
+
+    // A predicate that throws vetoes the retry, so the run fails with the mutation's own error.
+    private bool ShouldRetry(int failureCount, Exception error)
+    {
+        if (_options.ShouldRetry is not { } predicate)
+        {
+            return true;
+        }
+
+        try
+        {
+            return predicate(failureCount, error);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private static async Task RunQuietlyAsync(Func<Task> action)

@@ -21,7 +21,11 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
     private readonly IConnectivityProvider? _connectivity;
     private readonly Action<bool>? _connectivityHandler;
     private long _mutationIds;
+    private long _connectivityReconnectAt = long.MinValue;
     private int _disposed;
+
+    // An OnlineManager signal this soon after the connectivity provider reported the same reconnect is a duplicate.
+    private static readonly TimeSpan ReconnectCoalescingWindow = TimeSpan.FromSeconds(1);
 
     /// <inheritdoc />
     public event Action<DotNetQueryEvent>? DiagnosticEvent;
@@ -44,7 +48,13 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         _options = options ?? new QueryClientOptions();
         _timeProvider = timeProvider ?? TimeProvider.System;
         _connectivity = connectivity;
-        Cache = new QueryCache(_timeProvider, this, connectivity, QueryClientOptions.NormalizeDuration(_options.DefaultCacheTime));
+        Cache = new QueryCache(
+            _timeProvider,
+            this,
+            connectivity,
+            QueryClientOptions.NormalizeDuration(_options.DefaultCacheTime),
+            QueryClientOptions.NormalizeDuration(_options.MutationCacheTime),
+            _options);
 
         var interval = _options.GarbageCollectionInterval;
         if (interval > TimeSpan.Zero && interval != Timeout.InfiniteTimeSpan)
@@ -66,6 +76,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             {
                 if (online)
                 {
+                    Volatile.Write(ref _connectivityReconnectAt, _timeProvider.GetTimestamp());
                     _ = RefetchActiveForTriggerAsync(RefetchTrigger.Reconnect);
                 }
             };
@@ -89,7 +100,20 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             return;
         }
 
-        void Handler() => _ = RefetchActiveForTriggerAsync(trigger);
+        void Handler()
+        {
+            // Adapters such as the Blazor browser bridge report one reconnect both through the connectivity
+            // provider and the online manager; refetch once.
+            if (trigger is RefetchTrigger.Reconnect && _connectivity is not null &&
+                Volatile.Read(ref _connectivityReconnectAt) is var at && at != long.MinValue &&
+                _timeProvider.GetElapsedTime(at) < ReconnectCoalescingWindow)
+            {
+                return;
+            }
+
+            _ = RefetchActiveForTriggerAsync(trigger);
+        }
+
         source.Raised += Handler;
         _signalSubscriptions.Add((source, Handler));
     }
@@ -125,17 +149,20 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(fetcher);
 
-        var resolved = _options.Resolve(options);
-        var mode = forceRefetch ? FetchMode.CancelAndRefetch : FetchMode.IfStale;
-        var fetch = Cache.WithEntry<T, Task<QueryState<T>>>(
+        var request = new FetchRequest<T>(fetcher, _options.Resolve(key, options), forceRefetch ? FetchMode.CancelAndRefetch : FetchMode.IfStale, cancellationToken);
+        return Cache.WithEntry<T, FetchRequest<T>, Task<QueryResult<T>>>(
             key,
-            entry => entry.TryFetchAsync(fetcher, resolved, mode, remember: true, resolved.ThrowOnError, cancellationToken));
-
-        return ToResultAsync(key, fetch);
+            request,
+            static (entry, r) => entry.TryFetchResultAsync(r.Fetcher, r.Options, r.Mode, r.CancellationToken));
     }
 
-    private static async Task<QueryResult<T>> ToResultAsync<T>(QueryKey key, Task<QueryState<T>> fetch) =>
-        new(key, await fetch.ConfigureAwait(false));
+    // The arguments of a FetchAsync call, passed to the entry without allocating a closure (a fresh cache hit is the
+    // hottest path in the library).
+    private readonly record struct FetchRequest<T>(
+        Func<CancellationToken, Task<T>> Fetcher,
+        ResolvedQueryOptions Options,
+        FetchMode Mode,
+        CancellationToken CancellationToken);
 
     /// <inheritdoc />
     public async Task PrefetchAsync<T>(
@@ -148,7 +175,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         ArgumentNullException.ThrowIfNull(fetcher);
 
         // Prefetch is best-effort: failures are recorded on the entry, never thrown.
-        var resolved = _options.Resolve(options);
+        var resolved = _options.Resolve(key, options);
         await Cache.WithEntry<T, Task<QueryState<T>>>(
             key,
             entry => entry.TryFetchAsync(fetcher, resolved, FetchMode.IfStale, remember: true, throwOnError: false, cancellationToken))
@@ -222,24 +249,23 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
     public Task InvalidateQueriesAsync(QueryKey key, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(key);
-        return InvalidateQueriesAsync(key.IsPrefixOf, cancellationToken);
+        return InvalidateAsync(entry => key.IsPrefixOf(entry.Key), [key], cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task InvalidateQueriesAsync(Func<QueryKey, bool> predicate, CancellationToken cancellationToken = default)
+    public Task InvalidateQueriesAsync(Func<QueryKey, bool> predicate, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        var matched = Cache.Invalidate(predicate);
+        return InvalidateAsync(entry => predicate(entry.Key), requested: null, cancellationToken);
+    }
+
+    private async Task InvalidateAsync(Func<IQueryEntry, bool> predicate, IReadOnlyList<QueryKey>? requested, CancellationToken cancellationToken)
+    {
+        var matched = Cache.Invalidate(predicate, requested);
         if (matched.Count == 0)
         {
             return;
         }
-
-        Raise(new QueryInvalidatedEvent
-        {
-            Timestamp = _timeProvider.GetUtcNow(),
-            Keys = matched.Select(m => m.Entry.Key).ToArray(),
-        });
 
         var refetches = new List<Task>();
         foreach (var (entry, refetch) in matched)
@@ -293,7 +319,34 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         MutationOptions<TVariables, TData>? options = null)
     {
         ArgumentNullException.ThrowIfNull(mutationFn);
-        return new Mutation<TVariables, TData>(mutationFn, options, _timeProvider, this, this);
+        return CreateMutationCore(mutationFn, progressFn: null, options);
+    }
+
+    internal Mutation<TVariables, TData> CreateMutationCore<TVariables, TData>(
+        Func<TVariables, CancellationToken, Task<TData>>? mutationFn,
+        Func<TVariables, IProgress<double>, CancellationToken, Task<TData>>? progressFn,
+        MutationOptions<TVariables, TData>? options)
+    {
+        options ??= new MutationOptions<TVariables, TData>();
+        if (_options.GetMutationDefaults(options.MutationKey) is { } defaults)
+        {
+            options = defaults.ApplyTo(options);
+        }
+
+        mutationFn ??= (variables, ct) => progressFn!(variables, NullProgress.Instance, ct);
+        return new Mutation<TVariables, TData>(mutationFn, options, _timeProvider, this, this, Cache.Mutations, Cache.Runtime, _options.DefaultMutationNetworkMode)
+        {
+            ProgressFn = progressFn,
+        };
+    }
+
+    private sealed class NullProgress : IProgress<double>
+    {
+        public static NullProgress Instance { get; } = new();
+
+        public void Report(double value)
+        {
+        }
     }
 
     /// <inheritdoc />
@@ -316,7 +369,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         ArgumentNullException.ThrowIfNull(fetcher);
         ArgumentNullException.ThrowIfNull(options);
 
-        var resolved = _options.Resolve(options.QueryOptions);
+        var resolved = _options.Resolve(key, options.QueryOptions);
         if (options.QueryOptions?.RetryCount is null)
         {
             resolved = resolved with { RetryCount = Math.Max(0, options.RetryCount) };
@@ -374,7 +427,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
     {
         DotNetQueryDiagnostics.QueriesStarted.Add(1);
         var activity = DotNetQueryDiagnostics.ActivitySource.StartActivity("dotnetquery.query.fetch", ActivityKind.Internal);
-        activity?.SetTag("dotnetquery.query.key", key.ToString());
+        activity?.SetTag("dotnetquery.query.key", FormatKey(key));
         Raise(new QueryStartedEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key });
         return activity;
     }
@@ -414,6 +467,35 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         Raise(new QueryCancelledEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key, Duration = duration });
     }
 
+    void IQueryEventSink.QueryFetchRetried(QueryKey key, int failureCount, Exception error) =>
+        Raise(new QueryRetryEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key, FailureCount = failureCount, Error = error });
+
+    void IQueryEventSink.OptimisticApplied(long mutationId, IReadOnlyList<QueryKey> keys) =>
+        Raise(new OptimisticUpdateAppliedEvent { Timestamp = _timeProvider.GetUtcNow(), MutationId = mutationId, Keys = keys });
+
+    void IQueryEventSink.OptimisticRolledBack(long mutationId, IReadOnlyList<QueryKey> restored, IReadOnlyList<QueryKey> refetched) =>
+        Raise(new OptimisticUpdateRolledBackEvent { Timestamp = _timeProvider.GetUtcNow(), MutationId = mutationId, Restored = restored, Refetched = refetched });
+
+    private string FormatKey(QueryKey key)
+    {
+        if (_options.DiagnosticKeyFormatter is not { } format)
+        {
+            return key.ToString();
+        }
+
+        try
+        {
+            return format(key);
+        }
+        catch (Exception)
+        {
+            return "(unformattable key)";
+        }
+    }
+
+    void IQueryEventSink.QueriesInvalidated(IReadOnlyList<QueryKey> keys) =>
+        Raise(new QueryInvalidatedEvent { Timestamp = _timeProvider.GetUtcNow(), Keys = keys });
+
     void IQueryEventSink.ObserverFailed(QueryKey key, Exception error) =>
         Raise(new QueryObserverErrorEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key, Error = error });
 
@@ -427,7 +509,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             activity.SetTag("dotnetquery.mutation.id", id);
             if (mutationKey is not null)
             {
-                activity.SetTag("dotnetquery.mutation.key", mutationKey.ToString());
+                activity.SetTag("dotnetquery.mutation.key", FormatKey(mutationKey));
             }
         }
 
@@ -436,7 +518,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             Timestamp = _timeProvider.GetUtcNow(),
             MutationId = id,
             MutationKey = mutationKey,
-            Variables = variables,
+            Variables = _options.IncludeVariablesInDiagnostics ? variables : null,
         });
         return (id, activity);
     }
@@ -492,6 +574,6 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         }
 
         _gcTimer?.Dispose();
-        Cache.Clear();
+        Cache.DisposeAll();
     }
 }
