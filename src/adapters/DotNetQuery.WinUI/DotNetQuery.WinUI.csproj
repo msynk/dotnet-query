@@ -17,7 +17,7 @@
        tooling that the bare .NET SDK lacks. We only need the pre-generated DispatcherQueue projection
        from the package's lib assets, which remain referenced. -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250205002" ExcludeAssets="build;buildTransitive;buildMultitargeting" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" ExcludeAssets="build;buildTransitive;buildMultitargeting" />
   </ItemGroup>
 
   <ItemGroup>
