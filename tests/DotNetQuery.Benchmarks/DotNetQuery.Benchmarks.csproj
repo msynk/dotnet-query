@@ -13,12 +13,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.15.2" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <!-- Comparison baseline for CacheComparisonBenchmarks. -->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.13" />
     <!-- Renderer for BlazorRenderBenchmarks; AngleSharp lifted past GHSA-pgww-w46g-26qg as in the bUnit tests. -->
-    <PackageReference Include="bunit" Version="1.40.0" />
-    <PackageReference Include="AngleSharp" Version="1.8.1" />
+    <PackageReference Include="bunit" Version="2.13.3" />
+    <PackageReference Include="AngleSharp" Version="1.9.1" />
   </ItemGroup>
 
   <ItemGroup>
