@@ -32,6 +32,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
     private long _version;
     private FetchCycle? _cycle;
     private bool _invalidated;
+    private long _lastRefreshSequence; // start time (QueryRuntime.NextSequence) of the last refresh that succeeded
     private bool _pausedFetchPending;
     private Func<CancellationToken, Task<T>>? _lastFetcher;
     private ResolvedQueryOptions _lastOptions;
@@ -114,10 +115,15 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
     /// </param>
     /// <param name="throwOnError">Whether to rethrow a terminal fetch error to this caller.</param>
     /// <param name="cancellationToken">Cancels this caller's wait only; shared work continues.</param>
-    /// <param name="deferWhileOptimistic">
-    /// Whether this is a refresh that waits while optimistic writes of pending mutations are on screen (see
-    /// <c>QueryEntry.Optimistic.cs</c>); <see langword="false"/> for fetches that extend the data instead of replacing it
-    /// (an infinite query's next or previous page).
+    /// <param name="refresh">
+    /// Whether the fetch replaces the data (a refresh) rather than extending it (an infinite query's next or previous
+    /// page). Refreshes wait while optimistic writes of pending mutations are on screen (see
+    /// <c>QueryEntry.Optimistic.cs</c>), and a refresh in flight can satisfy a later invalidation.
+    /// </param>
+    /// <param name="joinRefreshStartedAfter">
+    /// With <see cref="FetchMode.CancelAndRefetch"/>: join a refresh in flight that started after this logical time
+    /// (<see cref="QueryRuntime.NextSequence"/>) instead of cancelling it - it already reflects the change being
+    /// reconciled. <see cref="long.MaxValue"/> (the default) always cancels.
     /// </param>
     public Task<QueryState<T>>? TryFetchAsync(
         Func<CancellationToken, Task<T>> fetcher,
@@ -126,7 +132,8 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
         bool remember,
         bool throwOnError,
         CancellationToken cancellationToken,
-        bool deferWhileOptimistic = true)
+        bool refresh = true,
+        long joinRefreshStartedAfter = long.MaxValue)
     {
         CancellationTokenSource? superseded = null;
         FetchCycle? cycle = null;
@@ -153,15 +160,22 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
                 return StateTaskLocked();
             }
 
-            if (_cycle is { } inFlight && !inFlight.Cts.IsCancellationRequested && mode is not FetchMode.CancelAndRefetch)
+            if (_cycle is { } inFlight && !inFlight.Cts.IsCancellationRequested &&
+                (mode is not FetchMode.CancelAndRefetch || (inFlight.IsRefresh && inFlight.StartSequence > joinRefreshStartedAfter)))
             {
-                cycle = inFlight; // deduplicate (never join a fetch that is already being cancelled)
+                // Deduplicate (never join a fetch that is already being cancelled). A refetch that would cancel an outdated
+                // fetch joins one that started after the change it reconciles: that fetch is not outdated.
+                cycle = inFlight;
             }
             else if (mode is FetchMode.IfStale && !IsStaleLocked(options.StaleTime))
             {
                 return StateTaskLocked();
             }
-            else if (deferWhileOptimistic && HasPendingLayersLocked())
+            else if (_cycle is null && !_invalidated && _lastRefreshSequence > joinRefreshStartedAfter)
+            {
+                return StateTaskLocked(); // the last refresh started after the change being reconciled: it reflects it
+            }
+            else if (refresh && HasPendingLayersLocked())
             {
                 // Optimistic writes of pending mutations are on screen: server data fetched now would not include them
                 // and would replace them until those mutations settle. Refetch once they have settled instead (an
@@ -191,7 +205,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
             }
             else
             {
-                cycle = StartCycleLocked(fetcher, options, out superseded);
+                cycle = StartCycleLocked(fetcher, options, refresh, out superseded);
             }
 
             snapshot = _state;
@@ -253,7 +267,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
     /// Refetches with the remembered fetcher/options. Never throws for fetch failures. Disabled queries are
     /// skipped unless <paramref name="includeDisabled"/> is set.
     /// </summary>
-    public Task RefetchAsync(FetchMode mode, bool includeDisabled, CancellationToken cancellationToken)
+    public Task RefetchAsync(FetchMode mode, bool includeDisabled, CancellationToken cancellationToken, long joinRefreshStartedAfter = long.MaxValue)
     {
         Func<CancellationToken, Task<T>>? fetcher;
         ResolvedQueryOptions options;
@@ -278,7 +292,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
             options = options with { Enabled = true };
         }
 
-        return (Task?)TryFetchAsync(fetcher, options, mode, remember: false, throwOnError: false, cancellationToken)
+        return (Task?)TryFetchAsync(fetcher, options, mode, remember: false, throwOnError: false, cancellationToken, refresh: true, joinRefreshStartedAfter)
             ?? Task.CompletedTask;
     }
 
@@ -314,12 +328,26 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
         return RefetchAsync(FetchMode.Force, includeDisabled: false, cancellationToken);
     }
 
-    /// <summary>Marks the entry invalidated. Returns whether it should be refetched now (active and enabled).</summary>
-    public bool Invalidate()
+    /// <summary>
+    /// Marks the entry invalidated - unless a refresh in flight started after <paramref name="changeSequence"/> (it
+    /// already reflects the change; it then covers the invalidation should it not complete). Returns whether it should
+    /// be refetched now (active and enabled).
+    /// </summary>
+    public bool Invalidate(long changeSequence = long.MaxValue)
     {
         lock (_gate)
         {
-            _invalidated = true;
+            if (_cycle is { IsRefresh: true } inFlight && !inFlight.Cts.IsCancellationRequested && inFlight.StartSequence > changeSequence)
+            {
+                inFlight.CoversInvalidation = true;
+            }
+            else if (_cycle is not null || _invalidated || _lastRefreshSequence <= changeSequence)
+            {
+                _invalidated = true;
+            }
+
+            // Otherwise the data came from a refresh that started after the change: it already reflects it.
+
             return _observers.Count > 0 && _lastFetcher is not null && _lastOptions.Enabled;
         }
     }
@@ -401,6 +429,8 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
                 _cycle = null;
                 _detachedCycle = cycle;
             }
+
+            _lastRefreshSequence = 0; // the reset discarded what that refresh fetched
 
             _invalidated = false;
             _pausedFetchPending = false;
@@ -513,6 +543,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
     private FetchCycle StartCycleLocked(
         Func<CancellationToken, Task<T>> fetcher,
         ResolvedQueryOptions options,
+        bool refresh,
         out CancellationTokenSource? superseded)
     {
         var previous = _cycle;
@@ -520,7 +551,9 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
         {
             // A superseding cycle inherits what to restore from the cycle it replaces.
             RevertStatus = previous?.RevertStatus ?? _state.Status,
-            RevertInvalidated = previous?.RevertInvalidated ?? _invalidated,
+            RevertInvalidated = (previous?.RevertInvalidated ?? _invalidated) || previous?.CoversInvalidation == true,
+            StartSequence = _runtime.NextSequence(),
+            IsRefresh = refresh,
         };
 
         superseded = null;
@@ -830,6 +863,11 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
                 {
                     case FetchOutcome.Succeeded:
                         _lastActivityAt = now;
+                        if (cycle.IsRefresh)
+                        {
+                            _lastRefreshSequence = cycle.StartSequence;
+                        }
+
                         SetStateLocked(
                             _state with
                             {
@@ -857,7 +895,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
 
                     case FetchOutcome.Paused:
                         _pausedFetchPending = true;
-                        _invalidated |= cycle.RevertInvalidated;
+                        _invalidated |= cycle.RevertInvalidated || cycle.CoversInvalidation;
                         SetStateLocked(
                             _state with
                             {
@@ -868,7 +906,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
                         break;
 
                     default:
-                        _invalidated |= cycle.RevertInvalidated;
+                        _invalidated |= cycle.RevertInvalidated || cycle.CoversInvalidation;
                         SetStateLocked(
                             _state with
                             {
@@ -1505,6 +1543,18 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
         public QueryStatus RevertStatus { get; init; }
 
         public bool RevertInvalidated { get; init; }
+
+        /// <summary>The logical time the cycle started (<see cref="QueryRuntime.NextSequence"/>).</summary>
+        public long StartSequence { get; init; }
+
+        /// <summary>Whether the cycle replaces the data (rather than adding an infinite query's next or previous page).</summary>
+        public bool IsRefresh { get; init; }
+
+        /// <summary>
+        /// Set when an invalidation relied on this cycle instead of marking the entry stale: if the cycle does not
+        /// complete (cancelled, paused), the entry is marked stale after all.
+        /// </summary>
+        public bool CoversInvalidation { get; set; }
 
         public FetchOutcome Outcome { get; set; }
 

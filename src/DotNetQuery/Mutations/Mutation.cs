@@ -173,6 +173,7 @@ public sealed class Mutation<TVariables, TData>
         var failures = 0;
         var committed = false;
         var settledCalled = false;
+        var changeSequence = long.MaxValue; // the logical time the server answered (see QueryRuntime.NextSequence)
         TData data = default!;
 
         try
@@ -213,6 +214,7 @@ public sealed class Mutation<TVariables, TData>
                             ? await withProgress(variables, new ActionProgress(value => Report(state = state with { Progress = value })), cancellationToken).ConfigureAwait(false)
                             : await _mutationFn(variables, cancellationToken).ConfigureAwait(false);
                         committed = true;
+                        changeSequence = _runtime?.NextSequence() ?? long.MaxValue;
                         break;
                     }
                     catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < (_options.RetryCount ?? 0) && ShouldRetry(failures + 1, ex)
@@ -295,7 +297,7 @@ public sealed class Mutation<TVariables, TData>
         {
             try
             {
-                await InvalidateAsync(CancellationToken.None).WaitAsync(cancellationToken).ConfigureAwait(false);
+                await InvalidateAsync(changeSequence, CancellationToken.None).WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -305,6 +307,11 @@ public sealed class Mutation<TVariables, TData>
 
         async Task<MutationResult<TVariables, TData>> FailAsync(Exception error)
         {
+            if (changeSequence == long.MaxValue)
+            {
+                changeSequence = _runtime?.NextSequence() ?? long.MaxValue; // the request (if any) has settled by now
+            }
+
             var cancelled = !committed && error is OperationCanceledException && cancellationToken.IsCancellationRequested;
             if (!cancelled && !committed)
             {
@@ -334,7 +341,7 @@ public sealed class Mutation<TVariables, TData>
                 await RunQuietlyAsync(() => _options.OnSettled(default, error, variables, context, settleToken).AsTask()).ConfigureAwait(false);
             }
 
-            await RunQuietlyAsync(() => InvalidateAsync(CancellationToken.None)).ConfigureAwait(false);
+            await RunQuietlyAsync(() => InvalidateAsync(changeSequence, CancellationToken.None)).ConfigureAwait(false);
             optimistic?.Settled();
 
             state = state with { Status = MutationStatus.Error, Error = error, FailureCount = failures, IsPaused = false };
@@ -399,7 +406,9 @@ public sealed class Mutation<TVariables, TData>
         return Task.WhenAll(conflicts.Select(key => client.InvalidateQueriesAsync(k => k == key, CancellationToken.None)));
     }
 
-    private async Task InvalidateAsync(CancellationToken cancellationToken)
+    // Invalidates the Invalidates keys for a change the server settled at logical time changeSequence: a refresh that
+    // started after it (another settled mutation's invalidation, typically) is joined rather than cancelled.
+    private async Task InvalidateAsync(long changeSequence, CancellationToken cancellationToken)
     {
         if (_options.Invalidates is not { Count: > 0 } keys || _client is null)
         {
@@ -409,7 +418,9 @@ public sealed class Mutation<TVariables, TData>
         var invalidations = new Task[keys.Count];
         for (var i = 0; i < keys.Count; i++)
         {
-            invalidations[i] = _client.InvalidateQueriesAsync(keys[i], cancellationToken);
+            invalidations[i] = _client is QueryClient client
+                ? client.InvalidateQueriesAfterAsync(keys[i], changeSequence, cancellationToken)
+                : _client.InvalidateQueriesAsync(keys[i], cancellationToken);
         }
 
         await Task.WhenAll(invalidations).ConfigureAwait(false);

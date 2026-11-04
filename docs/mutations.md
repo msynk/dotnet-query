@@ -50,6 +50,8 @@ run still completes (its callbacks fire and its task returns its own result) but
 whole round trip - except for queries that still carry optimistic updates of other pending mutations: their refetch
 waits until those settle (the last one runs it), so a burst of mutations is reconciled once and never shows the server's
 value without the still-pending changes (see [Optimistic updates](optimistic-updates.md#concurrent-mutations-of-one-list)).
+A refetch that started after this mutation's server call settled already includes its write, so the invalidation joins
+it instead of cancelling and restarting it - mutations settling together refetch a query once.
 
 ## Lifecycle
 

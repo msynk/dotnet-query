@@ -101,7 +101,8 @@ bindings instead of React hooks. This page maps the concepts.
 - **Removing an observed query** resets and refetches it rather than dropping it, so components never end up
   observing a dead entry.
 - **Invalidation cancels an outdated in-flight fetch** and hands its waiters the fresh result; background
-  triggers (focus, reconnect, interval) deduplicate with it instead.
+  triggers (focus, reconnect, interval) deduplicate with it instead, and a mutation's `Invalidates` joins a fetch that
+  started after its server call settled (no restart when several mutations settle together).
 - **Refreshes wait for pending optimistic updates** - while declarative optimistic updates of pending mutations are on
   a query, its invalidations and refetches are deferred and one refetch runs once they settle, so concurrent mutations
   need no `isMutating` checks before invalidating.

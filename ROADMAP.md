@@ -1,7 +1,7 @@
 # DotNetQuery - Path to 1.0
 
 Status: **feature-complete core and Blazor adapter, 8 UI adapters (Blazor, Blazor Server, MVVM, WPF, WinUI, Avalonia,
-MAUI, Uno), 1,125 tests, 10 NuGet packages, eight verified samples, a BenchmarkDotNet suite, a verified NativeAOT
+MAUI, Uno), 1,135 tests, 10 NuGet packages, eight verified samples, a BenchmarkDotNet suite, a verified NativeAOT
 publish and trimmed Blazor WebAssembly publish, CI with coverage, a tag-driven release workflow, and a frozen public API
 surface for every package.** This document tracks what remains before a formal 1.0 tag. See
 [CHANGELOG.md](CHANGELOG.md) for the latest changes and [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the
@@ -14,7 +14,8 @@ verified evidence.
   (invalidation cancels outdated fetches), ordered observer notifications, cancellation with state
   restore, atomic cache updates, hydration, race-free background GC, query and mutation `Meta`.
 - **Mutations** - declarative optimistic updates with exact, conflict-safe, atomic multi-key rollback and overlapping
-  layers; refreshes of a query wait while its optimistic updates are pending, then run once; `Invalidates`; retries with `ShouldRetry` (a mutation can opt out of default retries with `RetryCount = 0`);
+  layers; refreshes of a query wait while its optimistic updates are pending, then run once; `Invalidates` that join a
+  refetch started after the mutation's server call (mutations settling together refetch once); retries with `ShouldRetry` (a mutation can opt out of default retries with `RetryCount = 0`);
   lifecycle callbacks that never re-run the mutation; cancellation; mutation keys and ids; the mutation cache
   (`client.Cache.Mutations`) and serial `Scope`s.
 - **Query engine additions** - query filters and bulk operations, atomic multi-query transactions, initial and

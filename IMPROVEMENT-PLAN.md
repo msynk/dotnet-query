@@ -282,4 +282,5 @@ packaging).
 - [x] Samples match the tutorials (durable queue in OfflineFirst, declarative optimistic updates in ECommerce)
 - [x] Refreshes wait for pending optimistic updates (no flash of server data during concurrent mutations)
 - [x] `DeduplicatePending` race (a call right after completion joined the settled run)
+- [x] Mutations settling together refetch once (invalidation joins a refetch started after the server call)
 - [ ] Owner actions: reserve the `Msynk.` prefix, enable GitHub Pages, configure nuget.org trusted publishing (see ROADMAP)

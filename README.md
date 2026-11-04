@@ -7,7 +7,7 @@ optimistic mutations, pagination, prefetching, prerender hydration, persistence,
 visual inspector - built around `Task`, `CancellationToken`, immutable state, and dependency injection.
 
 > **Status: path to 1.0.** Feature-complete core with a frozen public API (PublicApiAnalyzers baselines for every
-> package), 1,125 tests (unit, concurrency/regression, bUnit component, WPF/WinUI lifecycle, Playwright browser
+> package), 1,135 tests (unit, concurrency/regression, bUnit component, WPF/WinUI lifecycle, Playwright browser
 > end-to-end), a verified NativeAOT publish and trimmed Blazor WebAssembly publish, a BenchmarkDotNet suite, CI with
 > coverage, and eight runnable samples. See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md) and
 > [implementation status](IMPLEMENTATION-STATUS.md).

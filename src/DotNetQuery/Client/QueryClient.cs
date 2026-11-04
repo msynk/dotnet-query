@@ -259,9 +259,17 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         return InvalidateAsync(entry => predicate(entry.Key), requested: null, cancellationToken);
     }
 
-    private async Task InvalidateAsync(Func<IQueryEntry, bool> predicate, IReadOnlyList<QueryKey>? requested, CancellationToken cancellationToken)
+    /// <summary>
+    /// Invalidates the queries under <paramref name="key"/> for a change made at logical time
+    /// <paramref name="changeSequence"/> (a settled mutation): refreshes that started after it already reflect the change
+    /// and are joined instead of being cancelled and restarted.
+    /// </summary>
+    internal Task InvalidateQueriesAfterAsync(QueryKey key, long changeSequence, CancellationToken cancellationToken) =>
+        InvalidateAsync(entry => key.IsPrefixOf(entry.Key), [key], cancellationToken, changeSequence);
+
+    private async Task InvalidateAsync(Func<IQueryEntry, bool> predicate, IReadOnlyList<QueryKey>? requested, CancellationToken cancellationToken, long changeSequence = long.MaxValue)
     {
-        var matched = Cache.Invalidate(predicate, requested);
+        var matched = Cache.Invalidate(predicate, requested, changeSequence);
         if (matched.Count == 0)
         {
             return;
@@ -273,8 +281,8 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             if (refetch)
             {
                 // Cancel any in-flight fetch: it may have started before the change that prompted this
-                // invalidation, so its result could already be outdated.
-                refetches.Add(entry.RefetchAsync(FetchMode.CancelAndRefetch, includeDisabled: false, cancellationToken));
+                // invalidation, so its result could already be outdated - unless it provably started after it.
+                refetches.Add(entry.RefetchAsync(FetchMode.CancelAndRefetch, includeDisabled: false, cancellationToken, changeSequence));
             }
         }
 

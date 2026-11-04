@@ -322,7 +322,8 @@ public sealed class QueryCache
     /// The key prefixes the caller asked to invalidate, if known: declared invalidation dependencies of these apply
     /// even when nothing under them is cached.
     /// </param>
-    internal IReadOnlyList<(IQueryEntry Entry, bool Refetch)> Invalidate(Func<IQueryEntry, bool> predicate, IReadOnlyList<QueryKey>? requested = null)
+    /// <param name="changeSequence">The logical time of the change that prompted the invalidation (see <see cref="IQueryEntry.Invalidate"/>).</param>
+    internal IReadOnlyList<(IQueryEntry Entry, bool Refetch)> Invalidate(Func<IQueryEntry, bool> predicate, IReadOnlyList<QueryKey>? requested = null, long changeSequence = long.MaxValue)
     {
         var matched = new List<(IQueryEntry, bool)>();
         var seen = new HashSet<IQueryEntry>(ReferenceEqualityComparer.Instance);
@@ -330,7 +331,7 @@ public sealed class QueryCache
         {
             if (predicate(entry) && seen.Add(entry))
             {
-                matched.Add((entry, entry.Invalidate()));
+                matched.Add((entry, entry.Invalidate(changeSequence)));
             }
         }
 
@@ -358,7 +359,7 @@ public sealed class QueryCache
                     {
                         if (dependent.IsPrefixOf(entry.Key) && seen.Add(entry))
                         {
-                            matched.Add((entry, entry.Invalidate()));
+                            matched.Add((entry, entry.Invalidate(changeSequence)));
                             frontier.Enqueue((entry.Key, false));
                         }
                     }

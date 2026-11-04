@@ -83,7 +83,9 @@ late one can never roll the UI back.
 5. Invalidate the `Invalidates` keys and run the callbacks. Every run is recorded in the `MutationCache`. While a
    query carries optimistic layers of other pending mutations, its refreshes are deferred: it is marked stale, and the
    last of those mutations to settle runs one refetch, so pending optimistic values are never replaced by server data
-   that does not include them yet.
+   that does not include them yet. A shared logical clock (`QueryRuntime.NextSequence`) orders fetch starts against
+   mutation settles: an invalidation joins a refetch that started after its mutation's server call settled (it already
+   includes the write) instead of restarting it.
 
 The durable `PersistentMutationQueue` stores mutations that must survive restarts and replays them in order with a
 stable idempotency key (at-least-once delivery).

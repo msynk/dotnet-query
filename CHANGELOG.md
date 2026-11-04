@@ -178,6 +178,11 @@ the 0.8.0 ones together describe the first public release. All changes are addit
   others completes without waiting for that refetch. Infinite next/previous page loads are not deferred.
 - A rollback whose rebase races only with another layer's commit re-plans instead of falling back to a refetch; a rebase
   that cannot complete drops the layer stack so the reconciling refetch is not deferred.
+- **A mutation's `Invalidates` joins a refetch that started after its server call settled** instead of cancelling and
+  restarting it (that refetch already includes the write), and does not refetch at all when such a refetch already
+  completed. Several mutations of one query settling together now refetch it once, with no cancelled fetch. Plain
+  `InvalidateQueriesAsync` keeps restarting in-flight fetches (it cannot know when the change happened), and an
+  infinite query's next/previous page fetch never counts as a refresh.
 - **`MutationOptions.RetryCount` and `InfiniteQueryOptions.RetryCount` are `int?`.** `null` uses the defaults; `0` now
   opts a mutation out of retries that `SetMutationDefaults` enables (previously impossible: 0 meant "unset").
 - **Prerender hydration** carries a JSON string envelope (`{"updatedAt", "data"}`) instead of a serialized object;

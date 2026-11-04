@@ -765,12 +765,35 @@ until the others settled.
   (`Deduplicated_mutations_join_a_pending_run_with_equal_variables` failed about once in 6 full runs). The run now leaves
   the list in a `finally` before its task completes; 10 consecutive full core runs are clean.
 
-## Final verification snapshot (after items 42-54, 2026-11-04)
+### 55. Mutations settling together refetch once (verified)
+
+Left open by item 54: when two mutations of one query settled at the same moment, both invalidated it; the second
+invalidation cancelled the refetch the first had just started and started another (two fetches, one cancelled).
+Invalidation restarts an in-flight fetch because it may predate the change - but a mutation knows when its change
+happened.
+
+- `QueryRuntime.NextSequence()`: a logical clock shared by fetches and mutations (timestamps cannot order events under a
+  fake or coarse clock). Each fetch cycle records its start (`StartSequence`) and whether it replaces the data
+  (`IsRefresh`: not an infinite query's next/previous page); a mutation takes a sequence right after its server call
+  settles.
+- The mutation's `Invalidates` go through `QueryClient.InvalidateQueriesAfterAsync(key, changeSequence)`: an entry whose
+  in-flight refresh started after the change is not marked stale and the refetch joins that refresh (if it does not
+  complete, the entry is marked stale after all - `CoversInvalidation`); an entry whose last successful refresh started
+  after the change needs no refetch. A fetch that started before the change is still cancelled and restarted. Plain
+  `InvalidateQueriesAsync` (no known change time) is unchanged.
+- Tests: `InvalidationJoinTests` (5: two mutations whose responses arrive together refetch once with no cancellation,
+  50 rounds; a refresh in flight before the server call is still restarted and the outdated result never lands; plain
+  invalidation still restarts; a refresh completed after the server call covers the invalidation; an infinite query's
+  next-page fetch does not). Negative check: with mutations routed through plain invalidation, the two behavior tests
+  fail. When the second response only arrives after the first mutation's refetch started, that refetch may predate the
+  second write, so it is still restarted - correctly (this is why the ECommerce sample keeps distinct server latencies).
+
+## Final verification snapshot (after items 42-55, 2026-11-04)
 
 | Check | Result |
 | --- | --- |
 | `dotnet build DotNetQuery.slnx -c Release` (clean, bin/obj deleted) | 0 warnings, 0 errors |
-| `dotnet test DotNetQuery.slnx -c Release`, Redis 7 available | **1,125 passed**, 0 skipped, 0 failed: core 491 on net8.0 + 491 on net10.0, Blazor bUnit 58 + 58, source generator 9, WPF/WinUI lifecycle 4, Uno 1, Playwright browser E2E 13; core suite clean over 10 more consecutive runs |
+| `dotnet test DotNetQuery.slnx -c Release`, Redis 7 available | **1,135 passed**, 0 skipped, 0 failed: core 496 on net8.0 + 496 on net10.0, Blazor bUnit 58 + 58, source generator 9, WPF/WinUI lifecycle 4, Uno 1, Playwright browser E2E 13; core suite clean over 10 more consecutive runs |
 | Line coverage (cobertura) | core 89.3%, Blazor 81.1%, Blazor.Server 100%, source generator 93.9%, Sqlite 76.9%, Redis 65.2%, WPF 60.6% |
 | Core suite on .NET 11 RC 3 (`DOTNET_ROLL_FORWARD=LatestMajor`) | 486 passed |
 | Console samples (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI (`emit` demo and `watch demo`) | all exit 0 |

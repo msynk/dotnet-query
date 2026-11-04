@@ -28,13 +28,25 @@ internal interface IQueryEntry : IDisposable
     DateTimeOffset LastActivityAt { get; }
 
     /// <summary>Marks the entry invalidated; returns whether it should be refetched now (active and enabled).</summary>
-    bool Invalidate();
+    /// <param name="changeSequence">
+    /// The logical time (<see cref="QueryRuntime.NextSequence"/>) of the change that prompted the invalidation. A refresh
+    /// in flight that started after it already reflects the change: the entry is then not marked stale (that refresh
+    /// covers the invalidation). <see cref="long.MaxValue"/> (unknown) never counts as covered.
+    /// </param>
+    bool Invalidate(long changeSequence = long.MaxValue);
 
     /// <summary>
     /// Refetches using the most recently supplied fetcher and options. Never throws for fetch failures.
     /// Returns a completed task if the entry has never been fetched.
     /// </summary>
-    Task RefetchAsync(FetchMode mode, bool includeDisabled, CancellationToken cancellationToken);
+    /// <param name="mode">How to treat freshness and an in-flight fetch.</param>
+    /// <param name="includeDisabled">Whether to refetch a disabled query.</param>
+    /// <param name="cancellationToken">Cancels this caller's wait only.</param>
+    /// <param name="joinRefreshStartedAfter">
+    /// With <see cref="FetchMode.CancelAndRefetch"/>: join (instead of cancelling) a refresh in flight that started after
+    /// this logical time, because it already reflects the change being reconciled.
+    /// </param>
+    Task RefetchAsync(FetchMode mode, bool includeDisabled, CancellationToken cancellationToken, long joinRefreshStartedAfter = long.MaxValue);
 
     /// <summary>
     /// Refetches only if the entry opts in to <paramref name="trigger"/> and is active and stale, or (for

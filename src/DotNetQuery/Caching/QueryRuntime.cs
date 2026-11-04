@@ -29,6 +29,15 @@ internal sealed class QueryRuntime
     /// <summary>The owning client's options, when the cache belongs to a client.</summary>
     public QueryClientOptions? Options { get; }
 
+    private long _sequence;
+
+    /// <summary>
+    /// The next value of a logical clock shared by the cache's fetches and mutations: a fetch cycle that started with a
+    /// higher value than the one a mutation took after its server call settled was requested after that call, so its
+    /// result already reflects the write (timestamps cannot order events reliably under a fake or coarse clock).
+    /// </summary>
+    public long NextSequence() => Interlocked.Increment(ref _sequence);
+
     /// <summary>The client-wide concurrency limit for fetch attempts, if any.</summary>
     public FetchLimiter? Limiter { get; }
 

@@ -69,6 +69,10 @@ await client.InvalidateQueriesAsync(UserQueries.All);                     // via
 - A fetch already in flight for an invalidated query is **cancelled and restarted**: it may have started
   before the change that prompted the invalidation, so its result could be outdated. Callers awaiting the
   cancelled fetch receive the new result.
+- A mutation's `Invalidates` knows when its server call settled: a refetch that started after that (for example the
+  one another mutation's invalidation just started) already includes the write, so it is joined instead of restarted,
+  and a refetch that already completed after it counts too. Several mutations settling together therefore refetch
+  a query once.
 - Background triggers (focus, reconnect, refetch interval) instead *join* an in-flight fetch.
 - Invalidation reaches [infinite queries](infinite-queries.md) too - they live in the same cache.
 
