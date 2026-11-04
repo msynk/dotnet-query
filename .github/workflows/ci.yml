@@ -20,10 +20,10 @@ jobs:
   build-test-pack:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
@@ -51,7 +51,7 @@ jobs:
 
       - name: Coverage report
         if: always()
-        uses: danielpalme/ReportGenerator-GitHub-Action@5.4.4
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.5.12
         with:
           reports: coverage/**/coverage.cobertura.xml
           targetdir: coverage-report
@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage-report
@@ -111,7 +111,7 @@ jobs:
         run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts -p:VersionSuffix=ci.${{ github.run_number }}
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-packages
           path: |
@@ -133,10 +133,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
@@ -160,10 +160,10 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
@@ -181,10 +181,10 @@ jobs:
   aot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
@@ -213,10 +213,10 @@ jobs:
   maui:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
@@ -233,7 +233,7 @@ jobs:
         run: dotnet pack src/adapters/DotNetQuery.Maui -c Release --no-build -o artifacts
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-maui
           path: |
