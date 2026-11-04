@@ -3,17 +3,17 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotNetQuery.SourceGenerators;
 
-/// <summary>Generates query keys, query definitions and mutations for interfaces marked with <c>[GenerateQueries]</c>.</summary>
+/// <summary>Generates query keys, query definitions and mutations for interfaces and classes marked with <c>[GenerateQueries]</c>.</summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class QueriesGenerator : IIncrementalGenerator
 {
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // [GenerateQueries] on an interface.
+        // [GenerateQueries] on an interface or a class.
         var annotated = context.SyntaxProvider.ForAttributeWithMetadataName(
             ModelBuilder.GenerateQueriesAttribute,
-            static (node, _) => node is InterfaceDeclarationSyntax,
+            static (node, _) => node is InterfaceDeclarationSyntax or ClassDeclarationSyntax,
             static (attributeContext, cancellationToken) => ModelBuilder.FromInterface(
                 (INamedTypeSymbol)attributeContext.TargetSymbol,
                 attributeContext.Attributes[0],

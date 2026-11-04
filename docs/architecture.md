@@ -14,7 +14,7 @@ IQueryClient (QueryClient)
  │   ├─ MutationCache ......... every mutation run (for inspection, scopes, retention)
  │   └─ QueryRuntime .......... clock, connectivity, concurrency limiter, rate limiter, event sink
  ├─ signal managers ........... FocusManager, OnlineManager, ResumeManager, ConnectivityProvider
- └─ diagnostics ............... DiagnosticEvent, ActivitySource, Meter
+ └─ diagnostics ............... DiagnosticEvent, ActivitySource, Meter, ILogger (AddDiagnosticLogging)
 Mutation<TVariables, TData> .... one per operation; optimistic layers on the entries it touches
 Adapters ....................... Blazor components/hooks, MVVM bindings, lifecycle classes, persistence, sync
 ```
@@ -80,7 +80,10 @@ late one can never roll the UI back.
 3. Run the mutation function with retries.
 4. On success, commit the layer; on failure, roll it back (a write that landed on top in the meantime is never
    clobbered - the key is invalidated instead).
-5. Invalidate the `Invalidates` keys and run the callbacks. Every run is recorded in the `MutationCache`.
+5. Invalidate the `Invalidates` keys and run the callbacks. Every run is recorded in the `MutationCache`. While a
+   query carries optimistic layers of other pending mutations, its refreshes are deferred: it is marked stale, and the
+   last of those mutations to settle runs one refetch, so pending optimistic values are never replaced by server data
+   that does not include them yet.
 
 The durable `PersistentMutationQueue` stores mutations that must survive restarts and replays them in order with a
 stable idempotency key (at-least-once delivery).
@@ -100,7 +103,9 @@ resets and refetches it rather than stranding its observers.
   revalidates in the background), migrates payloads saved under an older `Buster`, and can encrypt them
   (`ProtectedQueryPersister`). A per-key write gate keeps an older save from overwriting a newer one.
 - `QuerySynchronizer` keeps registered queries consistent across caches over an `IQuerySyncChannel` - browser tabs
-  (`BroadcastChannel`), processes, or servers.
+  (`BroadcastChannel`), processes, or servers (Redis pub/sub).
+- `PersistentMutationQueue` instances that share a store coordinate through an `IMutationQueueLock` (Web Locks in the
+  browser, a lock file for processes): the holder reconciles with the store and replays.
 
 ## Blazor specifics
 

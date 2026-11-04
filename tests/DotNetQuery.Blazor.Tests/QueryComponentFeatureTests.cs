@@ -96,7 +96,7 @@ public class QueryComponentFeatureTests : TestContext
     {
         var appState = this.AddFakePersistentComponentState();
         var key = QueryKey.Create("todos");
-        appState.Persist(QueryStateHydration.StateKey(key), new { Data = new[] { "from server" }, UpdatedAt = DateTimeOffset.UtcNow });
+        appState.Persist(QueryStateHydration.StateKey(key), HydrationEnvelope.Create(new[] { "from server" }, DateTimeOffset.UtcNow));
         var calls = 0;
 
         var cut = RenderComponent<Query<string[]>>(ps => ps
@@ -122,8 +122,8 @@ public class QueryComponentFeatureTests : TestContext
 
         appState.TriggerOnPersisting();
 
-        Assert.True(appState.TryTake<HydrationProbe>(QueryStateHydration.StateKey(key), out var persisted));
-        Assert.Equal(42, persisted!.Data);
+        Assert.True(appState.TryTake<string>(QueryStateHydration.StateKey(key), out var persisted));
+        Assert.Equal(42, HydrationEnvelope.Data<int>(persisted!));
     }
 
     [Fact]
@@ -160,10 +160,4 @@ public class QueryComponentFeatureTests : TestContext
         Assert.Equal(1, raised);
     }
 
-    public sealed class HydrationProbe
-    {
-        public int Data { get; set; }
-
-        public DateTimeOffset UpdatedAt { get; set; }
-    }
 }

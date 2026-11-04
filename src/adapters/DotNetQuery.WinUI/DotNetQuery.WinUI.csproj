@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>Msynk.DotNetQuery.WinUI</PackageId>
     <Description>WinUI 3 / Windows App SDK adapter for DotNetQuery: dispatcher-aware factories over the MVVM bindings (ObservableQuery/ObservableMutation) for XAML data binding.</Description>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFrameworks>net8.0-windows10.0.19041.0;net10.0-windows10.0.19041.0</TargetFrameworks>
     <!-- Pure-C# adapter (only the DispatcherQueue projection is used), so we skip UseWinUI/XAML/PRI
          tooling, which the bare .NET SDK can't run (MSB4062: ExpandPriContent). Disabling PRI generation
          removes the whole MrtCore resource-index chain. -->
@@ -22,6 +22,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\DotNetQuery\DotNetQuery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotNetQuery.Desktop.Tests" />
   </ItemGroup>
 
 </Project>

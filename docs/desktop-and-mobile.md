@@ -1,6 +1,6 @@
-# Desktop and mobile (WPF, WinUI, Avalonia, MAUI)
+# Desktop and mobile (WPF, WinUI, Avalonia, MAUI, Uno)
 
-The core package works in any .NET UI stack. The four XAML adapters add the same three things on each platform:
+The core package works in any .NET UI stack. The five XAML adapters add the same three things on each platform:
 dispatcher-aware factories for the MVVM bindings, a lifecycle class that turns the platform's window and
 application events into refetches, and (for MAUI) device connectivity and storage helpers.
 
@@ -10,6 +10,10 @@ application events into refetches, and (for MAUI) device connectivity and storag
 | `Msynk.DotNetQuery.WinUI` | `WinUIQueryExtensions` | `WinUIQueryLifecycle(Window, ...)` - window activation | OS network availability |
 | `Msynk.DotNetQuery.Avalonia` | `AvaloniaQueryExtensions` | `AvaloniaQueryLifecycle(Window, ...)` (desktop) or `(Application, ...)` (mobile, macOS) | OS network availability |
 | `Msynk.DotNetQuery.Maui` | `MauiQueryExtensions` | `MauiQueryLifecycle(Window, ...)` - activation, resume | `Connectivity.Current` (`MauiConnectivityBridge`) |
+| `Msynk.DotNetQuery.Uno` | `UnoQueryExtensions` | `UnoQueryLifecycle(Window, Application, ...)` - activation, background/foreground | OS network availability (desktop, mobile); reported by the app in the browser |
+
+The WPF and WinUI adapters target .NET 8 and .NET 10; Avalonia .NET 8 and 10; MAUI .NET 10 (the supported MAUI
+release); Uno .NET 9 and 10 (the frameworks Uno 6 supports).
 
 ## Register the client
 
@@ -110,6 +114,10 @@ protected override Window CreateWindow(IActivationState? activationState)
     window.Destroying += (_, _) => lifecycle.Dispose();
     return window;
 }
+
+// Uno Platform - App.xaml.cs OnLaunched
+MainWindow = new Window();
+_lifecycle = new UnoQueryLifecycle(MainWindow, this, Host.Services.GetRequiredService<AppLifecycleSignals>());
 ```
 
 What each one reports:
@@ -127,8 +135,17 @@ What each one reports:
   `monitorNetwork: false` (`monitorConnectivity: false` on MAUI) to report connectivity yourself through
   `ConnectivityProvider.SetOnline`.
 
-Other UI stacks (Uno, console UIs, game engines) call `AppLifecycleSignals.NotifyActivated`, `NotifyDeactivated`,
-`NotifyResumed` and `NotifyNetworkAvailability` from their own events.
+Other UI stacks (console UIs, game engines, WinForms) call `AppLifecycleSignals.NotifyActivated`, `NotifyDeactivated`,
+`NotifyResumed` and `NotifyNetworkAvailability` from their own events. Several app windows in separate processes that
+share a durable mutation queue need a `FileMutationQueueLock` (see
+[Offline mode](offline-mode.md#several-tabs-or-processes-sharing-the-queue)). For Blazor components hosted in a
+`BlazorWebView`, see [Blazor Hybrid](blazor.md#blazor-hybrid-maui-wpf-winforms).
+
+## Inspect a running app
+
+Desktop and mobile apps have no Blazor DevTools panel; serve the DevTools model on the loopback interface in debug
+builds and watch it from the CLI (`watch http://127.0.0.1:9230/`) - see
+[Diagnostics](diagnostics.md#live-devtools-for-any-app).
 
 ## Keep the cache across restarts
 
@@ -148,6 +165,10 @@ On desktop, use a folder under `Environment.SpecialFolder.LocalApplicationData`.
 - Avalonia: CI runs the sample headless (`dotnet run --project samples/DotNetQuery.Sample.Avalonia -- verify`): the
   window renders the query, the bound `RefetchCommand` refetches, and re-activating the window refetches the stale
   query through `AvaloniaQueryLifecycle`.
+- WPF: CI runs the sample's self-check (`dotnet run --project samples/DotNetQuery.Sample.Wpf -- verify`): the window's
+  bound list renders the query, the bound `RefetchCommand` refetches, and deactivating and re-activating the application
+  refetches through `WpfQueryLifecycle`. `tests/DotNetQuery.Desktop.Tests` drives `WpfQueryLifecycle` with a real WPF
+  `Application` (activation, system resume, network) and the WinUI activation mapping.
 - MAUI: the adapter and the sample build for Android in CI; iOS and Mac Catalyst need a Mac build host.
-- WPF and WinUI: the adapters build in CI; their lifecycle classes subscribe to the platform events listed above
-  and forward them to `AppLifecycleSignals`, whose behaviour is unit-tested.
+- WinUI and Uno: the adapters build in CI and their activation mapping is tested; a window needs the Windows App runtime
+  or an Uno app head, so the event wiring itself is compile-verified.

@@ -56,3 +56,15 @@ await manager.PersistAllAsync();
 
 Unlike the localStorage provider (which keeps all queries in one JSON blob), IndexedDB stores each query as
 a separate keyed record, so it scales to many/large queries.
+
+## Durable mutation queues in several tabs
+
+A `PersistentMutationQueue` stored in IndexedDB is restored by every open tab of the app. Give it a
+`WebLocksMutationQueueLock` (the browser's Web Locks API) so only one tab replays each queued write:
+
+```csharp
+var queue = new PersistentMutationQueue(new IndexedDbQueryPersister(JS, storeName: "mutations"), connectivity,
+    new PersistentMutationQueueOptions { ReplayLock = new WebLocksMutationQueueLock(JS, "todos-queue") });
+```
+
+The lock's JS module (`_content/DotNetQuery.Blazor/dotnetquery-locks.js`) is imported on first use.

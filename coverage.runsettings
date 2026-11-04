@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Code coverage of the shipped libraries, used by the CI test step. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[DotNetQuery]*,[DotNetQuery.Blazor]*,[DotNetQuery.Blazor.Server]*,[DotNetQuery.Persistence.*]*,[DotNetQuery.Wpf]*,[DotNetQuery.WinUI]*,[DotNetQuery.Uno]*,[DotNetQuery.SourceGenerators]*</Include>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <SkipAutoProps>true</SkipAutoProps>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -2,7 +2,7 @@ name: Docs
 
 # Builds the documentation site (guides in docs/ + API reference generated from the XML docs) with DocFX and
 # publishes it to GitHub Pages. Pull requests only build it, so broken docs fail review before they ship.
-# One-time repository setting: Settings > Pages > Source = "GitHub Actions".
+# One-time repository setting: Settings > Pages > Source = "GitHub Actions" (until then the deploy job fails).
 
 on:
   push:
@@ -36,8 +36,16 @@ jobs:
       - name: Install DocFX
         run: dotnet tool update -g docfx
 
+      # The API reference is generated from the built assemblies (with their XML docs and dependencies), not from
+      # the projects: DocFX cannot run the Razor source generator, so components written in .razor would be missing.
+      - name: Build the documented assemblies
+        run: |
+          for project in src/DotNetQuery src/adapters/DotNetQuery.Blazor src/adapters/DotNetQuery.Blazor.Server                          src/adapters/DotNetQuery.Avalonia src/persistence/DotNetQuery.Persistence.Sqlite                          src/persistence/DotNetQuery.Persistence.Redis; do
+            dotnet build "$project" -c Release -f net10.0 -p:CopyLocalLockFileAssemblies=true -p:OutDir="$PWD/artifacts/docs-bin/"
+          done
+
       - name: Build the site
-        run: docfx docs/docfx.json
+        run: docfx docs/docfx.json --warningsAsErrors
 
       - name: Upload the site
         if: github.event_name != 'pull_request'

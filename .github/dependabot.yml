@@ -1,0 +1,31 @@
+# Weekly dependency updates. Package references pinned per target framework (Microsoft.Extensions.* and
+# Microsoft.AspNetCore.* 8.0.x for net8.0, 10.0.x for net10.0) only receive patch and minor updates, so a net8.0
+# reference is never moved to a newer major.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      microsoft:
+        patterns: ["Microsoft.*", "System.*"]
+        update-types: [minor, patch]
+      test-tooling:
+        patterns: ["xunit*", "bunit", "coverlet*", "Microsoft.NET.Test.Sdk", "Microsoft.Playwright", "BenchmarkDotNet*", "AngleSharp", "Xunit.*"]
+    ignore:
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Maui.*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

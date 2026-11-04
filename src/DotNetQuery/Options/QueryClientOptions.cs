@@ -291,7 +291,8 @@ public sealed class QueryClientOptions
         NetworkMode: options?.NetworkMode ?? DefaultNetworkMode,
         Timeout: options?.Timeout is { } timeout && timeout > TimeSpan.Zero && timeout != System.Threading.Timeout.InfiniteTimeSpan ? timeout : null,
         Priority: options?.Priority ?? 0,
-        AdaptiveRefetchInterval: options?.AdaptiveRefetchInterval);
+        AdaptiveRefetchInterval: options?.AdaptiveRefetchInterval,
+        Meta: options?.Meta);
 
     /// <summary>
     /// Maps <see cref="Timeout.InfiniteTimeSpan"/> to <see cref="TimeSpan.MaxValue"/> (never elapses) and
@@ -319,4 +320,5 @@ internal readonly record struct ResolvedQueryOptions(
     NetworkMode NetworkMode,
     TimeSpan? Timeout,
     int Priority,
-    Func<QueryDescriptor, TimeSpan?>? AdaptiveRefetchInterval);
+    Func<QueryDescriptor, TimeSpan?>? AdaptiveRefetchInterval,
+    IReadOnlyDictionary<string, object?>? Meta);

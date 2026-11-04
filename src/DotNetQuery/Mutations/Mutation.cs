@@ -43,7 +43,7 @@ public sealed class Mutation<TVariables, TData>
     private MutationState<TVariables, TData> _state = MutationState<TVariables, TData>.Idle;
     private long _latestRun;
     private bool _draining;
-    private readonly List<(TVariables Variables, Task<MutationResult<TVariables, TData>> Run)> _pendingRuns = [];
+    private readonly List<PendingRun> _pendingRuns = [];
 
     /// <summary>The progress-reporting mutation function, when the mutation was created with one.</summary>
     internal Func<TVariables, IProgress<double>, CancellationToken, Task<TData>>? ProgressFn { get; init; }
@@ -106,42 +106,49 @@ public sealed class Mutation<TVariables, TData>
         // Only reserve the run under the lock, and start it after: starting runs user code synchronously (state
         // handlers, optimistic updaters, OnMutate, a mutation function that completes at once).
         var start = new TaskCompletionSource();
-        Task<MutationResult<TVariables, TData>> started;
+        PendingRun pending;
         lock (_pendingRuns)
         {
-            foreach (var (pendingVariables, pendingRun) in _pendingRuns)
+            foreach (var existing in _pendingRuns)
             {
-                if (EqualityComparer<TVariables>.Default.Equals(pendingVariables, variables))
+                if (EqualityComparer<TVariables>.Default.Equals(existing.Variables, variables))
                 {
-                    return pendingRun.WaitAsync(cancellationToken);
+                    return existing.Run!.WaitAsync(cancellationToken);
                 }
             }
 
-            started = RunWhenStartedAsync(start.Task, variables);
-            _pendingRuns.Add((variables, started));
-            _ = started.ContinueWith(
-                (task, state) =>
-                {
-                    var list = (List<(TVariables, Task<MutationResult<TVariables, TData>>)>)state!;
-                    lock (list)
-                    {
-                        list.RemoveAll(p => ReferenceEquals(p.Item2, task));
-                    }
-                },
-                _pendingRuns,
-                CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously,
-                TaskScheduler.Default);
+            pending = new PendingRun(variables);
+            pending.Run = RunWhenStartedAsync(start.Task, pending);
+            _pendingRuns.Add(pending);
         }
 
         start.SetResult(); // runs the reserved run inline, on this thread
-        return started.WaitAsync(cancellationToken);
+        return pending.Run.WaitAsync(cancellationToken);
     }
 
-    private async Task<MutationResult<TVariables, TData>> RunWhenStartedAsync(Task start, TVariables variables)
+    private async Task<MutationResult<TVariables, TData>> RunWhenStartedAsync(Task start, PendingRun pending)
     {
-        await start.ConfigureAwait(false);
-        return await RunAsync(variables, CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            await start.ConfigureAwait(false);
+            return await RunAsync(pending.Variables, CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Leave the list before the run's task completes, so a call made as soon as it completed starts a new run
+            // instead of joining this settled one.
+            lock (_pendingRuns)
+            {
+                _pendingRuns.Remove(pending);
+            }
+        }
+    }
+
+    private sealed class PendingRun(TVariables variables)
+    {
+        public TVariables Variables { get; } = variables;
+
+        public Task<MutationResult<TVariables, TData>>? Run { get; set; }
     }
 
     private async Task<MutationResult<TVariables, TData>> RunAsync(TVariables variables, CancellationToken cancellationToken)
@@ -156,8 +163,8 @@ public sealed class Mutation<TVariables, TData>
         };
         Publish(run, state);
 
-        var (mutationId, sinkToken) = _eventSink?.MutationStarted(_options.MutationKey, variables) ?? (0, null);
-        var tracked = _mutationCache?.Add(mutationId, _options.MutationKey, _options.Scope, variables, submittedAt);
+        var (mutationId, sinkToken) = _eventSink?.MutationStarted(_options.MutationKey, _options.Meta, variables) ?? (0, null);
+        var tracked = _mutationCache?.Add(mutationId, _options.MutationKey, _options.Scope, _options.Meta, variables, submittedAt);
         var started = _timeProvider.GetTimestamp();
 
         object? context = null;
@@ -208,7 +215,7 @@ public sealed class Mutation<TVariables, TData>
                         committed = true;
                         break;
                     }
-                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < _options.RetryCount && ShouldRetry(failures + 1, ex)
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested && failures < (_options.RetryCount ?? 0) && ShouldRetry(failures + 1, ex)
                         && TryGetRetryDelay(failures, ex, out var delay))
                     {
                         failures++;
@@ -247,10 +254,11 @@ public sealed class Mutation<TVariables, TData>
 
             optimistic?.Complete();
             await ReconcileAsync().ConfigureAwait(false);
+            optimistic?.Settled();
 
             state = state with { Status = MutationStatus.Success, Data = data, Error = null, FailureCount = failures };
             Report(state);
-            _eventSink?.MutationCompleted(mutationId, _options.MutationKey, true, null, failures, _timeProvider.GetElapsedTime(started), sinkToken);
+            _eventSink?.MutationCompleted(mutationId, _options.MutationKey, _options.Meta, true, null, failures, _timeProvider.GetElapsedTime(started), sinkToken);
             return new MutationResult<TVariables, TData>(state);
         }
         finally
@@ -327,10 +335,11 @@ public sealed class Mutation<TVariables, TData>
             }
 
             await RunQuietlyAsync(() => InvalidateAsync(CancellationToken.None)).ConfigureAwait(false);
+            optimistic?.Settled();
 
             state = state with { Status = MutationStatus.Error, Error = error, FailureCount = failures, IsPaused = false };
             Report(state);
-            _eventSink?.MutationCompleted(mutationId, _options.MutationKey, false, error, failures, _timeProvider.GetElapsedTime(started), sinkToken);
+            _eventSink?.MutationCompleted(mutationId, _options.MutationKey, _options.Meta, false, error, failures, _timeProvider.GetElapsedTime(started), sinkToken);
 
             if (cancelled || _options.ThrowOnError)
             {

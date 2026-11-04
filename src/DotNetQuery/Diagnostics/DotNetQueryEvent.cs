@@ -22,6 +22,9 @@ public sealed record QueryCompletedEvent : DotNetQueryEvent
 
     /// <summary>How long the fetch took (including retries).</summary>
     public required TimeSpan Duration { get; init; }
+
+    /// <summary>The <see cref="QueryOptions.Meta"/> of the query, if any.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 }
 
 /// <summary>Raised when a query's fetch ultimately fails after exhausting retries.</summary>
@@ -38,6 +41,9 @@ public sealed record QueryFailedEvent : DotNetQueryEvent
 
     /// <summary>How long the fetch took before failing.</summary>
     public required TimeSpan Duration { get; init; }
+
+    /// <summary>The <see cref="QueryOptions.Meta"/> of the query, if any.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 }
 
 /// <summary>
@@ -86,6 +92,9 @@ public sealed record MutationStartedEvent : DotNetQueryEvent
 
     /// <summary>The variables the mutation was invoked with.</summary>
     public object? Variables { get; init; }
+
+    /// <summary>The <see cref="MutationOptions{TVariables, TData}.Meta"/> of the mutation, if any.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 }
 
 /// <summary>Raised when a mutation completes (successfully or not).</summary>
@@ -108,6 +117,9 @@ public sealed record MutationCompletedEvent : DotNetQueryEvent
 
     /// <summary>How long the mutation took.</summary>
     public required TimeSpan Duration { get; init; }
+
+    /// <summary>The <see cref="MutationOptions{TVariables, TData}.Meta"/> of the mutation, if any.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 }
 
 /// <summary>Raised when a failed fetch attempt is about to be retried.</summary>

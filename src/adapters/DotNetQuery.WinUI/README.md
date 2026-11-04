@@ -1,7 +1,7 @@
 # DotNetQuery.WinUI
 
-WinUI 3 / Windows App SDK adapter for DotNetQuery. Dispatcher-aware factories over the MVVM bindings
-(`ObservableQuery` / `ObservableMutation`) for XAML data binding - mirrors the WPF and Avalonia adapters.
+WinUI 3 / Windows App SDK adapter for DotNetQuery (.NET 8 and .NET 10). Dispatcher-aware factories over the MVVM
+bindings (`ObservableQuery` / `ObservableMutation`) for XAML data binding - mirrors the WPF, Avalonia and Uno adapters.
 
 ```csharp
 using DotNetQuery.WinUI;

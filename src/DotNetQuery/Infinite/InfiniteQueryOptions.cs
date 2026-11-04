@@ -35,10 +35,10 @@ public sealed record InfiniteQueryOptions<TParam, TPage>
     public int? MaxPages { get; init; }
 
     /// <summary>
-    /// Maximum number of automatic retries after a failed fetch. Defaults to 0. Ignored when
-    /// <see cref="QueryOptions"/> specifies <see cref="DotNetQuery.QueryOptions.RetryCount"/>.
+    /// Maximum number of automatic retries after a failed fetch. <see langword="null"/> (the default) means 0. Ignored
+    /// when <see cref="QueryOptions"/> specifies <see cref="DotNetQuery.QueryOptions.RetryCount"/>.
     /// </summary>
-    public int RetryCount { get; init; }
+    public int? RetryCount { get; init; }
 
     /// <summary>
     /// Strategy computing the delay between retries. Defaults to no delay. Ignored when

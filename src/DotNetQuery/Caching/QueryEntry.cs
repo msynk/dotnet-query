@@ -114,13 +114,19 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
     /// </param>
     /// <param name="throwOnError">Whether to rethrow a terminal fetch error to this caller.</param>
     /// <param name="cancellationToken">Cancels this caller's wait only; shared work continues.</param>
+    /// <param name="deferWhileOptimistic">
+    /// Whether this is a refresh that waits while optimistic writes of pending mutations are on screen (see
+    /// <c>QueryEntry.Optimistic.cs</c>); <see langword="false"/> for fetches that extend the data instead of replacing it
+    /// (an infinite query's next or previous page).
+    /// </param>
     public Task<QueryState<T>>? TryFetchAsync(
         Func<CancellationToken, Task<T>> fetcher,
         ResolvedQueryOptions options,
         FetchMode mode,
         bool remember,
         bool throwOnError,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool deferWhileOptimistic = true)
     {
         CancellationTokenSource? superseded = null;
         FetchCycle? cycle = null;
@@ -154,6 +160,18 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
             else if (mode is FetchMode.IfStale && !IsStaleLocked(options.StaleTime))
             {
                 return StateTaskLocked();
+            }
+            else if (deferWhileOptimistic && HasPendingLayersLocked())
+            {
+                // Optimistic writes of pending mutations are on screen: server data fetched now would not include them
+                // and would replace them until those mutations settle. Refetch once they have settled instead (an
+                // in-flight fetch being replaced is outdated as well).
+                _refetchDeferred = true;
+                _invalidated = true;
+                if (_cycle is { } outdated)
+                {
+                    superseded = outdated.Cts;
+                }
             }
             else if (options.NetworkMode is NetworkMode.Online && !_runtime.IsOnline)
             {
@@ -522,6 +540,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
         _cycle = cycle;
         _invalidated = false;
         _pausedFetchPending = false;
+        _refetchDeferred = false;
         _fetchCount++;
 
         // Transition synchronously so the very first render after a fetch starts already shows Loading.
@@ -628,10 +647,10 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
             switch (outcome)
             {
                 case FetchOutcome.Succeeded:
-                    sink.QueryFetchSucceeded(Key, elapsed, sinkToken);
+                    sink.QueryFetchSucceeded(Key, cycle.Options.Meta, elapsed, sinkToken);
                     break;
                 case FetchOutcome.Failed:
-                    sink.QueryFetchFailed(Key, error!, attempts, elapsed, sinkToken);
+                    sink.QueryFetchFailed(Key, cycle.Options.Meta, error!, attempts, elapsed, sinkToken);
                     break;
                 default:
                     sink.QueryFetchCancelled(Key, elapsed, sinkToken);
@@ -1352,6 +1371,7 @@ internal sealed partial class QueryEntry<T> : IQueryEntry
                 LastActivityAt = _lastActivityAt,
                 CacheTime = _cacheTime,
                 StaleTime = _lastFetcher is null ? null : _lastOptions.StaleTime,
+                Meta = _lastFetcher is null ? null : _lastOptions.Meta,
             };
         }
     }

@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="bunit" Version="1.40.0" />
     <!-- Lift bUnit's transitive AngleSharp past the version flagged by GHSA-pgww-w46g-26qg (NU1902). -->
     <PackageReference Include="AngleSharp" Version="1.8.1" />
@@ -23,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
     <ProjectReference Include="..\..\src\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
+    <ProjectReference Include="..\..\src\adapters\DotNetQuery.Blazor.Server\DotNetQuery.Blazor.Server.csproj" />
   </ItemGroup>
 
 </Project>

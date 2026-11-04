@@ -6,28 +6,31 @@ refresh logic with one consistent layer: fetching, caching, deduplication, inval
 optimistic mutations, pagination, prefetching, prerender hydration, persistence, offline queues, and a
 visual inspector - built around `Task`, `CancellationToken`, immutable state, and dependency injection.
 
-> **Status: path to 1.0.** Feature-complete core with a frozen public API (PublicApiAnalyzers baselines),
-> 412 tests (unit, concurrency/regression, bUnit component, Playwright browser end-to-end), a verified NativeAOT publish, BenchmarkDotNet
-> suite, CI, and seven runnable samples. See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md) and
+> **Status: path to 1.0.** Feature-complete core with a frozen public API (PublicApiAnalyzers baselines for every
+> package), 1,125 tests (unit, concurrency/regression, bUnit component, WPF/WinUI lifecycle, Playwright browser
+> end-to-end), a verified NativeAOT publish and trimmed Blazor WebAssembly publish, a BenchmarkDotNet suite, CI with
+> coverage, and eight runnable samples. See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md) and
 > [implementation status](IMPLEMENTATION-STATUS.md).
 
 ## Why
 
 | You need | DotNetQuery gives you |
 | --- | --- |
-| Typed query keys and reusable query definitions | `QueryKey` (hierarchical, structural) + `QueryDefinition<T>` (key + fetcher + options), or generated from a Refit/OpenAPI interface with `[GenerateQueries]` |
+| Typed query keys and reusable query definitions | `QueryKey` (hierarchical, structural) + `QueryDefinition<T>` (key + fetcher + options), or generated from a Refit/OpenAPI interface or a Kiota wrapper with `[GenerateQueries]` (queries, mutations, infinite queries, generic methods) |
 | Request deduplication and configurable freshness | One in-flight fetch per key; `StaleTime`/`CacheTime` per query or globally |
 | Cache invalidation and dependency-aware refresh | Prefix/predicate invalidation that cancels outdated fetches; `Invalidates` on mutations |
-| Optimistic mutations with rollback | Declarative `OptimisticUpdates`, exact rollback, automatic reconciliation |
+| Optimistic mutations with rollback | Declarative `OptimisticUpdates`, exact rollback (concurrent mutations roll back independently), automatic reconciliation that never flashes server data over pending changes |
 | Retries, cancellation, pagination, infinite queries | Back-off policies with HTTP-aware `ShouldRetry`/`Retry-After`, timeouts, priorities and concurrency limits, circuit breaker and token refresh handlers, `CancelQueriesAsync`, `KeepPreviousData`, cache-backed infinite queries with Virtualize integration |
 | Initial data, placeholders, selectors, structural sharing | `InitialData`/`PlaceholderData` on definitions, `Watch(key, select, notifyOn)` fine-grained observers, opt-in structural sharing |
 | Bulk operations and atomic multi-query writes | `QueryFilter` (key, activity, staleness, status) for invalidate/refetch/reset/remove, `SetQueriesData` transactions with rollback |
 | Mutation tracking and ordering | `client.Cache.Mutations` (inspect, filter, count pending, global hooks), `Scope` for serial execution |
 | Prefetching and hydration for server rendering | `PrefetchAsync`/`EnsureQueryDataAsync`, `HydrateQueryData`, automatic Blazor prerender hydration (`<Query>` and hooks) |
 | Multi-user safety | Scoped per-circuit clients, `ResetOnUserChange()` clears the cache when the signed-in user or tenant changes |
-| Cache persistence and offline mutation queues | Persisters (file, SQLite, Redis, localStorage, IndexedDB), offline pause/resume, durable mutation queue |
-| A visual inspector for cached records and mutation history | DevTools model, Blazor panel (inline/floating) with data previews, timelines, profiles, snapshots (time travel) and offline-queue inspection, CLI dashboard |
-| Desktop and mobile apps | MVVM bindings with commands (`ObservableQuery`, `ObservableInfiniteQuery`, `ObservableMutation`), lifecycle classes that refetch when the user returns and pause while offline |
+| Cache persistence and offline mutation queues | Persisters (file, SQLite, Redis, localStorage, IndexedDB), offline pause/resume, durable mutation queue that replays each write once even with several tabs or processes sharing it |
+| Keeping caches in sync | `QuerySynchronizer` across browser tabs (`BroadcastChannel`), windows and server instances (Redis pub/sub) |
+| A visual inspector for cached records and mutation history | DevTools model, Blazor panel (inline/floating) with data previews, timelines, profiles, snapshots (time travel) and offline-queue inspection, a live endpoint for any app and a CLI dashboard |
+| Logs and telemetry | `AddDiagnosticLogging()` (`ILogger`), OpenTelemetry traces and metrics, `Meta` on queries and mutations for global handlers |
+| Desktop and mobile apps | MVVM bindings with commands (`ObservableQuery`, `ObservableInfiniteQuery`, `ObservableMutation`), lifecycle classes for WPF, WinUI, Avalonia, MAUI and Uno that refetch when the user returns and pause while offline |
 
 ## Packages
 
@@ -36,13 +39,15 @@ Package IDs carry the owner-scoped `Msynk.` prefix (namespaces do not: `using Do
 | Package | Description |
 | --- | --- |
 | `Msynk.DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers and mutations, the `[GenerateQueries]` source generator, MVVM bindings (`ObservableQuery`/`ObservableInfiniteQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
-| `Msynk.DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, `localStorage`/IndexedDB persisters, and the visual DevTools panel. |
-| `Msynk.DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers. |
-| `Msynk.DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` | Dispatcher-aware factories over the MVVM bindings and lifecycle classes (focus/resume refetch, connectivity) for XAML apps. |
+| `Msynk.DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, cross-tab sync, `localStorage`/IndexedDB persisters, the Web Locks queue lock, and the visual DevTools panel. Trim/AOT-safe. |
+| `Msynk.DotNetQuery.Blazor.Server` | Server-only: refetches the stale queries on screen when a dropped Blazor Server circuit reconnects (`RefetchOnCircuitReconnect()`). |
+| `Msynk.DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers; the Redis package also carries the Redis pub/sub synchronization channel. |
+| `Msynk.DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` / `.Uno` | Dispatcher-aware factories over the MVVM bindings and lifecycle classes (focus/resume refetch, connectivity) for XAML apps. |
 
 Namespaces follow the feature, not the package: `DotNetQuery.Persistence`, `DotNetQuery.Mvvm`,
 `DotNetQuery.DevTools`, `DotNetQuery.GraphQL` and `DotNetQuery.DevTools.Blazor` all ship inside the packages
-above. The portable libraries target **.NET 8 (LTS) and .NET 10**, including the Blazor adapter.
+above. The libraries target **.NET 8 (LTS) and .NET 10** (WPF and WinUI included; MAUI follows its supported .NET 10
+release, Uno its supported .NET 9 and 10), and CI runs the suite on the newest .NET runtime too.
 
 ## Quick start (Blazor)
 
@@ -92,6 +97,9 @@ var todos = await client.FetchAsync(TodoQueries.List(api, TodoFilter.All));
 // Observe for reactive UIs (every transition, in order).
 using var observer = client.Watch(TodoQueries.List(api, TodoFilter.All));
 observer.StateChanged += state => Render(state);
+
+// Log fetch failures, retries and mutations through ILogger (DI: AddDotNetQuery().AddDiagnosticLogging()).
+using var logging = client.LogDiagnostics(logger);
 
 // Mutate with a declarative optimistic update, automatic rollback and reconciliation.
 var add = client.CreateMutation<string, Todo>(
@@ -173,9 +181,12 @@ _ = client.StreamIntoCacheAsync<List<Message>, Message>(QueryKey.Create("chat", 
 ### Diagnostics
 
 ```csharp
-client.DiagnosticEvent += e => { if (e is QueryFailedEvent f) logger.LogWarning(f.Error, "Query {Key} failed", f.Key); };
+builder.Services.AddDotNetQuery().AddDiagnosticLogging();                     // ILogger: failures, retries, mutations
 tracerProviderBuilder.AddSource(DotNetQueryDiagnostics.ActivitySourceName);   // OpenTelemetry traces
 meterProviderBuilder.AddMeter(DotNetQueryDiagnostics.MeterName);              // and metrics
+
+// Live inspector for any app (development only): dnq-devtools watch http://127.0.0.1:9230/
+await using var devtoolsServer = QueryDevToolsServer.Start(new QueryDevTools(client), new() { Port = 9230 });
 ```
 
 ## Guarantees
@@ -211,13 +222,13 @@ Guides live in [`docs/`](docs/README.md): [Getting Started](docs/getting-started
 | --- | --- |
 | `samples/TodoApp` (+ `TodoApp.Client`) | Blazor Web App with per-page Server / WebAssembly / Auto / static-SSR render modes: prerender hydration, optimistic mutations, `EditForm`, 10,000-row `Virtualize`, `QuickGrid`, multi-tenant keys, floating DevTools |
 | `samples/DotNetQuery.Sample.Chat` | Infinite history pagination + live streaming into the cache |
-| `samples/DotNetQuery.Sample.OfflineFirst` | Persist → restart offline → restore → offline queue → reconnect replay |
-| `samples/DotNetQuery.Sample.ECommerce` | Optimistic cart updates with rollback |
+| `samples/DotNetQuery.Sample.OfflineFirst` | Persist → restart offline → restore → durable queue across restarts → reconnect replay with idempotency keys and dead letters |
+| `samples/DotNetQuery.Sample.ECommerce` | Concurrent declarative optimistic updates; only the rejected one rolls back |
 | `samples/DotNetQuery.Sample.Dashboard` | Deduplication and background refresh |
-| `samples/DotNetQuery.Sample.Avalonia` / `.Maui` | MVVM bindings, commands and lifecycle refetch on Avalonia (headless-verified in CI) and MAUI |
+| `samples/DotNetQuery.Sample.Avalonia` / `.Wpf` / `.Maui` | MVVM bindings, commands and lifecycle refetch on Avalonia (headless-verified in CI), WPF (verified in CI) and MAUI |
 
-Run the Blazor sample with `dotnet run --project samples/TodoApp`. The console samples and the Avalonia
-headless check run as CI smoke tests.
+Run the Blazor sample with `dotnet run --project samples/TodoApp`. The console samples and the Avalonia and WPF
+self-checks run as CI smoke tests.
 
 ## Building & testing
 
@@ -227,7 +238,8 @@ dotnet test DotNetQuery.slnx
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the public-API baseline workflow, engine concurrency rules,
-benchmarks and the NativeAOT harness.
+benchmarks and the NativeAOT harness, [SECURITY.md](SECURITY.md) to report a vulnerability, and the
+[code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

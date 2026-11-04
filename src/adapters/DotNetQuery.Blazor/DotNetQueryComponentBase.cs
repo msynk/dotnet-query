@@ -362,7 +362,7 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
     {
         if (ApplicationState is { } state)
         {
-            QueryStateHydration.TryHydrate<T>(state, QueryClient, key);
+            QueryStateHydration.TryHydrateFor<T>(state, QueryClient, key, Services);
         }
     }
 
@@ -372,7 +372,7 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
         {
             foreach (var slot in _slots.Values)
             {
-                (slot as IPersistableSlot)?.Persist(state, QueryClient);
+                (slot as IPersistableSlot)?.Persist(state, QueryClient, Services);
             }
         }
 
@@ -421,7 +421,7 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
 
     private interface IPersistableSlot
     {
-        void Persist(PersistentComponentState state, IQueryClient client);
+        void Persist(PersistentComponentState state, IQueryClient client, IServiceProvider services);
     }
 
     private sealed class QuerySlot<T> : IDisposable, IPersistableSlot
@@ -439,7 +439,7 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
 
         public bool Enabled { get; set; }
 
-        public void Persist(PersistentComponentState state, IQueryClient client) => QueryStateHydration.Persist<T>(state, client, Observer.Key);
+        public void Persist(PersistentComponentState state, IQueryClient client, IServiceProvider services) => QueryStateHydration.PersistFor<T>(state, client, Observer.Key, services);
 
         private void OnChanged(QueryState<T> state) => _owner.Rerender();
 
@@ -489,11 +489,11 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
             return result;
         }
 
-        public void Persist(PersistentComponentState state, IQueryClient client)
+        public void Persist(PersistentComponentState state, IQueryClient client, IServiceProvider services)
         {
             foreach (var key in _items.Keys)
             {
-                QueryStateHydration.Persist<T>(state, client, key);
+                QueryStateHydration.PersistFor<T>(state, client, key, services);
             }
         }
 
@@ -541,7 +541,7 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
         public bool Enabled { get; set; }
 
         // Persist the source query's data (type T), which the interactive render hydrates before selecting.
-        public void Persist(PersistentComponentState state, IQueryClient client) => QueryStateHydration.Persist<T>(state, client, _key);
+        public void Persist(PersistentComponentState state, IQueryClient client, IServiceProvider services) => QueryStateHydration.PersistFor<T>(state, client, _key, services);
 
         private void OnChanged(QueryState<TResult> state) => _owner.Rerender();
 
@@ -583,8 +583,8 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
 
         public InfiniteQuery<TParam, TPage> Query { get; }
 
-        public void Persist(PersistentComponentState state, IQueryClient client) =>
-            QueryStateHydration.Persist<InfiniteData<TParam, TPage>>(state, client, Query.Key);
+        public void Persist(PersistentComponentState state, IQueryClient client, IServiceProvider services) =>
+            QueryStateHydration.PersistFor<InfiniteData<TParam, TPage>>(state, client, Query.Key, services);
 
         private void OnChanged(InfiniteQueryState<TParam, TPage> state) => _owner.Rerender();
 

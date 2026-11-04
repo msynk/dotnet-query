@@ -1,8 +1,9 @@
-# Generated queries from API interfaces (Refit, OpenAPI)
+# Generated queries from API interfaces (Refit, OpenAPI, Kiota)
 
 Writing a key and a fetcher for every endpoint is repetitive and easy to get subtly wrong (two keys for the same
-data, an invalidation that misses a query). `[GenerateQueries]` generates them from the API interface you already
-have - a Refit interface, a client generated from an OpenAPI document, or a hand-written service interface. The
+data, an invalidation that misses a query). `[GenerateQueries]` generates them from the API you already have - a Refit
+interface, a client generated from an OpenAPI document, a hand-written service interface, or a class (for example a
+thin wrapper over a Kiota client). The
 generator ships inside the `Msynk.DotNetQuery` package; there is nothing else to install. The generated code is
 plain C# (no reflection), so it is trim- and NativeAOT-safe.
 
@@ -64,8 +65,22 @@ your own code - the generated file is never edited:
   `[Get]`/`[Post]`/... attributes classify the methods.
 - **NSwag** generates a client class with an interface (`IPetStoreClient`) where every operation has an overload with
   and without a `CancellationToken`; the generator keeps one member per operation (the one with the token).
-- **Kiota** generates request builders rather than an interface; wrap the calls you need in a small interface of your
-  own and annotate that.
+- **Kiota** generates request builders rather than an interface; wrap the calls you need in a small class of your own
+  and annotate the class (no interface needed):
+
+```csharp
+[GenerateQueries(KeyPrefix = "users")]
+public sealed class UsersApi(GraphServiceClient graph)
+{
+    public Task<User?> GetUserAsync(string id, CancellationToken cancellationToken) =>
+        graph.Users[id].GetAsync(cancellationToken: cancellationToken);
+}
+
+await client.FetchAsync(UsersApiQueries.GetUser(usersApi, "42"));
+```
+
+  On a class, the public instance methods (inherited ones included) are used; `Dispose`/`DisposeAsync` and members of
+  `object` are skipped.
 
 ```csharp
 // Anywhere in the project (for example GlobalUsings.cs or Program.cs)
@@ -88,9 +103,43 @@ a compile error at the call sites instead of a runtime failure.
 
 Queries must return `Task<T>` or `ValueTask<T>`; mutations may also return `Task` or `ValueTask` (the mutation's data
 is then `true`). A `CancellationToken` parameter receives the query's or mutation's token. Every other parameter is
-part of the query key, so it needs value equality (primitives, strings, enums, records). Generic methods and
-`ref`/`out`/`in` parameters are not supported; annotated methods that cannot be generated are reported (DNQ001),
-unannotated ones are skipped.
+part of the query key, so it needs value equality (primitives, strings, enums, records). `ref`/`out`/`in` parameters
+are not supported; annotated methods that cannot be generated are reported (DNQ001), unannotated ones are skipped.
+
+### Generic methods
+
+A generic method generates generic members with the same constraints; each type argument becomes a key segment, so
+`GetItem<Todo>(api, 1)` and `GetItem<User>(api, 1)` are different queries under the same `Keys.GetItemPrefix`:
+
+```csharp
+Task<T> GetItemAsync<T>(int id, CancellationToken cancellationToken) where T : class;
+
+var todo = await client.FetchAsync(StoreApiQueries.GetItem<Todo>(api, 1));
+```
+
+## Infinite queries
+
+Mark a paginated method with `[InfiniteQueryMethod("<page parameter>")]`. The key leaves the page parameter out, and the
+generated class gets the page function and a factory:
+
+```csharp
+[InfiniteQueryMethod("cursor")]
+Task<FeedPage> GetFeedAsync(string topic, string? cursor, CancellationToken cancellationToken);
+```
+
+```csharp
+FeedApiQueries.Keys.GetFeed("news")                  // ["FeedApi", "GetFeed", "news"] - the pages of one feed
+using var feed = FeedApiQueries.GetFeed(client, api, new InfiniteQueryOptions<string?, FeedPage>
+{
+    InitialPageParam = null,
+    GetNextPageParam = (last, _, _) => last.Next is { } next ? NextPageParam.Of<string?>(next) : NextPageParam.None<string?>(),
+}, "news");
+
+// Blazor hook or MVVM binding: the key and the page function
+_feed = UseInfiniteQuery(FeedApiQueries.Keys.GetFeed(Topic), FeedApiQueries.GetFeedPageFn(Api, Topic), FeedOptions);
+```
+
+Infinite queries are invalidated like queries (`Invalidates = [nameof(GetFeedAsync)]`, or the whole API by default).
 
 ## Invalidation
 

@@ -75,6 +75,7 @@ public class QueryDefaultsTests
     private static readonly RetryDelayStrategy SampleDelay = (_, _) => TimeSpan.FromSeconds(3);
     private static readonly RetryPredicate SamplePredicate = (_, _) => false;
     private static readonly Func<QueryDescriptor, TimeSpan?> SampleInterval = _ => TimeSpan.FromSeconds(9);
+    private static readonly IReadOnlyDictionary<string, object?> SampleMeta = new Dictionary<string, object?> { ["k"] = 1 };
 
     private static object SampleValue(Type type) => (Nullable.GetUnderlyingType(type) ?? type) switch
     {
@@ -85,6 +86,7 @@ public class QueryDefaultsTests
         var t when t == typeof(RetryDelayStrategy) => SampleDelay,
         var t when t == typeof(RetryPredicate) => SamplePredicate,
         var t when t == typeof(Func<QueryDescriptor, TimeSpan?>) => SampleInterval,
+        var t when t == typeof(IReadOnlyDictionary<string, object?>) => SampleMeta,
         var t => throw new InvalidOperationException($"Add a sample value for {t}."),
     };
 }

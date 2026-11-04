@@ -103,6 +103,15 @@ public sealed record PersistentMutationQueueOptions
     /// dropped. Defaults to <see langword="false"/>.
     /// </summary>
     public bool UseDeadLetterQueue { get; init; }
+
+    /// <summary>
+    /// Coordinates queues in several browser tabs or processes that share one store. With a lock, a queue replays
+    /// only while it holds the lock, and reloads the store first - so it also replays mutations the other instances
+    /// queued, and skips the ones they already replayed. Without one (the default), the store must belong to this
+    /// queue alone: two instances restoring the same store would each replay every queued mutation.
+    /// See <see cref="FileMutationQueueLock"/> and the Blazor package's <c>WebLocksMutationQueueLock</c>.
+    /// </summary>
+    public IMutationQueueLock? ReplayLock { get; init; }
 }
 
 /// <summary>
@@ -125,7 +134,9 @@ public sealed record PersistentMutationQueueOptions
 /// </para>
 /// <para>
 /// Use a store dedicated to the queue (for example its own file-system directory, IndexedDB store, or
-/// SQLite database) so <c>ClearAsync</c> on the query cache store cannot drop queued writes.
+/// SQLite database) so <c>ClearAsync</c> on the query cache store cannot drop queued writes. When several
+/// instances share the store (browser tabs, app windows in separate processes), set
+/// <see cref="PersistentMutationQueueOptions.ReplayLock"/> so each queued mutation is replayed by one of them.
 /// </para>
 /// </remarks>
 public sealed class PersistentMutationQueue : IDisposable
@@ -150,6 +161,7 @@ public sealed class PersistentMutationQueue : IDisposable
     private readonly SemaphoreSlim _enqueueGate = new(1, 1);
     private readonly AsyncLocal<ReplayScope?> _replayScope = new();
     private readonly Action<bool> _connectivityHandler;
+    private readonly string _instance = Guid.NewGuid().ToString("N")[..8];
     private long _sequence;
     private int _disposed;
 
@@ -493,10 +505,16 @@ public sealed class PersistentMutationQueue : IDisposable
     /// Loads mutations persisted by a previous session into the queue (oldest first) and, when online,
     /// replays them. Register every handler first.
     /// </summary>
+    /// <remarks>
+    /// The pending list and the dead letters are reconciled with the store: entries another instance sharing the store
+    /// added appear, and entries it replayed, removed or discarded disappear. Call it again to refresh
+    /// <see cref="Pending"/> and <see cref="DeadLetters"/> in a tab or window that does not replay itself.
+    /// </remarks>
     /// <returns>The number of mutations restored.</returns>
     public async Task<int> RestoreAsync(CancellationToken cancellationToken = default)
     {
         int restored;
+        int removed;
 
         // Exclude concurrent enqueues and flushes while merging, so an entry being written or replayed right
         // now can neither be loaded twice nor resurrected after it completed. The flush gate is taken first (the
@@ -514,7 +532,7 @@ public sealed class PersistentMutationQueue : IDisposable
             try
             {
                 var stored = await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false);
-                restored = Merge(stored);
+                (restored, removed) = Reconcile(stored);
             }
             finally
             {
@@ -529,7 +547,7 @@ public sealed class PersistentMutationQueue : IDisposable
             }
         }
 
-        if (restored > 0)
+        if (restored > 0 || removed > 0)
         {
             RaisePendingChanged();
         }
@@ -542,11 +560,19 @@ public sealed class PersistentMutationQueue : IDisposable
         return restored;
     }
 
-    private int Merge(IReadOnlyList<PersistedQuery> stored)
+    // Makes the in-memory lists match the store (callers hold _enqueueGate, and _flushGate or the replay running the
+    // caller): stored entries this instance does not know are added, known entries the store no longer has (replayed,
+    // removed or discarded by another instance sharing it) are dropped - except the one replaying right now.
+    private (int Added, int Removed) Reconcile(IReadOnlyList<PersistedQuery> stored)
     {
         var restored = 0;
+        var removed = 0;
         lock (_gate)
         {
+            var storedKeys = stored.Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
+            removed += _pending.RemoveAll(e => !ReferenceEquals(e, _running) && !storedKeys.Contains(KeyPrefix + e.Info.Id));
+            removed += _dead.RemoveAll(e => !storedKeys.Contains(DeadPrefix + e.Info.Mutation.Id));
+
             var knownDead = _dead.Select(e => e.Info.Mutation.Id).ToHashSet(StringComparer.Ordinal);
             foreach (var item in stored.Where(s => s.Key.StartsWith(DeadPrefix, StringComparison.Ordinal)).OrderBy(s => s.Key, StringComparer.Ordinal))
             {
@@ -574,14 +600,39 @@ public sealed class PersistentMutationQueue : IDisposable
             _pending.Sort(static (a, b) => string.CompareOrdinal(a.Order, b.Order));
         }
 
-        return restored;
+        return (restored, removed);
+    }
+
+    // Under the replay lock: picks up what other instances sharing the store queued or replayed meanwhile.
+    private async Task ReconcileWithStoreAsync(CancellationToken cancellationToken)
+    {
+        int added;
+        int removed;
+        await _enqueueGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            (added, removed) = Reconcile(await _store.LoadAllAsync(cancellationToken).ConfigureAwait(false));
+        }
+        finally
+        {
+            _enqueueGate.Release();
+        }
+
+        if (added > 0 || removed > 0)
+        {
+            RaisePendingChanged();
+        }
     }
 
     /// <summary>
     /// Replays queued mutations in order while connectivity holds. Never throws for mutation failures;
     /// only cancellation propagates, leaving the remaining mutations queued.
     /// </summary>
-    /// <remarks>Called from a replay handler, it returns at once: the replay running the handler continues the queue.</remarks>
+    /// <remarks>
+    /// Called from a replay handler, it returns at once: the replay running the handler continues the queue. With a
+    /// <see cref="PersistentMutationQueueOptions.ReplayLock"/>, it first waits for the lock and reconciles the queue with
+    /// the store.
+    /// </remarks>
     public async Task FlushAsync(CancellationToken cancellationToken = default)
     {
         if (Volatile.Read(ref _disposed) != 0 || InReplayHandler)
@@ -590,101 +641,21 @@ public sealed class PersistentMutationQueue : IDisposable
         }
 
         await _flushGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        IAsyncDisposable? lease = null;
         try
         {
-            while (_connectivity.IsOnline)
+            if (_options.ReplayLock is { } replayLock)
             {
-                Entry? head;
-                lock (_gate)
-                {
-                    head = !_paused && _pending.Count > 0 ? _pending[0] : null;
-                    _running = head;
-                }
-
-                if (head is null)
+                if (!_connectivity.IsOnline)
                 {
                     return;
                 }
 
-                if (!TryReadEnvelope(head.Payload, out var mutationKey, out var variablesJson) ||
-                    !_handlers.TryGetValue(mutationKey, out var handler))
-                {
-                    // Keep the work (it may be replayable once the handler is registered) and preserve order.
-                    RaiseFailed(head.Info, new InvalidOperationException($"No handler is registered for mutation '{head.Info.MutationKey}'."));
-                    return;
-                }
-
-                if (_options.MaxAge is { } maxAge && _timeProvider.GetUtcNow() - head.Info.EnqueuedAt > maxAge)
-                {
-                    await FailAsync(head, new MutationExpiredException($"Mutation '{head.Info.MutationKey}' expired after {maxAge} in the queue.")).ConfigureAwait(false);
-                    continue;
-                }
-
-                for (var attempt = 1; ; attempt++)
-                {
-                    try
-                    {
-                        await RunHandlerAsync(handler, variablesJson, head.Info, cancellationToken).ConfigureAwait(false);
-                        await RemoveAsync(head).ConfigureAwait(false);
-                        break;
-                    }
-                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (!_connectivity.IsOnline)
-                        {
-                            return; // dropped offline mid-flush: retry this one first on reconnect
-                        }
-
-                        var decision = Decide(head.Info, ex, attempt);
-                        if (decision is ReplayDecision.Pause)
-                        {
-                            lock (_gate)
-                            {
-                                _paused = true;
-                            }
-
-                            RaiseFailed(head.Info, ex);
-                            return;
-                        }
-
-                        if (decision is ReplayDecision.Drop)
-                        {
-                            await RemoveAsync(head).ConfigureAwait(false);
-                            RaiseFailed(head.Info, ex);
-                            break;
-                        }
-
-                        var retry = decision switch
-                        {
-                            ReplayDecision.Retry => attempt < Math.Max(1, _options.MaxAttempts),
-                            ReplayDecision.Fail => false,
-                            _ => attempt < Math.Max(1, _options.MaxAttempts) && ShouldRetry(attempt, ex),
-                        };
-
-                        if (retry && TryGetRetryDelay(attempt, ex, out var delay))
-                        {
-                            if (delay > TimeSpan.Zero)
-                            {
-                                await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);
-                            }
-
-                            if (!_connectivity.IsOnline)
-                            {
-                                return;
-                            }
-
-                            continue;
-                        }
-
-                        await FailAsync(head, ex).ConfigureAwait(false);
-                        break;
-                    }
-                }
+                lease = await replayLock.AcquireAsync(cancellationToken).ConfigureAwait(false);
+                await ReconcileWithStoreAsync(cancellationToken).ConfigureAwait(false);
             }
+
+            await ReplayAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -693,7 +664,117 @@ public sealed class PersistentMutationQueue : IDisposable
                 _running = null;
             }
 
+            if (lease is not null)
+            {
+                try
+                {
+                    await lease.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // A lock that cannot be released cleanly (a closed browser connection) is released by its owner.
+                }
+            }
+
             _flushGate.Release();
+        }
+    }
+
+    // Callers hold _flushGate (and the replay lock, when configured).
+    private async Task ReplayAsync(CancellationToken cancellationToken)
+    {
+        while (_connectivity.IsOnline)
+        {
+            Entry? head;
+            lock (_gate)
+            {
+                head = !_paused && _pending.Count > 0 ? _pending[0] : null;
+                _running = head;
+            }
+
+            if (head is null)
+            {
+                return;
+            }
+
+            if (!TryReadEnvelope(head.Payload, out var mutationKey, out var variablesJson) ||
+                !_handlers.TryGetValue(mutationKey, out var handler))
+            {
+                // Keep the work (it may be replayable once the handler is registered) and preserve order.
+                RaiseFailed(head.Info, new InvalidOperationException($"No handler is registered for mutation '{head.Info.MutationKey}'."));
+                return;
+            }
+
+            if (_options.MaxAge is { } maxAge && _timeProvider.GetUtcNow() - head.Info.EnqueuedAt > maxAge)
+            {
+                await FailAsync(head, new MutationExpiredException($"Mutation '{head.Info.MutationKey}' expired after {maxAge} in the queue.")).ConfigureAwait(false);
+                continue;
+            }
+
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    await RunHandlerAsync(handler, variablesJson, head.Info, cancellationToken).ConfigureAwait(false);
+                    await RemoveAsync(head).ConfigureAwait(false);
+                    break;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    if (!_connectivity.IsOnline)
+                    {
+                        return; // dropped offline mid-flush: retry this one first on reconnect
+                    }
+
+                    var decision = Decide(head.Info, ex, attempt);
+                    if (decision is ReplayDecision.Pause)
+                    {
+                        lock (_gate)
+                        {
+                            _paused = true;
+                        }
+
+                        RaiseFailed(head.Info, ex);
+                        return;
+                    }
+
+                    if (decision is ReplayDecision.Drop)
+                    {
+                        await RemoveAsync(head).ConfigureAwait(false);
+                        RaiseFailed(head.Info, ex);
+                        break;
+                    }
+
+                    var retry = decision switch
+                    {
+                        ReplayDecision.Retry => attempt < Math.Max(1, _options.MaxAttempts),
+                        ReplayDecision.Fail => false,
+                        _ => attempt < Math.Max(1, _options.MaxAttempts) && ShouldRetry(attempt, ex),
+                    };
+
+                    if (retry && TryGetRetryDelay(attempt, ex, out var delay))
+                    {
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay, _timeProvider, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        if (!_connectivity.IsOnline)
+                        {
+                            return;
+                        }
+
+                        continue;
+                    }
+
+                    await FailAsync(head, ex).ConfigureAwait(false);
+                    break;
+                }
+            }
         }
     }
 
@@ -717,7 +798,9 @@ public sealed class PersistentMutationQueue : IDisposable
     // ends with the handler call, so work that outlives it takes the gates as usual.
     private bool InReplayHandler => _replayScope.Value is { Active: true };
 
-    private string NextOrder(DateTimeOffset at) => $"{at.UtcTicks:D19}-{Interlocked.Increment(ref _sequence):D10}";
+    // Time first (replay order across instances sharing a store), then this instance's sequence, then an instance id so
+    // two instances never produce the same id even within one clock tick (browsers coarsen timestamps to milliseconds).
+    private string NextOrder(DateTimeOffset at) => $"{at.UtcTicks:D19}-{Interlocked.Increment(ref _sequence):D10}-{_instance}";
 
     // A throwing strategy ends the retries (the mutation fails with its own error); delays are clamped to what
     // Task.Delay accepts, so FlushAsync never throws because of the retry policy.

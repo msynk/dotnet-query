@@ -1,5 +1,4 @@
 using DotNetQuery;
-using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.DependencyInjection;
 using TodoApp;
 using TodoApp.Client;
@@ -20,11 +19,14 @@ builder.Services.AddDotNetQueryBlazor(options =>
         options.DefaultShouldRetry = HttpRetryPolicy.ShouldRetry;
     })
     // Keep every todo list in sync across browser tabs: a change made in one tab shows up in the others.
-    .AddCrossTabSync(sync => sync.RegisterPrefix(TodoQueries.All, TodoJson.Default.ListTodo));
+    .AddCrossTabSync(sync => sync.RegisterPrefix(TodoQueries.All, TodoJson.Default.ListTodo))
+    // Blazor Server: when a dropped circuit connection comes back, refetch the stale queries on screen.
+    .RefetchOnCircuitReconnect()
+    // Write fetch failures, retries and mutations to the app's logs.
+    .AddDiagnosticLogging();
 
 builder.Services.AddSingleton<TodoApi>();
 builder.Services.AddScoped<ITodoClient, ServerTodoClient>();   // prerendering of the WebAssembly/Auto pages
-builder.Services.AddScoped<CircuitHandler, QueryCircuitHandler>();
 
 var app = builder.Build();
 

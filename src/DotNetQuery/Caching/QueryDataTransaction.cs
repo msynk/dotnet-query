@@ -137,6 +137,18 @@ public sealed class QueryDataCommit
             write.Commit();
         }
     }
+
+    /// <summary>
+    /// Reports that the mutation owning these optimistic writes has fully settled (committed or rolled back, callbacks
+    /// and invalidations done), so queries whose refreshes waited for its pending writes can refetch.
+    /// </summary>
+    internal void Settled()
+    {
+        foreach (var write in _writes)
+        {
+            write.Settled();
+        }
+    }
 }
 
 /// <summary>Atomic, multi-query cache writes.</summary>
@@ -309,6 +321,9 @@ internal abstract class BatchWrite
 
     /// <summary>Marks the write as accepted by the server.</summary>
     public abstract void Commit();
+
+    /// <summary>Reports that the optimistic write's mutation has fully settled.</summary>
+    public abstract void Settled();
 }
 
 internal enum RollbackOutcome
@@ -458,6 +473,14 @@ internal sealed class BatchWrite<T>(QueryKey key, Func<T?, T> updater, QueryEntr
         if (!_skipped)
         {
             _entry!.CommitLayer(this);
+        }
+    }
+
+    public override void Settled()
+    {
+        if (!_skipped && Optimistic)
+        {
+            _entry!.OnOptimisticWriteSettled();
         }
     }
 

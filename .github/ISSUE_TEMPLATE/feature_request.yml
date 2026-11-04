@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an addition or a change.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what makes it hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: How it could look. If TanStack Query has an equivalent, link it.
+      render: csharp
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds

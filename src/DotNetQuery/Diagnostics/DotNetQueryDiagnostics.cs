@@ -68,9 +68,9 @@ internal interface IQueryEventSink
     /// <summary>Reports a fetch start and returns an opaque token (the trace span) for the matching end call.</summary>
     object? QueryFetchStarted(QueryKey key);
 
-    void QueryFetchSucceeded(QueryKey key, TimeSpan duration, object? token);
+    void QueryFetchSucceeded(QueryKey key, IReadOnlyDictionary<string, object?>? meta, TimeSpan duration, object? token);
 
-    void QueryFetchFailed(QueryKey key, Exception error, int failureCount, TimeSpan duration, object? token);
+    void QueryFetchFailed(QueryKey key, IReadOnlyDictionary<string, object?>? meta, Exception error, int failureCount, TimeSpan duration, object? token);
 
     void QueryFetchCancelled(QueryKey key, TimeSpan duration, object? token);
 
@@ -85,7 +85,7 @@ internal interface IQueryEventSink
     void OptimisticRolledBack(long mutationId, IReadOnlyList<QueryKey> restored, IReadOnlyList<QueryKey> refetched);
 
     /// <summary>Reports a mutation start and returns its id and an opaque token for the matching end call.</summary>
-    (long Id, object? Token) MutationStarted(QueryKey? mutationKey, object? variables);
+    (long Id, object? Token) MutationStarted(QueryKey? mutationKey, IReadOnlyDictionary<string, object?>? meta, object? variables);
 
-    void MutationCompleted(long id, QueryKey? mutationKey, bool succeeded, Exception? error, int failureCount, TimeSpan duration, object? token);
+    void MutationCompleted(long id, QueryKey? mutationKey, IReadOnlyDictionary<string, object?>? meta, bool succeeded, Exception? error, int failureCount, TimeSpan duration, object? token);
 }

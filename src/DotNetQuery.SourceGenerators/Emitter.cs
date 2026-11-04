@@ -28,7 +28,7 @@ internal static class Emitter
         code.Line("/// <summary>The key every query and mutation of this API starts with; invalidate it to refresh every query of the API.</summary>");
         code.Line($"public static readonly {QueryKey} All = {QueryKey}.Create({Literal(api.KeyPrefix)});");
 
-        var queries = api.Methods.Where(m => m.Kind == MethodKind.Query).ToList();
+        var keyed = api.Methods.Where(m => m.IsKeyed).ToList();
         var mutations = api.Methods.Where(m => m.Kind == MethodKind.Mutation).ToList();
 
         code.Line();
@@ -36,7 +36,7 @@ internal static class Emitter
         code.Line("public static class Keys");
         code.Open();
         var prefixes = new HashSet<string>();
-        foreach (var query in queries)
+        foreach (var query in keyed)
         {
             if (prefixes.Add(query.Name))
             {
@@ -45,17 +45,26 @@ internal static class Emitter
                 code.Line();
             }
 
-            var arguments = string.Join(", ", query.ValueParameters.Select(p => p.Name));
-            code.Line($"/// <summary>The key of the <c>{query.Name}</c> query for the given arguments.</summary>");
-            code.Line($"public static {QueryKey} {query.Name}({ParameterList(query.ValueParameters)}) => {(arguments.Length == 0 ? query.Name + "Prefix" : $"{query.Name}Prefix.Append({arguments})")};");
+            // Generic methods: each type argument is a key segment, so Get<Todo>(1) and Get<User>(1) are different queries.
+            var segments = TypeSegments(query).Concat(query.KeyParameters.Select(p => p.Name)).ToList();
+            var what = query.Kind == MethodKind.InfiniteQuery ? "infinite query (its pages)" : "query";
+            code.Line($"/// <summary>The key of the <c>{query.Name}</c> {what} for the given arguments.</summary>");
+            code.Line($"public static {QueryKey} {query.Name}{query.TypeParameters}({ParameterList(query.KeyParameters)}){query.ConstraintClauses} => {(segments.Count == 0 ? query.Name + "Prefix" : $"{query.Name}Prefix.Append({string.Join(", ", segments)})")};");
             code.Line();
         }
 
         code.Close();
 
-        foreach (var query in queries)
+        foreach (var query in keyed)
         {
-            EmitQuery(code, api, query);
+            if (query.Kind == MethodKind.InfiniteQuery)
+            {
+                EmitInfiniteQuery(code, api, query);
+            }
+            else
+            {
+                EmitQuery(code, api, query);
+            }
         }
 
         var variableRecords = new HashSet<string>();
@@ -85,10 +94,41 @@ internal static class Emitter
 
         code.Line();
         code.Line($"/// <summary>The <c>{api.InterfaceName}.{query.MethodName}</c> query (key and fetcher), for <c>FetchAsync</c>, <c>Watch</c>, <c>&lt;Query&gt;</c> or <c>UseQuery</c>.</summary>");
-        code.Line($"public static global::DotNetQuery.QueryDefinition<{query.DataType}> {query.Name}({Join($"{api.InterfaceType} {apiName}", parameters, $"global::DotNetQuery.QueryOptions? {optionsName} = null")})");
+        code.Line($"public static global::DotNetQuery.QueryDefinition<{query.DataType}> {query.Name}{query.TypeParameters}({Join($"{api.InterfaceType} {apiName}", parameters, $"global::DotNetQuery.QueryOptions? {optionsName} = null")}){query.ConstraintClauses}");
         code.Open();
         code.Line($"if ({apiName} is null) throw new global::System.ArgumentNullException(nameof({apiName}));");
-        code.Line($"return new global::DotNetQuery.QueryDefinition<{query.DataType}>(Keys.{query.Name}({keyArguments}), {tokenName} => {call}, {optionsName});");
+        code.Line($"return new global::DotNetQuery.QueryDefinition<{query.DataType}>(Keys.{query.Name}{query.TypeParameters}({keyArguments}), {tokenName} => {call}, {optionsName});");
+        code.Close();
+    }
+
+    private static void EmitInfiniteQuery(CodeWriter code, ApiModel api, MethodModel query)
+    {
+        var page = query.Page!;
+        var used = new HashSet<string>(query.ValueParameters.Select(p => p.Name.TrimStart('@')));
+        var clientName = Unique("client", used);
+        var apiName = Unique("api", used);
+        var optionsName = Unique("options", used);
+        var tokenName = Unique("cancellationToken", used);
+        var keyParameters = query.KeyParameters.Select(p => $"{p.Type} {p.Name}{Default(p)}").ToList();
+        var keyArguments = string.Join(", ", query.KeyParameters.Select(p => p.Name));
+        var call = Call(api, query, apiName, p => p.IsCancellationToken ? tokenName : p.Name);
+        var pageFunction = $"global::System.Func<{page.Type}, {CancellationToken}, global::System.Threading.Tasks.Task<{query.DataType}>>";
+        var options = $"global::DotNetQuery.InfiniteQueryOptions<{page.Type}, {query.DataType}>";
+
+        code.Line();
+        code.Line($"/// <summary>The <c>{api.InterfaceName}.{query.MethodName}</c> call as a page function (page parameter in, page out), for <c>CreateInfiniteQuery</c> or <c>UseInfiniteQuery</c> with <c>Keys.{query.Name}</c>.</summary>");
+        code.Line($"public static {pageFunction} {query.Name}PageFn{query.TypeParameters}({string.Join(", ", new[] { $"{api.InterfaceType} {apiName}" }.Concat(keyParameters))}){query.ConstraintClauses}");
+        code.Open();
+        code.Line($"if ({apiName} is null) throw new global::System.ArgumentNullException(nameof({apiName}));");
+        code.Line($"return ({page.Name}, {tokenName}) => {call};");
+        code.Close();
+
+        code.Line();
+        code.Line($"/// <summary>Creates the <c>{api.InterfaceName}.{query.MethodName}</c> infinite query; <paramref name=\"{optionsName}\"/> supplies the first page parameter and how to derive the next ones.</summary>");
+        code.Line($"public static global::DotNetQuery.InfiniteQuery<{page.Type}, {query.DataType}> {query.Name}{query.TypeParameters}({string.Join(", ", new[] { $"global::DotNetQuery.IQueryClient {clientName}", $"{api.InterfaceType} {apiName}", $"{options} {optionsName}" }.Concat(keyParameters))}){query.ConstraintClauses}");
+        code.Open();
+        code.Line($"if ({clientName} is null) throw new global::System.ArgumentNullException(nameof({clientName}));");
+        code.Line($"return {clientName}.CreateInfiniteQuery(Keys.{query.Name}{query.TypeParameters}({keyArguments}), {query.Name}PageFn{query.TypeParameters}({string.Join(", ", new[] { apiName }.Concat(query.KeyParameters.Select(p => p.Name)))}), {optionsName});");
         code.Close();
     }
 
@@ -117,8 +157,8 @@ internal static class Emitter
 
             code.Line();
             code.Line($"/// <summary>The variables of the <c>{mutation.Name}</c> mutation.</summary>");
-            code.Line($"public sealed record {recordName}({string.Join(", ", values.Select(p => $"{p.Type} {Pascal(p.Name)}{Default(p)}"))});");
-            variablesType = recordName;
+            code.Line($"public sealed record {recordName}{mutation.TypeParameters}({string.Join(", ", values.Select(p => $"{p.Type} {Pascal(p.Name)}{Default(p)}"))}){mutation.ConstraintClauses};");
+            variablesType = recordName + mutation.TypeParameters;
             argument = p => p.IsCancellationToken ? "cancellationToken" : "variables." + Pascal(p.Name);
         }
 
@@ -133,7 +173,7 @@ internal static class Emitter
 
         code.Line();
         code.Line($"/// <summary>The <c>{api.InterfaceName}.{mutation.MethodName}</c> call as a mutation function, for <c>CreateMutation</c> or <c>UseMutation</c>.</summary>");
-        code.Line($"public static {function} {mutation.Name}Fn({api.InterfaceType} api)");
+        code.Line($"public static {function} {mutation.Name}Fn{mutation.TypeParameters}({api.InterfaceType} api){mutation.ConstraintClauses}");
         code.Open();
         code.Line("if (api is null) throw new global::System.ArgumentNullException(nameof(api));");
         code.Line(mutation.ReturnKind is ReturnKind.Task or ReturnKind.ValueTask
@@ -143,7 +183,7 @@ internal static class Emitter
 
         code.Line();
         code.Line($"/// <summary>Options for the <c>{mutation.Name}</c> mutation: <paramref name=\"options\"/> plus its mutation key and the queries it invalidates (unless set).</summary>");
-        code.Line($"public static {options} {mutation.Name}Options({options}? options = null)");
+        code.Line($"public static {options} {mutation.Name}Options{mutation.TypeParameters}({options}? options = null){mutation.ConstraintClauses}");
         code.Open();
         code.Line($"options ??= new {options}();");
         code.Line("return options with");
@@ -155,19 +195,25 @@ internal static class Emitter
 
         code.Line();
         code.Line($"/// <summary>Creates the <c>{api.InterfaceName}.{mutation.MethodName}</c> mutation.</summary>");
-        code.Line($"public static global::DotNetQuery.Mutation<{variablesType}, {mutation.DataType}> {mutation.Name}(global::DotNetQuery.IQueryClient client, {api.InterfaceType} api, {options}? options = null)");
+        code.Line($"public static global::DotNetQuery.Mutation<{variablesType}, {mutation.DataType}> {mutation.Name}{mutation.TypeParameters}(global::DotNetQuery.IQueryClient client, {api.InterfaceType} api, {options}? options = null){mutation.ConstraintClauses}");
         code.Open();
         code.Line("if (client is null) throw new global::System.ArgumentNullException(nameof(client));");
-        code.Line($"return client.CreateMutation({mutation.Name}Fn(api), {mutation.Name}Options(options));");
+        code.Line($"return client.CreateMutation({mutation.Name}Fn{mutation.TypeParameters}(api), {mutation.Name}Options{mutation.TypeParameters}(options));");
         code.Close();
     }
 
-    // api.Method(arguments...) with .AsTask() for ValueTask<T> (definitions and mutation functions take Task<T>).
+    // api.Method<T...>(arguments...) with .AsTask() for ValueTask<T> (definitions and mutation functions take Task<T>).
     private static string Call(ApiModel api, MethodModel method, string apiName, Func<ParameterModel, string> argument)
     {
-        var call = $"{apiName}.{method.MethodName}({string.Join(", ", method.Parameters.Select(argument))})";
+        var call = $"{apiName}.{method.MethodName}{method.TypeParameters}({string.Join(", ", method.Parameters.Select(argument))})";
         return method.ReturnKind is ReturnKind.ValueTaskOfT or ReturnKind.ValueTask ? call + ".AsTask()" : call;
     }
+
+    // QueryKey.Create<T>()[0] per type parameter: the type's key segment (generic arguments included).
+    private static IEnumerable<string> TypeSegments(MethodModel method) =>
+        method.TypeParameters.Length == 0
+            ? Enumerable.Empty<string>()
+            : method.TypeParameters.Trim('<', '>').Split(',').Select(t => $"{QueryKey}.Create<{t.Trim()}>()[0]");
 
     private static string ParameterList(IEnumerable<ParameterModel> parameters) =>
         string.Join(", ", parameters.Select(p => $"{p.Type} {p.Name}{Default(p)}"));

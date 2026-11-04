@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Security.Claims;
 using DotNetQuery;
 using DotNetQuery.Blazor;
@@ -88,6 +90,22 @@ public static class DotNetQueryBlazorServiceCollectionExtensions
             typeof(QueryAuthenticationGuard),
             sp => new QueryAuthenticationGuard(sp.GetRequiredService<IQueryClient>(), sp.GetService<AuthenticationStateProvider>(), identity),
             builder.ClientLifetime));
+        return builder;
+    }
+
+    /// <summary>
+    /// Serializes the data <c>&lt;Query&gt;</c> and the hook-style queries carry from prerendering to the interactive
+    /// render with source-generated metadata (for example <c>AppJson.Default</c>, a <c>JsonSerializerContext</c>), so
+    /// prerender hydration is trim- and NativeAOT-safe. Types the resolver does not know fall back to reflection-based
+    /// JSON. Register it in both the server and the WebAssembly project.
+    /// </summary>
+    public static IDotNetQueryBuilder UseHydrationJson(this IDotNetQueryBuilder builder, IJsonTypeInfoResolver resolver)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(resolver);
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { TypeInfoResolver = resolver };
+        options.MakeReadOnly();
+        builder.Services.Replace(ServiceDescriptor.Singleton(new QueryHydrationJson(options)));
         return builder;
     }
 }

@@ -61,12 +61,26 @@ public sealed record MutationOptions<TVariables, TData>
     /// <summary>
     /// Query keys (prefix-matched) to invalidate once the mutation settles - after success or failure, so
     /// a failed optimistic update is also reconciled with the server. The mutation remains pending until the
-    /// resulting refetches of active queries complete.
+    /// resulting refetches of active queries complete - except for queries that still carry optimistic updates of other
+    /// pending mutations: their refetch waits until those settle (the last one runs it), so a burst of mutations is
+    /// reconciled once and pending optimistic values are never replaced by server data that lacks them.
     /// </summary>
     public IReadOnlyList<QueryKey>? Invalidates { get; init; }
 
-    /// <summary>Maximum number of automatic retries after a failed mutation. Defaults to 0.</summary>
-    public int RetryCount { get; init; }
+    /// <summary>
+    /// Maximum number of automatic retries after a failed mutation. <see langword="null"/> (the default) uses the
+    /// matching <see cref="MutationDefaults.RetryCount"/>, or 0; set 0 explicitly to opt out of retries that a default
+    /// enables.
+    /// </summary>
+    public int? RetryCount { get; init; }
+
+    /// <summary>
+    /// Arbitrary application data attached to the mutation (TanStack Query's <c>meta</c>), for example a user-facing
+    /// error message for a global handler. DotNetQuery never reads it; it is surfaced on
+    /// <see cref="MutationDescriptor.Meta"/>, <see cref="MutationStartedEvent.Meta"/> and
+    /// <see cref="MutationCompletedEvent.Meta"/>. Falls back to <see cref="MutationDefaults.Meta"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 
     /// <summary>Strategy computing the delay between retries. Defaults to no delay.</summary>
     public RetryDelayStrategy? RetryDelay { get; init; }
@@ -107,8 +121,11 @@ public sealed record MutationOptions<TVariables, TData>
 /// </summary>
 public sealed record MutationDefaults
 {
-    /// <summary>Retries, used when the mutation's own <c>RetryCount</c> is 0.</summary>
+    /// <summary>Retries, used when the mutation's own <c>RetryCount</c> is not set.</summary>
     public int? RetryCount { get; init; }
+
+    /// <summary>Application data, used when the mutation sets no <c>Meta</c>.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 
     /// <summary>The retry delay, used when the mutation sets none.</summary>
     public RetryDelayStrategy? RetryDelay { get; init; }
@@ -134,16 +151,18 @@ public sealed record MutationDefaults
             NetworkMode = specific.NetworkMode ?? fallback.NetworkMode,
             Scope = specific.Scope ?? fallback.Scope,
             Invalidates = specific.Invalidates ?? fallback.Invalidates,
+            Meta = specific.Meta ?? fallback.Meta,
         };
 
     internal MutationOptions<TVariables, TData> ApplyTo<TVariables, TData>(MutationOptions<TVariables, TData> options) => options with
     {
-        RetryCount = options.RetryCount != 0 ? options.RetryCount : RetryCount ?? 0,
+        RetryCount = options.RetryCount ?? RetryCount,
         RetryDelay = options.RetryDelay ?? RetryDelay,
         ShouldRetry = options.ShouldRetry ?? ShouldRetry,
         NetworkMode = options.NetworkMode ?? NetworkMode,
         Scope = options.Scope ?? Scope,
         Invalidates = options.Invalidates ?? Invalidates,
+        Meta = options.Meta ?? Meta,
     };
 }
 

@@ -11,6 +11,7 @@ internal static class ModelBuilder
     private const string QueryMethodAttribute = "DotNetQuery.QueryMethodAttribute";
     private const string MutationMethodAttribute = "DotNetQuery.MutationMethodAttribute";
     private const string QueryIgnoreAttribute = "DotNetQuery.QueryIgnoreAttribute";
+    private const string InfiniteQueryMethodAttribute = "DotNetQuery.InfiniteQueryMethodAttribute";
 
     private static readonly SymbolDisplayFormat TypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
         .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
@@ -54,15 +55,15 @@ internal static class ModelBuilder
         var ns = api.ContainingNamespace is { IsGlobalNamespace: false } containing ? containing.ToDisplayString() : null;
         var diagnostics = ImmutableArray.CreateBuilder<DiagnosticInfo>();
 
-        if (api.TypeKind != TypeKind.Interface || api.IsGenericType || !accessible || !IsAccessible(api))
+        if (api.TypeKind is not (TypeKind.Interface or TypeKind.Class) || api.IsStatic || api.IsGenericType || !accessible || !IsAccessible(api))
         {
             diagnostics.Add(DiagnosticInfo.Create(Diagnostics.InvalidTarget, api, api.ToDisplayString()));
             return new ApiModel(ns, className, "internal", api.ToDisplayString(TypeFormat), api.Name, keyPrefix, default, new(diagnostics.ToImmutable()));
         }
 
-        // Classify and describe every method (including inherited interface members).
+        // Classify and describe every method (including inherited members).
         var candidates = new List<(IMethodSymbol Symbol, MethodModel Model, string[]? Invalidates)>();
-        foreach (var method in api.GetMembers().Concat(api.AllInterfaces.SelectMany(i => i.GetMembers())).OfType<IMethodSymbol>())
+        foreach (var method in Methods(api))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (method.MethodKind != Microsoft.CodeAnalysis.MethodKind.Ordinary || method.IsStatic || HasAttribute(method, QueryIgnoreAttribute))
@@ -70,14 +71,17 @@ internal static class ModelBuilder
                 continue;
             }
 
+            var explicitInfinite = FindAttribute(method, InfiniteQueryMethodAttribute);
             var explicitQuery = FindAttribute(method, QueryMethodAttribute);
             var explicitMutation = FindAttribute(method, MutationMethodAttribute);
-            var kind = explicitQuery is not null ? MethodKind.Query
+            var kind = explicitInfinite is not null ? MethodKind.InfiniteQuery
+                : explicitQuery is not null ? MethodKind.Query
                 : explicitMutation is not null ? MethodKind.Mutation
                 : RefitKind(method) ?? (QueryPrefixes.Any(p => StartsWithWord(method.Name, p)) ? MethodKind.Query : MethodKind.Mutation);
-            var isExplicit = explicitQuery is not null || explicitMutation is not null;
+            var isExplicit = explicitInfinite is not null || explicitQuery is not null || explicitMutation is not null;
+            var pageParameter = explicitInfinite is { ConstructorArguments.Length: 1 } infinite ? infinite.ConstructorArguments[0].Value as string : null;
 
-            var problem = Describe(method, kind, out var returnKind, out var dataType, out var parameters);
+            var problem = Describe(method, kind, pageParameter, out var returnKind, out var dataType, out var parameters, out var typeParameters, out var constraints);
             if (problem is not null)
             {
                 if (isExplicit)
@@ -88,8 +92,18 @@ internal static class ModelBuilder
                 continue; // unannotated helpers that do not fit (properties, sync methods) are skipped silently
             }
 
-            var name = NamedString(explicitQuery ?? explicitMutation, "Name") ?? StripAsync(method.Name);
-            var model = new MethodModel(kind, name, method.Name, returnKind, dataType!, new(parameters), null);
+            var name = NamedString(explicitInfinite ?? explicitQuery ?? explicitMutation, "Name") ?? StripAsync(method.Name);
+            var model = new MethodModel(
+                kind,
+                name,
+                method.Name,
+                returnKind,
+                dataType!,
+                new(parameters),
+                null,
+                typeParameters,
+                new(constraints),
+                pageParameter is null ? null : Identifier(pageParameter));
             candidates.Add((method, model, explicitMutation is null ? null : NamedStrings(explicitMutation, "Invalidates")));
         }
 
@@ -110,7 +124,7 @@ internal static class ModelBuilder
         }
 
         // Resolve [MutationMethod(Invalidates = ...)] against the query methods.
-        var queries = methods.Where(m => m.Model.Kind == MethodKind.Query).ToList();
+        var queries = methods.Where(m => m.Model.IsKeyed).ToList();
         var resolved = ImmutableArray.CreateBuilder<MethodModel>();
         foreach (var (symbol, model, invalidates) in methods)
         {
@@ -148,30 +162,70 @@ internal static class ModelBuilder
             new(diagnostics.ToImmutable()));
     }
 
+    // The API's methods: an interface's own and inherited members; a class's public instance methods up its base-class
+    // chain (System.Object excluded), without Dispose/DisposeAsync.
+    private static IEnumerable<IMethodSymbol> Methods(INamedTypeSymbol api)
+    {
+        if (api.TypeKind == TypeKind.Interface)
+        {
+            return api.GetMembers().Concat(api.AllInterfaces.SelectMany(i => i.GetMembers())).OfType<IMethodSymbol>();
+        }
+
+        var methods = new List<IMethodSymbol>();
+        for (var type = api; type is not null && type.SpecialType != SpecialType.System_Object; type = type.BaseType)
+        {
+            methods.AddRange(type.GetMembers().OfType<IMethodSymbol>().Where(m =>
+                m.DeclaredAccessibility == Accessibility.Public
+                && !(m.Parameters.Length == 0 && m.Name is "Dispose" or "DisposeAsync")));
+        }
+
+        return methods;
+    }
+
     private static string? Describe(
         IMethodSymbol method,
         MethodKind kind,
+        string? pageParameter,
         out ReturnKind returnKind,
         out string? dataType,
-        out ImmutableArray<ParameterModel> parameters)
+        out ImmutableArray<ParameterModel> parameters,
+        out string typeParameters,
+        out ImmutableArray<string> constraints)
     {
         returnKind = default;
         dataType = null;
         parameters = default;
-
-        if (method.IsGenericMethod)
-        {
-            return "generic methods are not supported";
-        }
+        typeParameters = string.Empty;
+        constraints = ImmutableArray<string>.Empty;
 
         if (method.ReturnType is not INamedTypeSymbol returnType || !TryReturnKind(returnType, out returnKind, out dataType))
         {
             return "it must return Task<T> or ValueTask<T> (mutations may also return Task or ValueTask)";
         }
 
-        if (kind == MethodKind.Query && returnKind is ReturnKind.Task or ReturnKind.ValueTask)
+        if (kind != MethodKind.Mutation && returnKind is ReturnKind.Task or ReturnKind.ValueTask)
         {
             return "a query must return data (Task<T> or ValueTask<T>)";
+        }
+
+        if (method.IsGenericMethod)
+        {
+            typeParameters = "<" + string.Join(", ", method.TypeParameters.Select(t => t.Name)) + ">";
+            constraints = method.TypeParameters.Select(Constraint).Where(c => c is not null).Select(c => c!).ToImmutableArray();
+        }
+
+        if (kind == MethodKind.InfiniteQuery)
+        {
+            var page = method.Parameters.FirstOrDefault(p => p.Name == pageParameter);
+            if (page is null)
+            {
+                return $"it has no parameter named '{pageParameter}' for the page parameter";
+            }
+
+            if (page.Type.ToDisplayString() == "System.Threading.CancellationToken")
+            {
+                return "the page parameter cannot be the CancellationToken";
+            }
         }
 
         var builder = ImmutableArray.CreateBuilder<ParameterModel>();
@@ -199,6 +253,36 @@ internal static class ModelBuilder
 
         parameters = builder.ToImmutable();
         return null;
+    }
+
+    // "where T : class?, IEntity, new()" for a type parameter, or null when it has no constraints.
+    private static string? Constraint(ITypeParameterSymbol parameter)
+    {
+        var parts = new List<string>();
+        if (parameter.HasReferenceTypeConstraint)
+        {
+            parts.Add(parameter.ReferenceTypeConstraintNullableAnnotation == NullableAnnotation.Annotated ? "class?" : "class");
+        }
+        else if (parameter.HasUnmanagedTypeConstraint)
+        {
+            parts.Add("unmanaged");
+        }
+        else if (parameter.HasValueTypeConstraint)
+        {
+            parts.Add("struct");
+        }
+        else if (parameter.HasNotNullConstraint)
+        {
+            parts.Add("notnull");
+        }
+
+        parts.AddRange(parameter.ConstraintTypes.Select(t => t.ToDisplayString(TypeFormat)));
+        if (parameter.HasConstructorConstraint)
+        {
+            parts.Add("new()");
+        }
+
+        return parts.Count == 0 ? null : $"where {parameter.Name} : {string.Join(", ", parts)}";
     }
 
     private static bool TryReturnKind(INamedTypeSymbol type, out ReturnKind kind, out string? dataType)
@@ -265,7 +349,7 @@ internal static class ModelBuilder
     }
 
     private static string Signature(MethodModel model) =>
-        model.Name + "(" + string.Join(",", model.ValueParameters.Select(p => p.Type)) + ")";
+        model.Name + model.TypeParameters + "(" + string.Join(",", model.ValueParameters.Select(p => p.Type)) + ")";
 
     private static bool StartsWithWord(string name, string prefix) =>
         name.StartsWith(prefix, StringComparison.Ordinal) && (name.Length == prefix.Length || !char.IsLower(name[prefix.Length]));

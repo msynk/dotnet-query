@@ -103,8 +103,23 @@ flashes a loading state; older data is shown immediately and revalidated in the 
   then revalidated right away.
 - Opt out per component with `PersistState="false"` (for data that must not be embedded in the HTML, or
   that is not JSON-serializable).
-- In code-first components, use `QueryStateHydration.Persist<T>`/`TryHydrate<T>` with your own
-  `PersistentComponentState` subscription.
+- In code-first components, use `QueryStateHydration.Persist`/`TryHydrate` with your own
+  `PersistentComponentState` subscription (the `JsonTypeInfo<T>` overloads are trim-safe).
+
+### Trimmed and NativeAOT WebAssembly apps
+
+The data is serialized as JSON. Register your source-generated `JsonSerializerContext` once, in both the server and the
+`.Client` project, so hydration needs no reflection:
+
+```csharp
+builder.Services.AddDotNetQueryBlazor().UseHydrationJson(AppJson.Default);
+```
+
+Types the context does not cover fall back to reflection-based JSON, which works with Blazor's default (partial)
+trimming because your own assemblies are not trimmed. With `TrimMode=full`, or with reflection-based serialization
+disabled, register every type you prerender; a payload that cannot be read is skipped and the interactive render
+fetches it instead. The adapter itself is trim- and AOT-annotated, and CI publishes a trimmed WebAssembly app to keep
+it warning-free.
 
 On .NET 10 the same mechanism also preserves the cache when a disconnected circuit is paused and resumed.
 
@@ -222,35 +237,21 @@ The adapter works the same in every interactive render mode, and a Blazor Web Ap
 
 ### Blazor Server reconnection
 
-Browser online/offline events do not cover a dropped SignalR connection to the circuit. Register a
-`CircuitHandler` (in the server project; `CircuitHandler` is a server-only type, so it is not part of the
-WebAssembly-compatible adapter) that refetches the stale queries the user is looking at when the connection
-comes back:
+Browser online/offline events do not cover a dropped SignalR connection to the circuit. The server-only
+`Msynk.DotNetQuery.Blazor.Server` package (it references the ASP.NET Core shared framework, which WebAssembly cannot
+load, so it is separate from the adapter) registers a `CircuitHandler` that refetches the stale queries the user is
+looking at when the connection comes back:
 
 ```csharp
-public sealed class QueryCircuitHandler(IQueryClient client) : CircuitHandler
+// The server project's Program.cs
+builder.Services.AddDotNetQueryBlazor().RefetchOnCircuitReconnect();
+
+// Or refresh more: invalidate every rendered query, fresh ones included (the server may have changed meanwhile)
+builder.Services.AddDotNetQueryBlazor().RefetchOnCircuitReconnect(new QueryCircuitHandlerOptions
 {
-    private bool _wasDown;
-
-    public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
-    {
-        _wasDown = true;
-        return Task.CompletedTask;
-    }
-
-    public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken)
-    {
-        if (_wasDown)
-        {
-            _wasDown = false;
-            _ = client.RefetchQueriesAsync(new QueryFilter { Type = QueryTypeFilter.Active, Stale = true }, CancellationToken.None);
-        }
-
-        return Task.CompletedTask;
-    }
-}
-
-builder.Services.AddScoped<CircuitHandler, QueryCircuitHandler>();
+    Filter = new QueryFilter { Type = QueryTypeFilter.Active },
+    Invalidate = true,
+});
 ```
 
 ### Forms and grids
@@ -413,7 +414,9 @@ The component library's styles are bundled into your app's `<YourApp>.styles.css
 ## Persisting the cache in the browser
 
 `LocalStorageQueryPersister` and `IndexedDbQueryPersister` (namespace `DotNetQuery.Persistence`) store
-registered queries in `localStorage` or IndexedDB so data survives reloads. Register queries with
+registered queries in `localStorage` or IndexedDB so data survives reloads. For a durable mutation queue stored in
+IndexedDB, add `WebLocksMutationQueueLock` so only one tab replays each queued write (see
+[Offline mode](offline-mode.md#several-tabs-or-processes-sharing-the-queue)). Register queries with
 source-generated JSON metadata to stay trim/AOT-safe:
 
 ```csharp
@@ -424,6 +427,25 @@ var manager = new QueryPersistenceManager(client, new IndexedDbQueryPersister(JS
 await manager.RestoreAllAsync();   // after the first render (JS interop is required)
 manager.StartAutoPersist();        // save whenever the data changes
 ```
+
+## Blazor Hybrid (MAUI, WPF, WinForms)
+
+In a `BlazorWebView` the components run in the app's process, so the adapter works unchanged - with a few choices to
+make:
+
+- **Registration** - `AddDotNetQueryBlazor()` registers a scoped client, and each `BlazorWebView` has its own scope:
+  one cache per web view. When native pages (XAML view models) and the web view must share one cache, register a
+  singleton client first with `services.AddDotNetQuery()` and then `AddDotNetQueryBlazor()` (registrations that already
+  exist are kept, so configure the options in the first call), and components and view models resolve the same
+  `IQueryClient`.
+- **Signals** - `<DotNetQueryBrowserSignals />` reports the web view's focus, visibility and `online`/`offline` events;
+  the platform lifecycle class (`MauiQueryLifecycle`, `WpfQueryLifecycle`) reports app resume and the operating
+  system's connectivity. Use both when native and web content share the cache.
+- **Persistence** - there is no prerendering, so hydration does not apply. Persist to the app's data directory
+  (`MauiQueryPersistence.CreateFileSystemPersister()`, SQLite) rather than `localStorage`/IndexedDB, which some web
+  views clear with the app's cache.
+- **Sign-out** - a single-user device app usually does not need `ResetOnUserChange()`; call `client.Clear()` (and
+  `ClearAsync` on a durable queue) from the sign-out handler instead.
 
 ## Testing components
 

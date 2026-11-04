@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DotNetQuery.Sample.ECommerce;
 
 /// <summary>
@@ -9,20 +11,50 @@ public sealed class StoreApi
 {
     private readonly List<string> _cart = [];
 
-    public IReadOnlyList<string> ServerCart => _cart;
+    public IReadOnlyList<string> ServerCart
+    {
+        get { lock (_cart) { return _cart.ToList(); } }
+    }
 
-    public Task<List<string>> GetCartAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(new List<string>(_cart));
+    /// <summary>How many times each item's add reached the server.</summary>
+    public ConcurrentDictionary<string, int> Attempts { get; } = new();
+
+    /// <summary>How many times the cart was read.</summary>
+    public int CartFetches => Volatile.Read(ref _cartFetches);
+
+    private int _cartFetches;
+
+    public Task<List<string>> GetCartAsync(CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _cartFetches);
+        lock (_cart)
+        {
+            return Task.FromResult(new List<string>(_cart));
+        }
+    }
+
+    public Task<int> GetCountAsync(CancellationToken cancellationToken)
+    {
+        lock (_cart)
+        {
+            return Task.FromResult(_cart.Count);
+        }
+    }
 
     public async Task<List<string>> AddToCartAsync(string item, CancellationToken cancellationToken)
     {
-        await Task.Delay(150, cancellationToken); // simulate a network round-trip
+        Attempts.AddOrUpdate(item, 1, (_, n) => n + 1);
+        // Simulated round-trips of different lengths: the server answers Mouse, then Keyboard, then Monitor.
+        await Task.Delay(item switch { "Mouse" => 80, "Keyboard" => 150, _ => 250 }, cancellationToken);
         if (item == "Mouse")
         {
             throw new InvalidOperationException($"'{item}' is out of stock");
         }
 
-        _cart.Add(item);
-        return new List<string>(_cart);
+        lock (_cart)
+        {
+            _cart.Add(item);
+            return new List<string>(_cart);
+        }
     }
 }

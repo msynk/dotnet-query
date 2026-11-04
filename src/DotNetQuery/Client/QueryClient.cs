@@ -372,7 +372,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         var resolved = _options.Resolve(key, options.QueryOptions);
         if (options.QueryOptions?.RetryCount is null)
         {
-            resolved = resolved with { RetryCount = Math.Max(0, options.RetryCount) };
+            resolved = resolved with { RetryCount = Math.Max(0, options.RetryCount ?? 0) };
         }
 
         if (options.QueryOptions?.RetryDelay is null)
@@ -432,15 +432,15 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
         return activity;
     }
 
-    void IQueryEventSink.QueryFetchSucceeded(QueryKey key, TimeSpan duration, object? token)
+    void IQueryEventSink.QueryFetchSucceeded(QueryKey key, IReadOnlyDictionary<string, object?>? meta, TimeSpan duration, object? token)
     {
         DotNetQueryDiagnostics.QueriesSucceeded.Add(1);
         DotNetQueryDiagnostics.QueryDuration.Record(duration.TotalMilliseconds);
         StopActivity(token, ActivityStatusCode.Ok, null);
-        Raise(new QueryCompletedEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key, Duration = duration });
+        Raise(new QueryCompletedEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key, Duration = duration, Meta = meta });
     }
 
-    void IQueryEventSink.QueryFetchFailed(QueryKey key, Exception error, int failureCount, TimeSpan duration, object? token)
+    void IQueryEventSink.QueryFetchFailed(QueryKey key, IReadOnlyDictionary<string, object?>? meta, Exception error, int failureCount, TimeSpan duration, object? token)
     {
         DotNetQueryDiagnostics.QueriesFailed.Add(1);
         DotNetQueryDiagnostics.QueryDuration.Record(duration.TotalMilliseconds);
@@ -452,6 +452,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             Error = error,
             FailureCount = failureCount,
             Duration = duration,
+            Meta = meta,
         });
     }
 
@@ -499,7 +500,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
     void IQueryEventSink.ObserverFailed(QueryKey key, Exception error) =>
         Raise(new QueryObserverErrorEvent { Timestamp = _timeProvider.GetUtcNow(), Key = key, Error = error });
 
-    (long Id, object? Token) IQueryEventSink.MutationStarted(QueryKey? mutationKey, object? variables)
+    (long Id, object? Token) IQueryEventSink.MutationStarted(QueryKey? mutationKey, IReadOnlyDictionary<string, object?>? meta, object? variables)
     {
         var id = Interlocked.Increment(ref _mutationIds);
         DotNetQueryDiagnostics.MutationsStarted.Add(1);
@@ -519,11 +520,12 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             MutationId = id,
             MutationKey = mutationKey,
             Variables = _options.IncludeVariablesInDiagnostics ? variables : null,
+            Meta = meta,
         });
         return (id, activity);
     }
 
-    void IQueryEventSink.MutationCompleted(long id, QueryKey? mutationKey, bool succeeded, Exception? error, int failureCount, TimeSpan duration, object? token)
+    void IQueryEventSink.MutationCompleted(long id, QueryKey? mutationKey, IReadOnlyDictionary<string, object?>? meta, bool succeeded, Exception? error, int failureCount, TimeSpan duration, object? token)
     {
         DotNetQueryDiagnostics.MutationsCompleted.Add(1);
         if (!succeeded)
@@ -542,6 +544,7 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
             Error = error,
             FailureCount = failureCount,
             Duration = duration,
+            Meta = meta,
         });
     }
 

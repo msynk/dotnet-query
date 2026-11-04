@@ -112,6 +112,15 @@ public sealed record QueryOptions
     public Func<QueryDescriptor, TimeSpan?>? AdaptiveRefetchInterval { get; init; }
 
     /// <summary>
+    /// Arbitrary application data attached to the query (TanStack Query's <c>meta</c>) - for example a user-facing
+    /// error message or a flag telling a global handler to stay silent. DotNetQuery never reads it; it is surfaced on
+    /// <see cref="QueryDescriptor.Meta"/>, <see cref="QueryCompletedEvent.Meta"/> and <see cref="QueryFailedEvent.Meta"/>
+    /// so cache-wide handlers (<see cref="IQueryClient.DiagnosticEvent"/>, <see cref="QueryCache.Changed"/>) can act on
+    /// it. Layered like the other options: the most specific dictionary that is set wins (dictionaries are not merged).
+    /// </summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
+
+    /// <summary>
     /// Layers <paramref name="specific"/> over <paramref name="fallback"/>: every property set on
     /// <paramref name="specific"/> wins, every other one comes from <paramref name="fallback"/>.
     /// </summary>
@@ -146,6 +155,7 @@ public sealed record QueryOptions
             Timeout = specific.Timeout ?? fallback.Timeout,
             Priority = specific.Priority ?? fallback.Priority,
             AdaptiveRefetchInterval = specific.AdaptiveRefetchInterval ?? fallback.AdaptiveRefetchInterval,
+            Meta = specific.Meta ?? fallback.Meta,
         };
     }
 }

@@ -20,7 +20,7 @@
       href: infinite-queries.md
     - name: Offline mode
       href: offline-mode.md
-    - name: Generated queries (Refit, OpenAPI)
+    - name: Generated queries (Refit, OpenAPI, Kiota)
       href: source-generation.md
     - name: Diagnostics and DevTools
       href: diagnostics.md

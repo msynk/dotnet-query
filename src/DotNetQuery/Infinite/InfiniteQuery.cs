@@ -162,7 +162,7 @@ public sealed class InfiniteQuery<TParam, TPage> : IDisposable
         {
             await _client.Cache.WithEntry<InfiniteData<TParam, TPage>, Task<QueryState<InfiniteData<TParam, TPage>>>>(
                 Key,
-                entry => entry.TryFetchAsync(fetcher, _resolved, mode, remember, throwOnError: false, cancellationToken))
+                entry => entry.TryFetchAsync(fetcher, _resolved, mode, remember, throwOnError: false, cancellationToken, deferWhileOptimistic: direction == 0))
                 .ConfigureAwait(false);
         }
         finally

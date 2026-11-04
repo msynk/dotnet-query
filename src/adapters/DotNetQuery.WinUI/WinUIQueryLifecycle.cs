@@ -38,15 +38,18 @@ public sealed class WinUIQueryLifecycle : IDisposable
         }
     }
 
-    private void OnActivated(object sender, WindowActivatedEventArgs args)
+    private void OnActivated(object sender, WindowActivatedEventArgs args) => Forward(_signals, args.WindowActivationState);
+
+    // Separate from the event handler so the mapping is testable without a WinUI window.
+    internal static void Forward(AppLifecycleSignals signals, WindowActivationState state)
     {
-        if (args.WindowActivationState is WindowActivationState.Deactivated)
+        if (state is WindowActivationState.Deactivated)
         {
-            _signals.NotifyDeactivated();
+            signals.NotifyDeactivated();
         }
         else
         {
-            _signals.NotifyActivated();
+            signals.NotifyActivated();
         }
     }
 

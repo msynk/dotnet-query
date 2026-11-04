@@ -141,7 +141,7 @@ public class HttpResilienceTests
             }
 
             return Task.FromResult<IReadOnlyDictionary<int, string>>(ids.Where(id => id != 404).ToDictionary(id => id, id => $"user {id}"));
-        });
+        }, new BatchLoaderOptions { Delay = TimeSpan.FromMilliseconds(200) }); // fetchers start on separate thread-pool threads: a window, not one tick
         using var client = new QueryClient(TestUtil.NoRetry());
 
         var results = await Task.WhenAll(new[] { 1, 2, 3, 2, 404 }.Select(id =>

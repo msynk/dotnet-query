@@ -1,0 +1,149 @@
+name: Release
+
+# Publishes a release when a version tag is pushed: vX.Y.Z (or vX.Y.Z-preview.N). The tag must match VersionPrefix in
+# Directory.Build.props - run eng/prepare-release.ps1 first (see docs/releasing.md).
+#
+# One-time setup on nuget.org and GitHub:
+#   - nuget.org: add a trusted publishing policy for this repository and workflow (release.yml), so no long-lived API
+#     key is stored; set the repository variable NUGET_USER to the nuget.org account name that owns the policy.
+#   - GitHub: create the "nuget" environment (Settings > Environments), ideally with required reviewers.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  pack:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Read the version from the tag
+        id: version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          prefix="${tag%%-*}"
+          suffix=""
+          if [ "$tag" != "$prefix" ]; then suffix="${tag#*-}"; fi
+          declared=$(grep -oP '(?<=<VersionPrefix>)[^<]+' Directory.Build.props)
+          if [ "$declared" != "$prefix" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match VersionPrefix $declared (run eng/prepare-release.ps1)"
+            exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+          echo "suffix=$suffix" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$([ -n "$suffix" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Check the API baselines are shipped
+        shell: bash
+        run: |
+          if [ "${{ steps.version.outputs.prerelease }}" = "false" ]; then
+            for f in $(git ls-files 'src/**/PublicAPI.Unshipped.txt'); do
+              if grep -qv '^#' "$f"; then echo "::error::$f still has unshipped entries"; exit 1; fi
+            done
+          fi
+
+      - name: Build
+        run: dotnet build DotNetQuery.slnx -c Release -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+
+      - name: Test
+        run: dotnet test DotNetQuery.slnx -c Release --no-build
+
+      - name: Pack
+        run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts -p:VersionSuffix=${{ steps.version.outputs.suffix }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+
+  pack-maui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Pack MAUI adapter
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          suffix=""
+          if [ "$tag" != "${tag%%-*}" ]; then suffix="${tag#*-}"; fi
+          dotnet pack src/adapters/DotNetQuery.Maui -c Release -o artifacts -p:VersionSuffix="$suffix"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-maui
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+
+  publish:
+    needs: [pack, pack-maui]
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      contents: write        # the GitHub release
+      id-token: write        # nuget.org trusted publishing and build provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/*.nupkg
+
+      - name: Log in to nuget.org (trusted publishing)
+        id: nuget
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to nuget.org
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.pack.outputs.version }}
+        run: |
+          # The changelog section of this version (from its heading to the next "## " heading).
+          awk -v v="$VERSION" '$0 ~ "^## " v "( |$)" {found=1; next} found && /^## / {exit} found {print}' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "See CHANGELOG.md." > notes.md; fi
+          flags=""
+          if [ "${{ needs.pack.outputs.prerelease }}" = "true" ]; then flags="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" artifacts/*.nupkg artifacts/*.snupkg --title "DotNetQuery $VERSION" --notes-file notes.md $flags

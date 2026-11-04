@@ -7,7 +7,9 @@
   <Folder Name="/src/adapters/">
     <Project Path="src/adapters/DotNetQuery.Avalonia/DotNetQuery.Avalonia.csproj" />
     <Project Path="src/adapters/DotNetQuery.Blazor/DotNetQuery.Blazor.csproj" />
+    <Project Path="src/adapters/DotNetQuery.Blazor.Server/DotNetQuery.Blazor.Server.csproj" />
     <Project Path="src/adapters/DotNetQuery.Wpf/DotNetQuery.Wpf.csproj" />
+    <Project Path="src/adapters/DotNetQuery.Uno/DotNetQuery.Uno.csproj" />
     <Project Path="src/adapters/DotNetQuery.WinUI/DotNetQuery.WinUI.csproj" />
   </Folder>
   <Folder Name="/src/persistence/">
@@ -25,12 +27,15 @@
     <Project Path="samples/DotNetQuery.Sample.OfflineFirst/DotNetQuery.Sample.OfflineFirst.csproj" />
     <Project Path="samples/DotNetQuery.Sample.ECommerce/DotNetQuery.Sample.ECommerce.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Dashboard/DotNetQuery.Sample.Dashboard.csproj" />
+    <Project Path="samples/DotNetQuery.Sample.Wpf/DotNetQuery.Sample.Wpf.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetQuery.Benchmarks/DotNetQuery.Benchmarks.csproj" />
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />
+    <Project Path="tests/DotNetQuery.Desktop.Tests/DotNetQuery.Desktop.Tests.csproj" />
     <Project Path="tests/DotNetQuery.E2E/DotNetQuery.E2E.csproj" />
     <Project Path="tests/DotNetQuery.SourceGenerators.Tests/DotNetQuery.SourceGenerators.Tests.csproj" />
     <Project Path="tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj" />
+    <Project Path="tests/DotNetQuery.Uno.Tests/DotNetQuery.Uno.Tests.csproj" />
   </Folder>
 </Solution>

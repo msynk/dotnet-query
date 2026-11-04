@@ -46,12 +46,12 @@ public class AllocationBudgetTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void A_fresh_cache_hit_stays_on_the_fast_path()
+    public async Task A_fresh_cache_hit_stays_on_the_fast_path()
     {
         using var client = new QueryClient(new QueryClientOptions { DefaultStaleTime = TimeSpan.FromMinutes(5) });
         var key = QueryKey.Create("todos", 1);
         Func<CancellationToken, Task<string>> fetcher = _ => Task.FromResult("fetched");
-        client.FetchAsync(key, fetcher).GetAwaiter().GetResult();
+        await client.FetchAsync(key, fetcher);
 
         var bytes = Measure("FetchAsync (fresh hit)", () =>
         {

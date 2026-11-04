@@ -257,3 +257,29 @@ packaging).
 - [x] Package metadata, icon, README, SourceLink, symbols (validated in the packed .nupkg files; packed generator smoke-tested)
 - [x] Semantic versioning and release policy (docs/releasing.md)
 - [x] Migration guides between releases (docs/migration.md)
+
+## 17. Gaps found by the documentation review (2026-11-04)
+
+- [x] Public API baselines for the Blazor package (PublicApiAnalyzers on every package)
+- [x] Trimmed Blazor WebAssembly verified (adapter `IsAotCompatible`, trim-safe hydration, CI publish gate)
+- [x] `MutationOptions.RetryCount` / `InfiniteQueryOptions.RetryCount` nullable (explicit opt-out of default retries)
+- [x] Durable queue shared by several tabs/processes replays each write once (`ReplayLock`, Web Locks, lock file)
+- [x] Release automation (tag-driven workflow, trusted publishing, provenance, `eng/prepare-release.ps1`)
+- [x] Repository hygiene (security policy, code of conduct, issue/PR templates, Dependabot)
+- [x] Framework policy (LTS targets, forward-compatibility CI job on the newest runtime; WPF/WinUI on .NET 8)
+- [x] Code coverage in CI
+- [x] Package validation
+- [x] Analyzer release tracking shipped by the release script
+- [x] WPF/WinUI lifecycle runtime tests and a WPF sample
+- [x] DocFX API reference includes the Razor components
+- [x] Live DevTools for non-Blazor apps (`QueryDevToolsServer` + CLI `watch`)
+- [x] `ILogger` integration (`AddDiagnosticLogging`)
+- [x] Redis pub/sub synchronization channel; SignalR recipe
+- [x] Blazor Server reconnection shipped as a package (`Msynk.DotNetQuery.Blazor.Server`)
+- [x] Uno Platform adapter; Blazor Hybrid guidance
+- [x] Generator: classes (Kiota wrappers), generic methods, infinite queries
+- [x] Query and mutation `Meta`
+- [x] Samples match the tutorials (durable queue in OfflineFirst, declarative optimistic updates in ECommerce)
+- [x] Refreshes wait for pending optimistic updates (no flash of server data during concurrent mutations)
+- [x] `DeduplicatePending` race (a call right after completion joined the settled run)
+- [ ] Owner actions: reserve the `Msynk.` prefix, enable GitHub Pages, configure nuget.org trusted publishing (see ROADMAP)

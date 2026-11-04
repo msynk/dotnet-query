@@ -2,8 +2,10 @@
 
 A console harness that exercises the generic-heavy hot paths of DotNetQuery - cache, observers, query
 definitions, atomic cache updates, hydration, cancellation, mutations with declarative optimistic updates,
-infinite queries, persistence with source-generated JSON, the durable mutation queue, and source-generated
-HTTP queries - so NativeAOT and trimming can be verified end-to-end.
+infinite queries, persistence with source-generated JSON, the durable mutation queue (with a shared file lock),
+source-generated HTTP and GraphQL queries, `[GenerateQueries]` output (generic and infinite queries included),
+selectors, structural sharing, transactions, synchronization, MVVM bindings, `Meta` and diagnostic logging - so
+NativeAOT and trimming can be verified end-to-end.
 
 The project sets `PublishAot=true` and `TreatWarningsAsErrors=true`, so any `IL2xxx` (trim) or `IL3xxx`
 (AOT) analyzer warning fails the build.
@@ -24,7 +26,7 @@ compilation and surfaces every warning even before the native link step.
 
 ## What a clean run proves
 
-- The `IsAotCompatible` annotations of Core, DependencyInjection, Persistence and Http are accurate - no
-  reflection or dynamic code on the exercised paths (the reflection-based convenience overloads are
-  annotated and not used here).
+- The `IsAotCompatible` annotations of the core (DependencyInjection, Persistence, Http, GraphQL, MVVM, logging) are
+  accurate - no reflection or dynamic code on the exercised paths (the reflection-based convenience overloads are
+  annotated and not used here) - and the code `[GenerateQueries]` emits is trim/AOT-clean.
 - The published app is self-contained and starts without the shared .NET runtime.

@@ -46,13 +46,24 @@ completes.
 ## Mutations and optimistic updates
 
 **The optimistic value flickers back and forth.**
-A refetch of the same key landed while the mutation was pending. Add the key to the mutation's `Invalidates` so the
-server's value replaces the optimistic one after the mutation settles, and avoid manual refetches of that key while
-it is pending.
+Refreshes of a query wait while declarative `OptimisticUpdates` on it are pending, so this happens with writes the
+engine does not know are optimistic: an `OnMutate` callback writing with `SetQueryData`. Prefer `OptimisticUpdates`,
+and add the key to `Invalidates` so the server's value replaces the optimistic one once the mutation settles.
 
 **A rolled-back mutation also undid another mutation's change.**
 That cannot happen with declarative `OptimisticUpdates` (layers are re-applied on rollback). It can when an
 `OnMutate` callback writes with `SetQueryData` and restores a captured value in `OnError`; prefer `OptimisticUpdates`.
+
+**A queued write reaches the server twice (several tabs or windows).**
+Each instance that restores the same durable queue store replays it. Set `PersistentMutationQueueOptions.ReplayLock`
+(`WebLocksMutationQueueLock` in the browser, `FileMutationQueueLock` for processes) - see
+[Offline mode](offline-mode.md#several-tabs-or-processes-sharing-the-queue) - and send the mutation id as an idempotency
+key.
+
+**A refetch I requested did not happen right away.**
+Optimistic updates of pending mutations are on that query: its refreshes wait until they settle, then one refetch runs
+(see [Concurrent mutations of one list](optimistic-updates.md#concurrent-mutations-of-one-list)). The query is marked
+stale meanwhile.
 
 **Double submit.**
 Bind buttons to `ObservableMutation.MutateCommand` (disabled while pending) or disable them on `IsPending`; set
@@ -74,6 +85,13 @@ tab's cache.
 The page was not interactive yet. Disable inputs until `RendererInfo.IsInteractive` (see
 [Render modes](blazor.md#render-modes)).
 
+**Prerendered data is refetched in a trimmed or NativeAOT WebAssembly app.**
+Hydration could not (de)serialize the type without reflection. Register your `JsonSerializerContext`:
+`AddDotNetQueryBlazor().UseHydrationJson(AppJson.Default)`, in both the server and the `.Client` project.
+
+**Stale data after a Blazor Server connection drop.**
+Reference `Msynk.DotNetQuery.Blazor.Server` and call `.RefetchOnCircuitReconnect()` in the server project.
+
 **`JSDisconnectedException` in the logs on shutdown.**
 The circuit closed while a browser call was in flight; the adapter's components ignore it. If it comes from your
 own JS interop, catch it in `DisposeAsync`.
@@ -84,9 +102,18 @@ own JS interop, catch it in `DisposeAsync`.
 The factories capture the UI thread's `SynchronizationContext`. Create view models on the UI thread (or create the
 binding there and pass it in).
 
+**How do I see what the cache is doing in a desktop app?**
+Start a `QueryDevToolsServer` in debug builds and run the CLI's `watch` mode - see
+[Diagnostics](diagnostics.md#live-devtools-for-any-app).
+
 **Bound values update but the list control loses its scroll position.**
 Something replaces the data instance on every refetch. Turn on `StructuralSharing` so an equal refetch keeps the
 same instance; `ObservableQuery` raises `Data` only when the instance changes.
+
+## Logging
+
+**Nothing is logged.** `AddDiagnosticLogging()` needs an `ILoggerFactory` in the container (the generic host and
+ASP.NET Core register one) and the `DotNetQuery` category enabled at the level you want - routine events are `Debug`.
 
 ## Persistence
 
@@ -102,8 +129,9 @@ annotated as not trim-safe.
 ## Build
 
 **`DNQ001` / `DNQ002` / `DNQ003` warnings.**
-From the `[GenerateQueries]` generator: an annotated method that cannot be generated, an `Invalidates` name that is
-not a query method, or a target that is not an accessible, non-generic interface. See
+From the `[GenerateQueries]` generator: an annotated method that cannot be generated (for example an
+`[InfiniteQueryMethod]` naming a parameter that does not exist), an `Invalidates` name that is not a query method, or a
+target that is not an accessible, non-generic interface or non-static class. See
 [Generated queries](source-generation.md).
 
 **The package `DotNetQuery.Core` / `DotNetQuery.Blazor` is a different library.**

@@ -56,4 +56,7 @@ public sealed record QueryDescriptor
 
     /// <summary>The freshness window of the most recent fetch, or <see langword="null"/> if never fetched.</summary>
     public TimeSpan? StaleTime { get; init; }
+
+    /// <summary>The <see cref="QueryOptions.Meta"/> of the most recent fetch, or <see langword="null"/>.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 }

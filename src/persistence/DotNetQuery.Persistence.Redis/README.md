@@ -22,6 +22,20 @@ await manager.RestoreAllAsync();   // on startup
 await manager.PersistAllAsync();   // on shutdown / periodically
 ```
 
+## Synchronizing server instances
+
+The package also carries `RedisQuerySyncChannel`, an `IQuerySyncChannel` over Redis pub/sub, so the caches of several
+server instances stay consistent (a write handled by one instance reaches the others):
+
+```csharp
+using DotNetQuery.Synchronization;
+
+var channel = await RedisQuerySyncChannel.CreateAsync(multiplexer, "myapp:dnq-sync");
+using var sync = new QuerySynchronizer(client, channel).RegisterPrefix(CatalogQueries.All, AppJson.Default.Product).Start();
+```
+
+See [Advanced scenarios](../../../docs/advanced-scenarios.md#several-server-instances-redis-pubsub).
+
 ## Running Redis for local development / tests
 
 The integration tests connect to the endpoint in the `DOTNETQUERY_REDIS` environment variable

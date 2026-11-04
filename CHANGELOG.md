@@ -3,12 +3,41 @@
 All notable changes to DotNetQuery. The project is pre-1.0; public API baselines live in each package's
 `PublicAPI.Unshipped.txt`.
 
-## Unreleased (on top of the 0.8.0 notes below)
+## Unreleased (0.9.0, the first release published on nuget.org)
 
 Production-readiness work driven by the improvement plan (see `IMPROVEMENT-PLAN.md` and
-`IMPLEMENTATION-STATUS.md`). All changes are additive unless listed under "Changed".
+`IMPLEMENTATION-STATUS.md`), on top of the 0.8.0 notes below - 0.8.0 itself was never published, so these notes and
+the 0.8.0 ones together describe the first public release. All changes are additive unless listed under "Changed".
 
 ### Added
+
+- **Query and mutation `Meta`:** `QueryOptions.Meta`, `MutationOptions.Meta` and `MutationDefaults.Meta` attach
+  application data for cache-wide handlers; surfaced on `QueryDescriptor`, `MutationDescriptor`, `QueryCompletedEvent`,
+  `QueryFailedEvent`, `MutationStartedEvent` and `MutationCompletedEvent`.
+- **Logging:** `IDotNetQueryBuilder.AddDiagnosticLogging(options)` and `client.LogDiagnostics(logger)` write the
+  diagnostic event stream to `ILogger` with source-generated `LoggerMessage`s (`QueryDiagnosticsLoggingOptions`).
+- **Live DevTools for any app:** `QueryDevToolsServer` serves the DevTools export on the loopback interface (optional
+  access token); the CLI gained `watch <url>` (live dashboard), `<url>` (one snapshot) and `watch demo`.
+- **Durable queues shared by several instances:** `PersistentMutationQueueOptions.ReplayLock` (`IMutationQueueLock`)
+  with `FileMutationQueueLock` (processes) and the Blazor `WebLocksMutationQueueLock` (browser tabs); a queue replays
+  only while holding the lock and reconciles with the store first, so each queued write is sent once.
+- **Redis synchronization:** `RedisQuerySyncChannel` (in `Msynk.DotNetQuery.Persistence.Redis`) keeps the caches of
+  several server instances consistent over Redis pub/sub; a SignalR transport recipe in the docs.
+- **`Msynk.DotNetQuery.Blazor.Server`:** `RefetchOnCircuitReconnect()` / `QueryCircuitHandler` refetch the stale
+  queries on screen when a dropped Blazor Server connection comes back.
+- **`Msynk.DotNetQuery.Uno`:** Uno Platform adapter (`UnoQueryExtensions` factories, `UnoQueryLifecycle`).
+- **Trim-safe prerender hydration:** `AddDotNetQueryBlazor().UseHydrationJson(resolver)` and `JsonTypeInfo<T>` overloads of
+  `QueryStateHydration.Persist`/`TryHydrate`; the Blazor adapter is now `IsAotCompatible` and covered by the public API
+  analyzer.
+- **Source generator:** `[GenerateQueries]` on classes (for example wrappers over Kiota clients), generic methods
+  (type arguments become key segments, constraints are kept) and `[InfiniteQueryMethod("page")]` (key without the page
+  parameter, `XPageFn`, and an `InfiniteQuery` factory).
+- **Platforms:** the WPF and WinUI adapters also target .NET 8; WPF sample (`samples/DotNetQuery.Sample.Wpf`) with a CI
+  self-check; WPF/WinUI lifecycle tests.
+- **Engineering:** package validation, code coverage in CI, a forward-compatibility job on the newest .NET runtime, a
+  trimmed Blazor WebAssembly publish check, a tag-driven release workflow (trusted publishing, provenance
+  attestations, GitHub release), `eng/prepare-release.ps1`, Dependabot, `SECURITY.md`, a code of conduct and issue/PR
+  templates; the DocFX API reference now includes the Razor components.
 
 - **Retry classification:** `QueryOptions.ShouldRetry` / `QueryClientOptions.DefaultShouldRetry` /
   `MutationOptions.ShouldRetry` (`RetryPredicate`) veto retries for permanent errors; `HttpRetryPolicy`
@@ -105,6 +134,10 @@ Production-readiness work driven by the improvement plan (see `IMPROVEMENT-PLAN.
 
 ### Fixed
 
+- `PersistentMutationQueue` ids could collide between two instances writing to one store within the same clock tick
+  (browsers coarsen time to milliseconds); ids now carry a per-instance part.
+- `Mutation` with `DeduplicatePending`: a call made right after a run completed could join that settled run (it left
+  the pending list in a continuation that could run after the caller's own); it now leaves the list before completing.
 - Skipping an unchanged state compared `QueryState<T>` records, which called the cached data's `Equals` (user code)
   while the entry lock was held; it now compares the state fields without calling it.
 - Blazor refetched every active query twice on a reconnect (connectivity provider and online manager both
@@ -137,6 +170,21 @@ Production-readiness work driven by the improvement plan (see `IMPROVEMENT-PLAN.
 
 ### Changed
 
+- **Refreshes wait for pending optimistic updates.** While declarative optimistic updates of pending mutations are on a
+  query, its invalidations, refetches (`RefetchQueryAsync`, intervals, focus/reconnect triggers) and reads of stale data
+  mark it stale instead of fetching (an outdated fetch in flight is cancelled); once the last of those mutations has
+  settled, one refetch runs. Concurrent mutations of one list with `Invalidates` no longer flash the server's value
+  without the still-pending items, and a burst is reconciled with one refetch. A mutation whose invalidation waits for
+  others completes without waiting for that refetch. Infinite next/previous page loads are not deferred.
+- A rollback whose rebase races only with another layer's commit re-plans instead of falling back to a refetch; a rebase
+  that cannot complete drops the layer stack so the reconciling refetch is not deferred.
+- **`MutationOptions.RetryCount` and `InfiniteQueryOptions.RetryCount` are `int?`.** `null` uses the defaults; `0` now
+  opts a mutation out of retries that `SetMutationDefaults` enables (previously impossible: 0 meant "unset").
+- **Prerender hydration** carries a JSON string envelope (`{"updatedAt", "data"}`) instead of a serialized object;
+  `QueryStateHydration.Persist<T>`/`TryHydrate<T>` without `JsonTypeInfo<T>` are annotated `[RequiresUnreferencedCode]`.
+- **`PersistentMutationQueue.RestoreAsync`** reconciles with the store: entries that are no longer stored are dropped.
+- `Msynk.DotNetQuery` references `Microsoft.Extensions.Logging.Abstractions`.
+- `VersionPrefix` is 0.9.0; the samples reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c).
 - **Package IDs are now prefixed with `Msynk.`** (`Msynk.DotNetQuery`, `Msynk.DotNetQuery.Blazor`,
   `Msynk.DotNetQuery.Persistence.Sqlite`, `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`): `DotNetQuery.Core` and
   `DotNetQuery.Blazor` on NuGet belong to an unrelated library, so the previous IDs could not all be published.
@@ -156,9 +204,10 @@ Production-readiness work driven by the improvement plan (see `IMPROVEMENT-PLAN.
   references it).
 - Package `PackageProjectUrl`/`RepositoryUrl` point to `https://github.com/msynk/dotnet-query`.
 
-## 0.8.0 (unreleased)
+## 0.8.0 (not published)
 
-A correctness, Blazor and developer-experience overhaul driven by a full review of the library.
+A correctness, Blazor and developer-experience overhaul driven by a full review of the library. This version was never
+published to nuget.org (its package IDs collided with an unrelated library); its changes ship in 0.9.0.
 
 ### Fixed - engine correctness
 

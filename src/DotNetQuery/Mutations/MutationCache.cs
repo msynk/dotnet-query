@@ -126,9 +126,9 @@ public sealed class MutationCache
         }
     }
 
-    internal MutationRun Add(long id, QueryKey? mutationKey, string? scope, object? variables, DateTimeOffset submittedAt)
+    internal MutationRun Add(long id, QueryKey? mutationKey, string? scope, IReadOnlyDictionary<string, object?>? meta, object? variables, DateTimeOffset submittedAt)
     {
-        var run = new MutationRun(this, id > 0 ? id : -Interlocked.Increment(ref _ids), mutationKey, scope, variables, submittedAt);
+        var run = new MutationRun(this, id > 0 ? id : -Interlocked.Increment(ref _ids), mutationKey, scope, meta, variables, submittedAt);
         lock (_gate)
         {
             _runs[run.Id] = run;
@@ -248,7 +248,7 @@ public sealed class MutationCache
 }
 
 /// <summary>A tracked mutation run (internal, mutable); <see cref="Describe"/> produces public snapshots.</summary>
-internal sealed class MutationRun(MutationCache owner, long id, QueryKey? mutationKey, string? scope, object? variables, DateTimeOffset submittedAt)
+internal sealed class MutationRun(MutationCache owner, long id, QueryKey? mutationKey, string? scope, IReadOnlyDictionary<string, object?>? meta, object? variables, DateTimeOffset submittedAt)
 {
     private readonly object _gate = new();
     private MutationStatus _status = MutationStatus.Pending;
@@ -299,6 +299,7 @@ internal sealed class MutationRun(MutationCache owner, long id, QueryKey? mutati
                 MutationId = Id,
                 MutationKey = mutationKey,
                 Scope = scope,
+                Meta = meta,
                 Status = _status,
                 IsPaused = _isPaused,
                 Progress = _progress,
@@ -342,6 +343,9 @@ public sealed record MutationDescriptor
 
     /// <summary>The mutation's <see cref="MutationOptions{TVariables, TData}.Scope"/>, if any.</summary>
     public string? Scope { get; init; }
+
+    /// <summary>The mutation's <see cref="MutationOptions{TVariables, TData}.Meta"/>, if any.</summary>
+    public IReadOnlyDictionary<string, object?>? Meta { get; init; }
 
     /// <summary>The run's status.</summary>
     public required MutationStatus Status { get; init; }

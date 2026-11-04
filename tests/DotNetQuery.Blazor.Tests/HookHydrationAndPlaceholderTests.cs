@@ -103,7 +103,7 @@ public class HookHydrationAndPlaceholderTests : TestContext
     {
         var appState = this.AddFakePersistentComponentState();
         var definition = Counted("hook-hydrate", 1);
-        appState.Persist(QueryStateHydration.StateKey(definition.Key), new { Data = 99, UpdatedAt = DateTimeOffset.UtcNow });
+        appState.Persist(QueryStateHydration.StateKey(definition.Key), HydrationEnvelope.Create(99, DateTimeOffset.UtcNow));
         var before = Volatile.Read(ref s_fetches);
 
         var cut = RenderComponent<HookView>(ps => ps.Add(p => p.Definition, definition));
@@ -123,8 +123,8 @@ public class HookHydrationAndPlaceholderTests : TestContext
 
         appState.TriggerOnPersisting();
 
-        Assert.True(appState.TryTake<QueryComponentFeatureTests.HydrationProbe>(QueryStateHydration.StateKey(definition.Key), out var persisted));
-        Assert.Equal(42, persisted!.Data);
+        Assert.True(appState.TryTake<string>(QueryStateHydration.StateKey(definition.Key), out var persisted));
+        Assert.Equal(42, HydrationEnvelope.Data<int>(persisted!));
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class HookHydrationAndPlaceholderTests : TestContext
     {
         var appState = this.AddFakePersistentComponentState();
         var definition = Counted("hook-no-persist", 7);
-        appState.Persist(QueryStateHydration.StateKey(definition.Key), new { Data = 99, UpdatedAt = DateTimeOffset.UtcNow });
+        appState.Persist(QueryStateHydration.StateKey(definition.Key), HydrationEnvelope.Create(99, DateTimeOffset.UtcNow));
 
         var cut = RenderComponent<NoPersistHookView>(ps => ps.Add(p => p.Definition, definition));
         cut.WaitForAssertion(() => Assert.Contains("7", cut.Markup));

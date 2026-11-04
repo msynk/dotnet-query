@@ -33,7 +33,10 @@ Measured on Windows 11, .NET SDK 11.0.100-rc.3 (default) with the 8.0 and 10.0 S
 | `tests/*` | net10.0 | xUnit core tests, bUnit Blazor tests, BenchmarkDotNet. |
 | `samples/*` | net10.0 | Blazor TodoApp, Chat, OfflineFirst, ECommerce, Dashboard (console smoke tests in CI), Avalonia (headless CI check), MAUI. |
 
-## Capability inventory (verified against source and tests)
+## Capability inventory at baseline
+
+This table records the state **before** the work log below (commit `376c4b0`). Every Partial and Missing row has since
+been resolved; the work log names the item that resolved it, and the latest snapshot is at the end of this file.
 
 Legend: **Done** = implemented and tested; **Partial** = exists with a concrete gap; **Missing** = not implemented.
 
@@ -403,7 +406,7 @@ A test-only race in `MvvmTests.ObservableQuery_raises_only_the_properties_that_c
 drain thread applied the notifications) was fixed by waiting for the notifications themselves. The core suite
 then passed 8 consecutive runs.
 
-## Final verification snapshot
+### Verification snapshot (after items 1-26)
 
 | Check | Result |
 | --- | --- |
@@ -414,19 +417,6 @@ then passed 8 consecutive runs.
 | `dotnet list package --vulnerable --include-transitive` | clean for every project |
 | NativeAOT native link | not runnable on this machine (no VC++ linker); CI `aot` job is authoritative |
 | Benchmarks | ShortRun baseline committed (`tests/DotNetQuery.Benchmarks/Baselines/`) |
-
-## Open items and blockers
-
-Every item of IMPROVEMENT-PLAN.md is done; see the final snapshot at the end of this file. What remains needs the
-repository owner or hardware this machine does not have:
-
-- **Owner actions:** reserve the `Msynk.` prefix on nuget.org; enable GitHub Pages (Settings > Pages > Source =
-  GitHub Actions) so `.github/workflows/docs.yml` can publish the site; commit the work (nothing was committed).
-- **Needs a Mac:** the MAUI iOS / Mac Catalyst heads (the project adds them automatically on macOS).
-- **CI-only:** the NativeAOT native link (no VC++ linker on this machine; the trimmed self-contained publish and the
-  build-time AOT analyzers are clean locally) and the Linux job's Redis-backed persistence tests.
-- **Known tooling limit:** DocFX 2.81 cannot load the .NET SDK's Razor source generator, so components written only
-  in `.razor` (for example `QueryClientProvider`) are missing from the generated API pages; the guides cover them.
 
 ### 27. Package naming (resolved)
 
@@ -618,7 +608,7 @@ repository owner or hardware this machine does not have:
 - Documentation site: `docs/docfx.json`, `docs/toc.yml`, `docs/index.md` and `.github/workflows/docs.yml` (builds on
   pull requests, publishes to GitHub Pages from `main`; enabling Pages is a one-time owner setting).
 
-## Final verification snapshot (after items 28-41, 2026-11-03)
+### Verification snapshot (after items 28-41, 2026-11-03)
 
 | Check | Result |
 | --- | --- |
@@ -633,3 +623,175 @@ repository owner or hardware this machine does not have:
 | `dotnet pack` | 7 packages + symbols; metadata, README, icon, SourceLink and the bundled generator verified; packed generator smoke-tested in a fresh net8.0 consumer |
 | DocFX site (`docfx docs/docfx.json`) | builds, 0 warnings in the build step, 0 errors |
 | Benchmarks | `Baselines/2026-11-03-shortrun.md` (ShortRun, indicative) |
+
+### 42. Documentation review: stale plans and gaps (2026-11-04)
+
+A review of every Markdown document found stale entries (ROADMAP listed the shipped source generator as remaining work;
+README/ROADMAP still said 412 tests and 10 guides; this file's capability inventory and "Open items" were out of date;
+the TanStack guide mapped `QueryClientProvider` to DI only; two tutorials pointed at samples that did not show what
+they described) and real gaps, all addressed by items 43-55. ROADMAP, README, the guides and this file were updated.
+
+### 43. Mutation retry opt-out and `Meta` (verified)
+
+- `MutationOptions.RetryCount` and `InfiniteQueryOptions.RetryCount` are `int?`: `null` uses `MutationDefaults`, `0`
+  opts out (previously 0 meant "unset", so a mutation could not opt out of default retries).
+- `QueryOptions.Meta`, `MutationOptions.Meta`, `MutationDefaults.Meta`, layered like the other options, surfaced on
+  `QueryDescriptor`, `MutationDescriptor` and the completed/failed/started events. The `QueryOptions.Merge` reflection
+  guard covers it.
+- Tests: `MetaAndRetryOptOutTests` (4).
+
+### 44. Durable queue shared by several instances (verified)
+
+- `PersistentMutationQueueOptions.ReplayLock` (`IMutationQueueLock`): a flush acquires the lock, reconciles the pending
+  list and dead letters with the store, then replays. `RestoreAsync` reconciles too (removed entries disappear).
+  Queue ids gained a per-instance suffix (two instances in the same millisecond collided before).
+- `FileMutationQueueLock` (exclusive lock file, polling, cancellable); Blazor `WebLocksMutationQueueLock` over
+  `navigator.locks` (`dotnetquery-locks.js`; cancellable even if the JS runtime ignores the token; no-op where the API is
+  missing).
+- Tests: `SharedQueueLockTests` (4: two queues over one store replay three writes exactly once and in order under
+  concurrent reconnects; ids never collide; restore drops entries another instance removed; the file lock admits one
+  holder and honors cancellation), bUnit `WebLocksMutationQueueLockTests` (3), AOT harness check.
+
+### 45. Logging and live DevTools (verified)
+
+- `AddDiagnosticLogging(QueryDiagnosticsLoggingOptions)` / `client.LogDiagnostics(logger)`: source-generated
+  `LoggerMessage`s (event ids 1000-1006, 1100-1104), levels per kind, keys through the configured formatter, no
+  variables or data. New dependency: `Microsoft.Extensions.Logging.Abstractions`.
+- `QueryDevToolsServer`: loopback-only HTTP endpoint for the DevTools export (TcpListener, port 0 or fixed, optional
+  bearer/query token compared in constant time, 404/405/401 handling). CLI: `watch <url>`, `<url>`, `watch demo`.
+- Tests: `DiagnosticsLoggingTests` (2), `DevToolsServerTests` (3); CLI `watch demo` run; AOT harness logging check.
+
+### 46. Redis synchronization channel (verified against Redis 7)
+
+- `RedisQuerySyncChannel` (`ConnectAsync`/`CreateAsync`, ordered message queue, owned or shared multiplexer).
+- Tests: `RedisSyncChannelTests` (2: ordered delivery of 20 messages; two clients synchronized through Redis) - run
+  against a local `redis:7-alpine` container and in the Linux CI job.
+
+### 47. `Msynk.DotNetQuery.Blazor.Server` (verified)
+
+- `QueryCircuitHandler` + `RefetchOnCircuitReconnect(QueryCircuitHandlerOptions?)` (filter, invalidate); the TodoApp
+  uses it instead of its own copy. Tests: `CircuitReconnectTests` (2).
+
+### 48. Source generator: classes, generic methods, infinite queries (verified)
+
+- Targets may be non-static, non-generic classes (public instance methods up the base chain, `Dispose`/`DisposeAsync`
+  and `object` members skipped) - the Kiota wrapper pattern.
+- Generic methods generate generic members with their constraints; each type argument is a key segment
+  (`QueryKey.Create<T>()[0]`); multi-parameter generic mutations get generic variables records.
+- `[InfiniteQueryMethod("page")]` generates the key without the page parameter, `XPageFn` and an `InfiniteQuery`
+  factory; invalidation targets resolve to it. DNQ001 reports a missing page parameter.
+- Tests: generator tests (+3, 9 total, zero-warning consumer compiles), `GeneratedQueriesExtrasTests` (3 runtime),
+  AOT harness check.
+
+### 49. Blazor adapter: public API baseline and trimming (verified)
+
+- PublicApiAnalyzers enabled (174 members recorded; `RS0041` suppressed for Razor-generated `BuildRenderTree`).
+- `IsAotCompatible` on: prerender hydration now writes a hand-built envelope as a JSON string (strings need no
+  reflection metadata), `UseHydrationJson(IJsonTypeInfoResolver)` and `JsonTypeInfo<T>` overloads make it trim-safe;
+  reflection is the documented fallback; DevTools previews are suppressed as development-only.
+- Trimmed publish of `samples/TodoApp.Client` (`SuppressTrimAnalysisWarnings=false`): no trim warning from a DotNetQuery
+  assembly (only ASP.NET Core/JSInterop framework warnings) - now a CI gate in the `aot` job.
+- Tests: hydration tests updated to the envelope, `HydrationJsonTests` (2); the Playwright WebAssembly hydration tests
+  pass unchanged.
+
+### 50. Platforms: WPF/WinUI on .NET 8, lifecycle tests, WPF sample, Uno adapter (verified)
+
+- WPF and WinUI adapters multi-target `net8.0-windows*` and `net10.0-windows*`.
+- `tests/DotNetQuery.Desktop.Tests`: `WpfQueryLifecycle` with a real `System.Windows.Application` on an STA thread
+  (activation after deactivation refetches, system resume refetches, disposal stops forwarding, network monitor) and the
+  WinUI activation mapping (4 tests).
+- `samples/DotNetQuery.Sample.Wpf` with `verify` (window renders `fetch #1`, bound `RefetchCommand` loads `#2`,
+  deactivate/activate loads `#3`): PASS; a CI step.
+- `Msynk.DotNetQuery.Uno` (`net9.0`/`net10.0`, Uno.WinUI 6.7, generators stripped): factories and `UnoQueryLifecycle`
+  (window activation, background/foreground, network except in the browser). Uno's `net10.0` assemblies are reference
+  implementations, so `tests/DotNetQuery.Uno.Tests` covers the activation mapping only.
+
+### 51. Samples match the tutorials (verified)
+
+- OfflineFirst: durable `PersistentMutationQueue` across a restart, idempotency keys, retry classification and a
+  dead-lettered 409 through `OnReplayFailure`.
+- ECommerce: declarative `OptimisticUpdates` over two keys, three concurrent adds with one rejected and rolled back
+  alone, one reconciliation after the burst (with per-add `Invalidates`, a refetch landed while other adds were pending
+  and briefly showed the server's cart - documented in the optimistic updates guide, backlog item in ROADMAP).
+- The samples reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c reported for 10.0.13).
+
+### 52. CI, release and repository hygiene
+
+- CI: coverage (`coverage.runsettings`, ReportGenerator summary and artifact), WPF sample and DevTools `watch demo` steps,
+  trimmed WebAssembly gate, `test-latest-runtime` (core suite on the newest .NET, rolled forward; non-blocking while it
+  is a preview - passes locally on .NET 11 RC 3), `-ci.N` package suffix, symbols uploaded.
+- `release.yml`: tag must match `VersionPrefix`, unshipped API check, build/test/pack (MAUI included), provenance
+  attestation, nuget.org trusted publishing, GitHub release with the changelog section.
+- `eng/prepare-release.ps1` (verified on a copy: ships 1,905 API entries across 10 packages and the 3 analyzer rules,
+  sets the version, dates the changelog; `-DryRun`).
+- `EnablePackageValidation` for every package (pack passes), `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue and PR templates,
+  Dependabot (major updates of per-TFM Microsoft packages ignored).
+- `VersionPrefix` 0.9.0: 0.8.0 was never published, 0.9.0 is the first public release (changelog and migration guide
+  updated).
+- Flaky test fixed: `Batch_loader_coalesces_many_queries_into_one_request` relied on five fetchers (each started on its
+  own thread-pool thread) reaching the loader within one `Task.Yield`; under coverage instrumentation one missed the
+  burst on net8.0. It now uses an explicit batching window (`BatchLoaderOptions.Delay`); stable over 3 more runs.
+- `AllocationBudgetTests.A_fresh_cache_hit_stays_on_the_fast_path` made async (the last xUnit1031 warning).
+
+### 53. Documentation site
+
+- DocFX reads the API reference from built assemblies (`artifacts/docs-bin`), so `.razor` components (`Query<T>`,
+  `QueryClientProvider`, `QueryDevToolsPanel`, `ScrollRestoration`, ...) are documented; 0 warnings; the docs workflow
+  builds the assemblies first and treats warnings as errors.
+
+### 54. Refreshes wait for pending optimistic updates (verified)
+
+The product issue found in item 51: when several optimistic mutations of one list were in flight, the first to settle
+refetched (its `Invalidates`) and the result - server data without the still-pending items - replaced them on screen
+until the others settled.
+
+- `QueryEntry`: while an uncommitted optimistic layer is on the entry (the stack still describes the data), refresh
+  fetches (invalidation, `RefetchQueryAsync`/`RefetchQueriesAsync`, intervals, focus/reconnect/resume triggers, stale
+  reads) are deferred: the entry is marked invalidated, an outdated in-flight fetch is cancelled, and the current state
+  is returned. `QueryDataCommit.Settled()` (called by a mutation once fully settled, after its callbacks and
+  invalidation) runs one refetch when no pending layer is left and none started meanwhile; inactive entries stay stale.
+  Infinite next/previous page loads pass `deferWhileOptimistic: false`.
+- A deferred invalidation completes at once (not awaited), so serial `Scope`s whose later run already applied its
+  optimistic write cannot deadlock.
+- `TryRebase` re-plans when only the stack's bookkeeping changed (a layer below committed and was trimmed) and drops the
+  stack when a rebase cannot complete, so conflict refetches are never deferred behind layers that no longer match.
+- Tests: `OptimisticRefetchDeferralTests` (5: three concurrent adds with `Invalidates`, one rejected - no state without
+  the pending items, exactly one refetch; invalidate/refetch/stale read during a pending write run once after it
+  settles; inactive queries stay stale; scoped mutations do not deadlock; infinite next page not deferred). Negative
+  check: with the deferral disabled, the three behavior tests fail. The ECommerce sample went back to `Invalidates` on
+  each add (12/12 runs pass, one refetch per burst).
+- Found while stress-running the suite: `DeduplicatePending` removed a run from its pending list in a continuation that
+  could run after the caller's own continuation, so a call made right after a run completed joined the settled run
+  (`Deduplicated_mutations_join_a_pending_run_with_equal_variables` failed about once in 6 full runs). The run now leaves
+  the list in a `finally` before its task completes; 10 consecutive full core runs are clean.
+
+## Final verification snapshot (after items 42-54, 2026-11-04)
+
+| Check | Result |
+| --- | --- |
+| `dotnet build DotNetQuery.slnx -c Release` (clean, bin/obj deleted) | 0 warnings, 0 errors |
+| `dotnet test DotNetQuery.slnx -c Release`, Redis 7 available | **1,125 passed**, 0 skipped, 0 failed: core 491 on net8.0 + 491 on net10.0, Blazor bUnit 58 + 58, source generator 9, WPF/WinUI lifecycle 4, Uno 1, Playwright browser E2E 13; core suite clean over 10 more consecutive runs |
+| Line coverage (cobertura) | core 89.3%, Blazor 81.1%, Blazor.Server 100%, source generator 93.9%, Sqlite 76.9%, Redis 65.2%, WPF 60.6% |
+| Core suite on .NET 11 RC 3 (`DOTNET_ROLL_FORWARD=LatestMajor`) | 486 passed |
+| Console samples (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI (`emit` demo and `watch demo`) | all exit 0 |
+| Avalonia headless verify, WPF verify | PASS, PASS |
+| Trimmed self-contained AOT harness publish | 0 IL2xxx/IL3xxx warnings, all 37 checks pass (NativeAOT link: CI) |
+| Trimmed Blazor WebAssembly publish (`TodoApp.Client`) | 0 trim warnings from DotNetQuery assemblies |
+| MAUI adapter (net10.0-android) | 0 warnings, 0 errors |
+| `dotnet pack` with package validation | 9 solution packages + MAUI, no validation errors |
+| `dotnet list package --vulnerable --include-transitive` | clean |
+| DocFX (`--warningsAsErrors`) | 0 warnings, 0 errors; 179 API pages including the Razor components |
+| `eng/prepare-release.ps1` on a copy | ships 1,905 API entries and 3 analyzer rules, sets 0.9.0, dates the changelog |
+
+## Open items and blockers
+
+What remains needs the repository owner or hardware this machine does not have:
+
+- **Owner actions:** reserve the `Msynk.` prefix on nuget.org; enable GitHub Pages (Settings > Pages > Source = GitHub
+  Actions); configure nuget.org trusted publishing for `release.yml`, the `NUGET_USER` variable and the `nuget`
+  environment; then cut 0.9.0 with `eng/prepare-release.ps1` and a `v0.9.0` tag.
+- **Needs a Mac:** the MAUI iOS / Mac Catalyst heads (the project adds them automatically on macOS).
+- **CI-only:** the NativeAOT native link (this machine lacks the VC++ linker; the ILC analysis and the trimmed
+  self-contained publish are clean locally).
+- **Not runnable here:** WinUI and Uno windows (they need the Windows App runtime or an Uno app head); their mappings
+  are tested and their wiring is compile-verified.

@@ -17,7 +17,7 @@
     <Product>DotNetQuery</Product>
     <Authors>DotNetQuery</Authors>
     <Company>DotNetQuery</Company>
-    <VersionPrefix>0.8.0</VersionPrefix>
+    <VersionPrefix>0.9.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright (c) DotNetQuery contributors</Copyright>
     <PackageProjectUrl>https://github.com/msynk/dotnet-query</PackageProjectUrl>
@@ -38,6 +38,10 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <!-- Deterministic path mapping on CI for reproducible, verifiable builds. -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- Package validation: every target framework of a package exposes a compatible API (and, once a version is
+         published, set PackageValidationBaselineVersion to it so later releases are checked against it - see
+         docs/releasing.md). -->
+    <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
   <!-- SourceLink ships in the .NET 8+ SDK (no package reference needed); the separate

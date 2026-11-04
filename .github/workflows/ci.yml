@@ -15,8 +15,8 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # Full solution build + tests + NuGet pack. Windows is required because the WPF adapter
-  # targets net10.0-windows.
+  # Full solution build + tests + NuGet pack. Windows is required because the WPF and WinUI adapters
+  # target Windows.
   build-test-pack:
     runs-on: windows-latest
     steps:
@@ -27,6 +27,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
+            9.0.x
             10.0.x
 
       - name: Restore
@@ -43,23 +44,52 @@ jobs:
         run: dotnet build DotNetQuery.slnx -c Release --no-restore
 
       # Includes the Playwright browser end-to-end tests (tests/DotNetQuery.E2E), which drive the TodoApp sample
-      # in the runner's preinstalled Chrome.
+      # in the runner's preinstalled Chrome, and the WPF/WinUI lifecycle tests. Collects code coverage of the
+      # shipped libraries (coverage.runsettings).
       - name: Test
-        run: dotnet test DotNetQuery.slnx -c Release --no-build --verbosity normal
+        run: dotnet test DotNetQuery.slnx -c Release --no-build --verbosity normal --settings coverage.runsettings --collect:"XPlat Code Coverage" --results-directory coverage
+
+      - name: Coverage report
+        if: always()
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.4.4
+        with:
+          reports: coverage/**/coverage.cobertura.xml
+          targetdir: coverage-report
+          reporttypes: MarkdownSummaryGithub;HtmlInline;Cobertura
+          assemblyfilters: -DotNetQuery.Tests*;-*.Sample*;-TodoApp*
+
+      - name: Publish coverage summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f coverage-report/SummaryGithub.md ]; then cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report
 
       - name: Avalonia adapter end-to-end smoke test (headless render)
         run: dotnet run --project samples/DotNetQuery.Sample.Avalonia -c Release --no-build -- verify
 
+      - name: WPF adapter end-to-end smoke test (window, bound command, activation refetch)
+        run: dotnet run --project samples/DotNetQuery.Sample.Wpf -c Release --no-build -- verify
+
       - name: Chat sample end-to-end smoke test (infinite query + streaming)
         run: dotnet run --project samples/DotNetQuery.Sample.Chat -c Release --no-build
 
-      - name: OfflineFirst sample end-to-end smoke test (persist + offline queue + reconnect)
+      - name: OfflineFirst sample end-to-end smoke test (persist + durable queue across restarts + dead letters)
         run: dotnet run --project samples/DotNetQuery.Sample.OfflineFirst -c Release --no-build
 
       - name: DevTools CLI smoke test (renders a DevTools export)
         run: dotnet run --project src/DotNetQuery.DevTools.Cli -c Release --no-build
 
-      - name: ECommerce sample end-to-end smoke test (optimistic updates + rollback)
+      - name: DevTools CLI live smoke test (watches an in-process QueryDevToolsServer)
+        run: dotnet run --project src/DotNetQuery.DevTools.Cli -c Release --no-build -- watch demo
+
+      - name: ECommerce sample end-to-end smoke test (overlapping optimistic updates + rollback)
         run: dotnet run --project samples/DotNetQuery.Sample.ECommerce -c Release --no-build
 
       - name: Dashboard sample end-to-end smoke test (dedup + background refresh)
@@ -76,19 +106,22 @@ jobs:
           grep -q "Blazor-WebAssembly-Component-State" wasm.html || { cat todoapp.log; exit 1; }
           curl -sf http://localhost:5199/api/todos | grep -q "Learn DotNetQuery" || { cat todoapp.log; exit 1; }
 
+      # CI packages carry a pre-release suffix, so they are never mistaken for a release (see release.yml).
       - name: Pack
-        run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts
+        run: dotnet pack DotNetQuery.slnx -c Release --no-build -o artifacts -p:VersionSuffix=ci.${{ github.run_number }}
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: artifacts/*.nupkg
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
 
   # Cross-platform proof: the core and its non-Windows adapters build and test on Linux.
   test-linux:
     runs-on: ubuntu-latest
-    # A Redis service so the RedisQueryPersister integration tests actually run (they skip otherwise).
+    # A Redis service so the Redis persistence and synchronization integration tests actually run (they skip otherwise).
     services:
       redis:
         image: redis:7-alpine
@@ -114,10 +147,37 @@ jobs:
         env:
           DOTNETQUERY_REDIS: localhost:6379
 
-      - name: Test Blazor adapter
+      - name: Test Blazor adapters (WebAssembly-compatible and server)
         run: dotnet test tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj -c Release
 
-  # NativeAOT / trimming verification: publishing the harness must emit zero IL2xxx/IL3xxx warnings.
+      - name: Test source generator
+        run: dotnet test tests/DotNetQuery.SourceGenerators.Tests/DotNetQuery.SourceGenerators.Tests.csproj -c Release
+
+  # Forward compatibility: the core suite on the newest .NET runtime (rolling the net10.0 build forward), so a
+  # new release of .NET is validated before the libraries add its target framework. Non-blocking while that
+  # runtime is a preview.
+  test-latest-runtime:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+            11.0.x
+          dotnet-quality: preview
+
+      - name: Test core on the latest runtime
+        run: dotnet test tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj -c Release -f net10.0
+        env:
+          DOTNET_ROLL_FORWARD: LatestMajor
+
+  # NativeAOT / trimming verification: publishing the harness must emit zero IL2xxx/IL3xxx warnings, and a trimmed
+  # Blazor WebAssembly app must report no trim warnings from the DotNetQuery assemblies.
   aot:
     runs-on: ubuntu-latest
     steps:
@@ -136,6 +196,16 @@ jobs:
 
       - name: Run AOT harness
         run: ./aot/DotNetQuery.AotHarness/bin/Release/net10.0/linux-x64/publish/DotNetQuery.AotHarness
+
+      - name: Trimmed Blazor WebAssembly publish (no trim warnings from DotNetQuery)
+        run: |
+          dotnet publish samples/TodoApp.Client -c Release -o wasm-publish \
+            -p:SuppressTrimAnalysisWarnings=false -p:TrimmerSingleWarn=false 2>&1 | tee wasm-publish.log
+          if grep -E "warning IL[0-9]+" wasm-publish.log | grep -E "DotNetQuery"; then
+            echo "::error::DotNetQuery code produced trim warnings in a trimmed Blazor WebAssembly publish"
+            exit 1
+          fi
+          test -f wasm-publish/wwwroot/_framework/DotNetQuery.Blazor.wasm || test -n "$(ls wasm-publish/wwwroot/_framework | grep -i dotnetquery)"
 
   # MAUI adapter is outside the solution (its heads need per-OS workloads/tooling), so build & pack it
   # here. The committed project targets the net10.0-android head; add ios/maccatalyst/windows in their
@@ -166,4 +236,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-maui
-          path: artifacts/*.nupkg
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg

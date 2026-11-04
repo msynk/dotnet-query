@@ -1,0 +1,175 @@
+#nullable enable
+DotNetQuery.Blazor.BroadcastChannelQuerySync
+DotNetQuery.Blazor.BroadcastChannelQuerySync.BroadcastChannelQuerySync(Microsoft.JSInterop.IJSRuntime! js, string! name) -> void
+DotNetQuery.Blazor.BroadcastChannelQuerySync.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Blazor.BroadcastChannelQuerySync.IsConnected.get -> bool
+DotNetQuery.Blazor.BroadcastChannelQuerySync.MessageReceived -> System.Action<string!>?
+DotNetQuery.Blazor.BroadcastChannelQuerySync.OnMessage(string! message) -> void
+DotNetQuery.Blazor.BroadcastChannelQuerySync.PostAsync(string! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Blazor.BroadcastChannelQuerySync.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+DotNetQuery.Blazor.BrowserSignalService
+DotNetQuery.Blazor.BrowserSignalService.BrowserSignalService(Microsoft.JSInterop.IJSRuntime! js, DotNetQuery.FocusManager! focus, DotNetQuery.OnlineManager! online, DotNetQuery.ResumeManager! resume, DotNetQuery.ConnectivityProvider! connectivity) -> void
+DotNetQuery.Blazor.BrowserSignalService.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Blazor.BrowserSignalService.InitializeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+DotNetQuery.Blazor.BrowserSignalService.OnConnectivityChanged(bool online) -> void
+DotNetQuery.Blazor.BrowserSignalService.OnFocus() -> void
+DotNetQuery.Blazor.BrowserSignalService.OnResume() -> void
+DotNetQuery.Blazor.DotNetQueryBrowserSignals
+DotNetQuery.Blazor.DotNetQueryBrowserSignals.DotNetQueryBrowserSignals() -> void
+DotNetQuery.Blazor.DotNetQueryComponentBase
+DotNetQuery.Blazor.DotNetQueryComponentBase.Dispose() -> void
+DotNetQuery.Blazor.DotNetQueryComponentBase.DotNetQueryComponentBase() -> void
+DotNetQuery.Blazor.DotNetQueryComponentBase.QueryClient.get -> DotNetQuery.IQueryClient!
+DotNetQuery.Blazor.DotNetQueryComponentBase.QueryClient.set -> void
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseInfiniteQuery<TParam, TPage>(DotNetQuery.QueryKey! key, System.Func<TParam, System.Threading.CancellationToken, System.Threading.Tasks.Task<TPage>!>! fetcher, DotNetQuery.InfiniteQueryOptions<TParam, TPage>! options, string! callerFilePath = "", int callerLineNumber = 0) -> DotNetQuery.InfiniteQuery<TParam, TPage>!
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseMutation<TVariables, TData>(System.Func<TVariables, System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>! mutationFn, DotNetQuery.MutationOptions<TVariables, TData>? options = null, string! callerFilePath = "", int callerLineNumber = 0) -> DotNetQuery.Mutation<TVariables, TData>!
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseQueries<T>(System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryDefinition<T>!>! queries, string! callerFilePath = "", int callerLineNumber = 0) -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryObserver<T>!>!
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseQuery<T, TResult>(DotNetQuery.QueryDefinition<T>! query, System.Func<T, TResult>! select, DotNetQuery.QueryStateProperties notifyOn = DotNetQuery.QueryStateProperties.All, string! callerFilePath = "", int callerLineNumber = 0) -> DotNetQuery.QueryObserver<TResult>!
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseQuery<T>(DotNetQuery.QueryDefinition<T>! query, string! callerFilePath = "", int callerLineNumber = 0) -> DotNetQuery.QueryObserver<T>!
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseQuery<T>(DotNetQuery.QueryKey! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! fetcher, DotNetQuery.QueryOptions? options = null, string! callerFilePath = "", int callerLineNumber = 0) -> DotNetQuery.QueryObserver<T>!
+DotNetQuery.Blazor.DotNetQueryCrossTabSync
+DotNetQuery.Blazor.DotNetQueryCrossTabSync.DotNetQueryCrossTabSync() -> void
+DotNetQuery.Blazor.DotNetQueryNavigation
+DotNetQuery.Blazor.DotNetQueryNavigation.CancelInactiveFetches.get -> bool
+DotNetQuery.Blazor.DotNetQueryNavigation.CancelInactiveFetches.set -> void
+DotNetQuery.Blazor.DotNetQueryNavigation.CascadedClient.get -> DotNetQuery.IQueryClient?
+DotNetQuery.Blazor.DotNetQueryNavigation.CascadedClient.set -> void
+DotNetQuery.Blazor.DotNetQueryNavigation.Dispose() -> void
+DotNetQuery.Blazor.DotNetQueryNavigation.DotNetQueryNavigation() -> void
+DotNetQuery.Blazor.DotNetQueryNavigation.RefetchStaleOnNavigation.get -> bool
+DotNetQuery.Blazor.DotNetQueryNavigation.RefetchStaleOnNavigation.set -> void
+DotNetQuery.Blazor.Query<TData>
+DotNetQuery.Blazor.Query<TData>.CascadedClient.get -> DotNetQuery.IQueryClient?
+DotNetQuery.Blazor.Query<TData>.CascadedClient.set -> void
+DotNetQuery.Blazor.Query<TData>.ChildContent.get -> Microsoft.AspNetCore.Components.RenderFragment<DotNetQuery.QueryResult<TData>>?
+DotNetQuery.Blazor.Query<TData>.ChildContent.set -> void
+DotNetQuery.Blazor.Query<TData>.CurrentResult.get -> DotNetQuery.QueryResult<TData>
+DotNetQuery.Blazor.Query<TData>.Definition.get -> DotNetQuery.QueryDefinition<TData>?
+DotNetQuery.Blazor.Query<TData>.Definition.set -> void
+DotNetQuery.Blazor.Query<TData>.Dispose() -> void
+DotNetQuery.Blazor.Query<TData>.Empty.get -> Microsoft.AspNetCore.Components.RenderFragment?
+DotNetQuery.Blazor.Query<TData>.Empty.set -> void
+DotNetQuery.Blazor.Query<TData>.Error.get -> Microsoft.AspNetCore.Components.RenderFragment<System.Exception!>?
+DotNetQuery.Blazor.Query<TData>.Error.set -> void
+DotNetQuery.Blazor.Query<TData>.Fetcher.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TData>!>?
+DotNetQuery.Blazor.Query<TData>.Fetcher.set -> void
+DotNetQuery.Blazor.Query<TData>.Inputs.get -> object?
+DotNetQuery.Blazor.Query<TData>.Inputs.set -> void
+DotNetQuery.Blazor.Query<TData>.IsEmpty.get -> System.Func<TData?, bool>?
+DotNetQuery.Blazor.Query<TData>.IsEmpty.set -> void
+DotNetQuery.Blazor.Query<TData>.KeepPreviousData.get -> bool
+DotNetQuery.Blazor.Query<TData>.KeepPreviousData.set -> void
+DotNetQuery.Blazor.Query<TData>.Key.get -> DotNetQuery.QueryKey?
+DotNetQuery.Blazor.Query<TData>.Key.set -> void
+DotNetQuery.Blazor.Query<TData>.Loading.get -> Microsoft.AspNetCore.Components.RenderFragment?
+DotNetQuery.Blazor.Query<TData>.Loading.set -> void
+DotNetQuery.Blazor.Query<TData>.NotifyOn.get -> DotNetQuery.QueryStateProperties
+DotNetQuery.Blazor.Query<TData>.NotifyOn.set -> void
+DotNetQuery.Blazor.Query<TData>.Options.get -> DotNetQuery.QueryOptions?
+DotNetQuery.Blazor.Query<TData>.Options.set -> void
+DotNetQuery.Blazor.Query<TData>.PersistState.get -> bool
+DotNetQuery.Blazor.Query<TData>.PersistState.set -> void
+DotNetQuery.Blazor.Query<TData>.Query() -> void
+DotNetQuery.Blazor.Query<TData>.RefetchAsync() -> System.Threading.Tasks.Task!
+DotNetQuery.Blazor.QueryAuthenticationGuard
+DotNetQuery.Blazor.QueryAuthenticationGuard.CurrentIdentity.get -> string?
+DotNetQuery.Blazor.QueryAuthenticationGuard.Dispose() -> void
+DotNetQuery.Blazor.QueryAuthenticationGuard.QueryAuthenticationGuard(DotNetQuery.IQueryClient! client, Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider? authentication, System.Func<System.Security.Claims.ClaimsPrincipal!, string?>? identity = null) -> void
+DotNetQuery.Blazor.QueryAuthenticationGuard.Reset() -> void
+DotNetQuery.Blazor.QueryAuthenticationGuard.UserChanged -> System.Action<string?, string?>?
+DotNetQuery.Blazor.QueryClientProvider
+DotNetQuery.Blazor.QueryClientProvider.ChildContent.get -> Microsoft.AspNetCore.Components.RenderFragment?
+DotNetQuery.Blazor.QueryClientProvider.ChildContent.set -> void
+DotNetQuery.Blazor.QueryClientProvider.Client.get -> DotNetQuery.IQueryClient!
+DotNetQuery.Blazor.QueryClientProvider.Client.set -> void
+DotNetQuery.Blazor.QueryClientProvider.QueryClientProvider() -> void
+DotNetQuery.Blazor.QueryStateHydration
+DotNetQuery.Blazor.ScrollRestoration
+DotNetQuery.Blazor.ScrollRestoration.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Blazor.ScrollRestoration.Id.get -> string!
+DotNetQuery.Blazor.ScrollRestoration.Id.set -> void
+DotNetQuery.Blazor.ScrollRestoration.Ready.get -> bool
+DotNetQuery.Blazor.ScrollRestoration.Ready.set -> void
+DotNetQuery.Blazor.ScrollRestoration.ScrollRestoration() -> void
+DotNetQuery.Blazor.ScrollRestoration.Selector.get -> string?
+DotNetQuery.Blazor.ScrollRestoration.Selector.set -> void
+DotNetQuery.Blazor.VirtualizeExtensions
+DotNetQuery.Blazor._Imports
+DotNetQuery.Blazor._Imports.Execute() -> void
+DotNetQuery.Blazor._Imports._Imports() -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.CascadedClient.get -> DotNetQuery.IQueryClient?
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.CascadedClient.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Dispose() -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Enabled.get -> bool
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Enabled.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.EventLogCapacity.get -> int
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.EventLogCapacity.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Floating.get -> bool
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Floating.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.InitiallyOpen.get -> bool
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.InitiallyOpen.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.MutationHistoryCapacity.get -> int
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.MutationHistoryCapacity.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.QueryDevToolsPanel() -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Queue.get -> DotNetQuery.Persistence.PersistentMutationQueue?
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Queue.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.RefreshThrottle.get -> System.TimeSpan
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.RefreshThrottle.set -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.ShowData.get -> bool
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.ShowData.set -> void
+DotNetQuery.DevTools.Blazor._Imports
+DotNetQuery.DevTools.Blazor._Imports.Execute() -> void
+DotNetQuery.DevTools.Blazor._Imports._Imports() -> void
+DotNetQuery.Persistence.IndexedDbQueryPersister
+DotNetQuery.Persistence.IndexedDbQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IndexedDbQueryPersister.IndexedDbQueryPersister(Microsoft.JSInterop.IJSRuntime! jsRuntime, string? databaseName = null, string? storeName = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.IndexedDbQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.IndexedDbQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.IndexedDbQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.IndexedDbQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.LocalStorageQueryPersister
+DotNetQuery.Persistence.LocalStorageQueryPersister.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.LocalStorageQueryPersister.LoadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DotNetQuery.Persistence.PersistedQuery!>!>!
+DotNetQuery.Persistence.LocalStorageQueryPersister.LoadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DotNetQuery.Persistence.PersistedQuery?>!
+DotNetQuery.Persistence.LocalStorageQueryPersister.LocalStorageQueryPersister(Microsoft.JSInterop.IJSRuntime! jsRuntime, string? storageKey = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+DotNetQuery.Persistence.LocalStorageQueryPersister.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.LocalStorageQueryPersister.SaveAsync(DotNetQuery.Persistence.PersistedQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Persistence.WebLocksMutationQueueLock
+DotNetQuery.Persistence.WebLocksMutationQueueLock.AcquireAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+DotNetQuery.Persistence.WebLocksMutationQueueLock.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Persistence.WebLocksMutationQueueLock.WebLocksMutationQueueLock(Microsoft.JSInterop.IJSRuntime! jsRuntime, string? name = null) -> void
+Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServiceCollectionExtensions
+const DotNetQuery.Persistence.IndexedDbQueryPersister.DefaultDatabaseName = "dotnetquery" -> string!
+const DotNetQuery.Persistence.IndexedDbQueryPersister.DefaultStoreName = "queries" -> string!
+const DotNetQuery.Persistence.LocalStorageQueryPersister.DefaultStorageKey = "dotnetquery:queries" -> string!
+const DotNetQuery.Persistence.WebLocksMutationQueueLock.DefaultName = "dotnetquery-mutation-queue" -> string!
+override DotNetQuery.Blazor.DotNetQueryBrowserSignals.OnAfterRenderAsync(bool firstRender) -> System.Threading.Tasks.Task!
+override DotNetQuery.Blazor.DotNetQueryComponentBase.SetParametersAsync(Microsoft.AspNetCore.Components.ParameterView parameters) -> System.Threading.Tasks.Task!
+override DotNetQuery.Blazor.DotNetQueryCrossTabSync.OnAfterRenderAsync(bool firstRender) -> System.Threading.Tasks.Task!
+override DotNetQuery.Blazor.DotNetQueryNavigation.OnInitialized() -> void
+override DotNetQuery.Blazor.Query<TData>.OnInitialized() -> void
+override DotNetQuery.Blazor.Query<TData>.OnParametersSet() -> void
+override DotNetQuery.Blazor.Query<TData>.OnParametersSetAsync() -> System.Threading.Tasks.Task!
+override DotNetQuery.Blazor.ScrollRestoration.OnAfterRenderAsync(bool firstRender) -> System.Threading.Tasks.Task!
+override DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.OnInitialized() -> void
+static DotNetQuery.Blazor.QueryAuthenticationGuard.DefaultIdentity(System.Security.Claims.ClaimsPrincipal! user) -> string?
+static DotNetQuery.Blazor.QueryStateHydration.Persist<TData>(Microsoft.AspNetCore.Components.PersistentComponentState! state, DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key) -> bool
+static DotNetQuery.Blazor.QueryStateHydration.Persist<TData>(Microsoft.AspNetCore.Components.PersistentComponentState! state, DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TData>! typeInfo) -> bool
+static DotNetQuery.Blazor.QueryStateHydration.StateKey(DotNetQuery.QueryKey! key) -> string!
+static DotNetQuery.Blazor.QueryStateHydration.TryHydrate<TData>(Microsoft.AspNetCore.Components.PersistentComponentState! state, DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key) -> bool
+static DotNetQuery.Blazor.QueryStateHydration.TryHydrate<TData>(Microsoft.AspNetCore.Components.PersistentComponentState! state, DotNetQuery.IQueryClient! client, DotNetQuery.QueryKey! key, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TData>! typeInfo) -> bool
+static DotNetQuery.Blazor.VirtualizeExtensions.ToItemsProvider<TParam, TPage, TItem>(this DotNetQuery.InfiniteQuery<TParam, TPage>! query, System.Func<TPage, System.Collections.Generic.IReadOnlyList<TItem>!>! items, System.Func<TPage, int?>? totalCount = null) -> Microsoft.AspNetCore.Components.Web.Virtualization.ItemsProviderDelegate<TItem>!
+static Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServiceCollectionExtensions.AddCrossTabSync(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, System.Action<DotNetQuery.Synchronization.QuerySynchronizer!>! register, DotNetQuery.Synchronization.QuerySyncOptions? options = null, string! channelName = "dotnetquery") -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+static Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServiceCollectionExtensions.AddDotNetQueryBlazor(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<DotNetQuery.QueryClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+static Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServiceCollectionExtensions.ResetOnUserChange(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, System.Func<System.Security.Claims.ClaimsPrincipal!, string?>? identity = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+static Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServiceCollectionExtensions.UseHydrationJson(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver! resolver) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+virtual DotNetQuery.Blazor.DotNetQueryComponentBase.Dispose(bool disposing) -> void
+virtual DotNetQuery.Blazor.DotNetQueryComponentBase.PersistQueryState.get -> bool
+~override DotNetQuery.Blazor.DotNetQueryBrowserSignals.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+~override DotNetQuery.Blazor.DotNetQueryCrossTabSync.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+~override DotNetQuery.Blazor.DotNetQueryNavigation.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+~override DotNetQuery.Blazor.Query<TData>.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+~override DotNetQuery.Blazor.QueryClientProvider.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+~override DotNetQuery.Blazor.ScrollRestoration.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+~override DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void

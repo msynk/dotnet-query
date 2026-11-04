@@ -5,7 +5,7 @@ _layout: landing
 # DotNetQuery
 
 Server-state management for .NET - fetching, caching, synchronizing and mutating remote data - with Blazor as the
-flagship integration and adapters for WPF, WinUI, Avalonia and MAUI. Inspired by TanStack Query, built for .NET:
+flagship integration and adapters for WPF, WinUI, Avalonia, MAUI and Uno. Inspired by TanStack Query, built for .NET:
 trim- and NativeAOT-safe, with no UI dependencies in the core.
 
 ```csharp
@@ -27,8 +27,8 @@ builder.Services.AddDotNetQueryBlazor(o => o.DefaultStaleTime = TimeSpan.FromSec
 - [Tutorials](tutorials.md) - CRUD, render modes, auth and tenants, infinite scrolling, offline-first, desktop and
   mobile, DevTools.
 - [Blazor](blazor.md) and [Desktop and mobile](desktop-and-mobile.md) - the integrations.
-- [Generated queries](source-generation.md) - keys, definitions and mutations from Refit or OpenAPI-generated
-  interfaces.
+- [Generated queries](source-generation.md) - keys, definitions, mutations and infinite queries from Refit,
+  OpenAPI-generated or Kiota-wrapping APIs.
 
 ## Concepts
 

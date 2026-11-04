@@ -12,6 +12,7 @@ internal enum MethodKind
 {
     Query,
     Mutation,
+    InfiniteQuery,
 }
 
 internal enum ReturnKind
@@ -31,11 +32,24 @@ internal sealed record MethodModel(
     ReturnKind ReturnKind,
     string DataType,
     EquatableArray<ParameterModel> Parameters,
-    EquatableArray<string>? Invalidates)
+    EquatableArray<string>? Invalidates,
+    string TypeParameters,
+    EquatableArray<string> Constraints,
+    string? PageParameter)
 {
     public IEnumerable<ParameterModel> ValueParameters => Parameters.Where(p => !p.IsCancellationToken);
 
+    // The parameters that identify the query: every value parameter except an infinite query's page parameter.
+    public IEnumerable<ParameterModel> KeyParameters => ValueParameters.Where(p => p.Name != PageParameter);
+
+    public ParameterModel? Page => PageParameter is null ? null : Parameters.FirstOrDefault(p => p.Name == PageParameter);
+
     public bool HasCancellationToken => Parameters.Any(p => p.IsCancellationToken);
+
+    public bool IsKeyed => Kind is MethodKind.Query or MethodKind.InfiniteQuery;
+
+    // " where T : class" clauses (with a leading space), or empty.
+    public string ConstraintClauses => Constraints.Count == 0 ? string.Empty : " " + string.Join(" ", Constraints);
 }
 
 internal sealed record ApiModel(
@@ -122,8 +136,8 @@ internal static class Diagnostics
 
     public static readonly DiagnosticDescriptor InvalidTarget = new(
         "DNQ003",
-        "GenerateQueries target is not an accessible interface",
-        "'{0}' is not a non-generic interface accessible to the generated code; no queries were generated",
+        "GenerateQueries target is not an accessible interface or class",
+        "'{0}' is not a non-generic interface or non-static class accessible to the generated code; no queries were generated",
         "DotNetQuery",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

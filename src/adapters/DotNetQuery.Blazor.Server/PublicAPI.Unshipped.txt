@@ -1,0 +1,20 @@
+#nullable enable
+DotNetQuery.Blazor.Server.QueryCircuitHandler
+DotNetQuery.Blazor.Server.QueryCircuitHandler.QueryCircuitHandler(DotNetQuery.IQueryClient! client, DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? options = null) -> void
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.<Clone>$() -> DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions!
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.Equals(DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? other) -> bool
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.Filter.get -> DotNetQuery.QueryFilter!
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.Filter.init -> void
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.Invalidate.get -> bool
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.Invalidate.init -> void
+DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.QueryCircuitHandlerOptions() -> void
+Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServerBuilderExtensions
+override DotNetQuery.Blazor.Server.QueryCircuitHandler.OnConnectionDownAsync(Microsoft.AspNetCore.Components.Server.Circuits.Circuit! circuit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override DotNetQuery.Blazor.Server.QueryCircuitHandler.OnConnectionUpAsync(Microsoft.AspNetCore.Components.Server.Circuits.Circuit! circuit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.Equals(object? obj) -> bool
+override DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.GetHashCode() -> int
+override DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.ToString() -> string!
+static DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.operator !=(DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? left, DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? right) -> bool
+static DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions.operator ==(DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? left, DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? right) -> bool
+static Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServerBuilderExtensions.RefetchOnCircuitReconnect(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, DotNetQuery.Blazor.Server.QueryCircuitHandlerOptions? options = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!

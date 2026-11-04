@@ -2,8 +2,9 @@ namespace DotNetQuery;
 
 /// <summary>
 /// Generates query keys, query definitions and mutations for an API interface (a Refit interface, an interface
-/// generated from an OpenAPI document, or a hand-written service interface). The generator ships in the DotNetQuery
-/// package; the generated code is plain C# with no reflection, so it is trim- and NativeAOT-safe.
+/// generated from an OpenAPI document, or a hand-written service interface) or an API class (for example a thin wrapper
+/// over a Kiota client). The generator ships in the DotNetQuery package; the generated code is plain C# with no
+/// reflection, so it is trim- and NativeAOT-safe.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,16 +21,19 @@ namespace DotNetQuery;
 /// (<c>AddTodo(client, api)</c>). A mutation with several parameters gets a generated variables record.
 /// </para>
 /// <para>
-/// Methods are classified by <see cref="QueryMethodAttribute"/> / <see cref="MutationMethodAttribute"/>, else by
+/// Methods marked with <see cref="InfiniteQueryMethodAttribute"/> generate infinite-query factories. Other methods are
+/// classified by <see cref="QueryMethodAttribute"/> / <see cref="MutationMethodAttribute"/>, else by
 /// Refit's HTTP verb attributes (<c>[Get]</c> and <c>[Head]</c> are queries; <c>[Post]</c>, <c>[Put]</c>,
 /// <c>[Patch]</c> and <c>[Delete]</c> are mutations), else by name (methods starting with <c>Get</c>, <c>List</c>,
 /// <c>Find</c>, <c>Search</c>, <c>Fetch</c>, <c>Load</c>, <c>Query</c>, <c>Count</c> or <c>Read</c> are queries).
 /// Methods must return <see cref="Task{TResult}"/> or <see cref="ValueTask{TResult}"/> (mutations may also return
 /// <see cref="Task"/> or <see cref="ValueTask"/>); a <see cref="CancellationToken"/> parameter receives the
-/// query's or mutation's token. Overloads that differ only by a cancellation token generate one member.
+/// query's or mutation's token. Overloads that differ only by a cancellation token generate one member. Generic
+/// methods generate generic members whose keys include the type arguments. On a class, its public instance methods
+/// (inherited ones included, <c>Dispose</c>/<c>DisposeAsync</c> excluded) are used.
 /// </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
+[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
 public sealed class GenerateQueriesAttribute : Attribute
 {
     /// <summary>Generates queries for the interface the attribute is placed on.</summary>
@@ -37,11 +41,11 @@ public sealed class GenerateQueriesAttribute : Attribute
     {
     }
 
-    /// <summary>Generates queries for <paramref name="api"/> (use on the assembly for interfaces you cannot edit).</summary>
-    /// <param name="api">The interface type.</param>
+    /// <summary>Generates queries for <paramref name="api"/> (use on the assembly for types you cannot edit).</summary>
+    /// <param name="api">The interface or class type.</param>
     public GenerateQueriesAttribute(Type api) => Api = api;
 
-    /// <summary>Gets the interface to generate for, when the attribute is placed on the assembly.</summary>
+    /// <summary>Gets the interface or class to generate for, when the attribute is placed on the assembly.</summary>
     public Type? Api { get; }
 
     /// <summary>
@@ -75,6 +79,31 @@ public sealed class MutationMethodAttribute : Attribute
     /// whatever its arguments. Default: every query of the API. An empty array invalidates nothing.
     /// </summary>
     public string[]? Invalidates { get; set; }
+}
+
+/// <summary>
+/// Marks a paginated API method as an infinite query for <see cref="GenerateQueriesAttribute"/>: the generated class gets
+/// a key factory without the page parameter (<c>Keys.GetFeed(filter)</c>), the page function
+/// (<c>GetFeedPageFn(api, filter)</c>, for <c>UseInfiniteQuery</c>) and a factory creating the
+/// <see cref="InfiniteQuery{TParam, TPage}"/> (<c>GetFeed(client, api, options, filter)</c>).
+/// </summary>
+/// <example>
+/// <code>
+/// [InfiniteQueryMethod("cursor")]
+/// Task&lt;FeedPage&gt; GetFeedAsync(string filter, string? cursor, CancellationToken cancellationToken);
+/// </code>
+/// </example>
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public sealed class InfiniteQueryMethodAttribute : Attribute
+{
+    /// <summary>Marks the method; <paramref name="pageParameter"/> names the parameter that receives the page parameter (offset, page number or cursor).</summary>
+    public InfiniteQueryMethodAttribute(string pageParameter) => PageParameter = pageParameter;
+
+    /// <summary>Gets the name of the parameter that receives the page parameter.</summary>
+    public string PageParameter { get; }
+
+    /// <summary>Gets or sets the name used for the generated members and the key segment (default: the method name without <c>Async</c>).</summary>
+    public string? Name { get; set; }
 }
 
 /// <summary>Excludes an API method from <see cref="GenerateQueriesAttribute"/>.</summary>

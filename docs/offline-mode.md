@@ -159,6 +159,28 @@ new PersistentMutationQueueOptions
 `Pause` keeps the mutation at the head and pauses replay until `ResumeAsync()` (after the user signs in again);
 `Fail` dead-letters (or drops) it; `Drop` drops it; `Retry` retries within `MaxAttempts`.
 
+### Several tabs or processes sharing the queue
+
+Without coordination, every instance that restores the same store (two browser tabs over one IndexedDB store, two
+windows of a desktop app over one directory) replays every queued write. Give the queue a `ReplayLock`: an instance
+replays only while it holds the lock and first reconciles its list with the store, so each write is sent once - by
+whichever instance gets there first - and writes queued in one instance are replayed by another if needed.
+
+```csharp
+// Blazor WebAssembly: the browser's Web Locks API, shared by the tabs of the origin.
+var queue = new PersistentMutationQueue(new IndexedDbQueryPersister(js, storeName: "mutations"), connectivity,
+    new PersistentMutationQueueOptions { ReplayLock = new WebLocksMutationQueueLock(js, "todos-queue") });
+
+// Desktop apps with several processes: an exclusively opened lock file next to the store.
+var queue = new PersistentMutationQueue(new FileSystemQueryPersister(dir), connectivity,
+    new PersistentMutationQueueOptions { ReplayLock = new FileMutationQueueLock(Path.Combine(dir, "queue.lock")) });
+```
+
+`RestoreAsync` reconciles with the store as well - entries another instance added appear, entries it replayed or
+removed disappear - so call it again (for example when a tab becomes visible) to refresh `Pending` and `DeadLetters` in
+an instance that did not replay them. Queued mutation ids include a per-instance part, so instances never overwrite
+each other's entries. Implement `IMutationQueueLock` over a distributed lock for other topologies.
+
 ### Managing the queue
 
 - `Pause()` / `ResumeAsync()` - hold replay while the user is signed out (writes keep being stored), resume
@@ -182,8 +204,10 @@ A WebAssembly app keeps working offline when its data and its pending writes liv
    persistence.StartAutoPersist();
    ```
 
-2. **Writes** - queue them in a `PersistentMutationQueue` backed by the same persister, so a write made offline
-   survives closing the tab and replays (in order, with its idempotency key) when the app is online again.
+2. **Writes** - queue them in a `PersistentMutationQueue` backed by IndexedDB (a store of its own), so a write made
+   offline survives closing the tab and replays (in order, with its idempotency key) when the app is online again.
+   Give it a `WebLocksMutationQueueLock` so that with the app open in several tabs only one of them replays each write
+   (see above).
 3. **Connectivity** - `AddDotNetQueryBlazor()` already reports the browser's `online`/`offline` events, so queries
    pause instead of failing and refetch on reconnect.
 4. **Service worker** - the Blazor PWA template's service worker caches the app itself (the `_framework` files);

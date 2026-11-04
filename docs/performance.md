@@ -134,8 +134,10 @@ UI thread). `SetQueryData` updaters may be re-run under contention - keep them p
 
 ## Trimming and NativeAOT
 
-`DotNetQuery`, `DotNetQuery.Persistence.Sqlite` and `DotNetQuery.Persistence.Redis` are
-`IsAotCompatible` and analyzed for trim/AOT safety; CI publishes a NativeAOT harness with warnings as errors.
+`DotNetQuery`, `DotNetQuery.Blazor`, `DotNetQuery.Blazor.Server`, `DotNetQuery.Persistence.Sqlite` and
+`DotNetQuery.Persistence.Redis` are `IsAotCompatible` (the XAML adapters are not annotated, like their UI frameworks) and analyzed for trim/AOT safety; CI
+publishes a NativeAOT harness with warnings as errors and a trimmed Blazor WebAssembly app that must report no trim
+warnings from DotNetQuery.
 The convenience overloads that serialize your types by reflection are annotated with
 `[RequiresUnreferencedCode]`; use the `JsonTypeInfo<T>` overloads with a source-generated
 `JsonSerializerContext` in trimmed apps (Blazor WebAssembly) and NativeAOT:
@@ -148,8 +150,9 @@ var todos = http.JsonQuery(TodoQueries.All, "todos", AppJson.Default.ListTodo);
 persistence.Register(todos, AppJson.Default.ListTodo);
 ```
 
-The DevTools previews and export (`QueryDevTools.PreviewData`/`Preview`/`ExportJson`) use reflection-based
-JSON, are annotated accordingly, and are meant for development.
+In Blazor, register the same context for prerender hydration with `AddDotNetQueryBlazor().UseHydrationJson(AppJson.Default)`.
+The DevTools previews and export (`QueryDevTools.PreviewData`/`Preview`/`ExportJson`, `QueryDevToolsServer`) use
+reflection-based JSON, are annotated accordingly, and are meant for development.
 
 ## Time is injectable
 

@@ -43,9 +43,12 @@ public sealed class WpfQueryLifecycle : IDisposable
 
     private void OnDeactivated(object? sender, EventArgs e) => _signals.NotifyDeactivated();
 
-    private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+    private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e) => OnPowerModeChanged(e.Mode);
+
+    // Separate from the (static, system-raised) event so tests can drive it.
+    internal void OnPowerModeChanged(PowerModes mode)
     {
-        if (e.Mode is PowerModes.Resume)
+        if (mode is PowerModes.Resume)
         {
             _signals.NotifyResumed();
         }

@@ -268,7 +268,7 @@ public partial class Query<TData> : ComponentBase, IDisposable
     {
         if (PersistState && _applicationState is not null)
         {
-            QueryStateHydration.TryHydrate<TData>(_applicationState, QueryClient, key);
+            QueryStateHydration.TryHydrateFor<TData>(_applicationState, QueryClient, key, Services);
         }
     }
 
@@ -276,7 +276,7 @@ public partial class Query<TData> : ComponentBase, IDisposable
     {
         if (PersistState && _applicationState is not null && _key is not null)
         {
-            QueryStateHydration.Persist<TData>(_applicationState, QueryClient, _key);
+            QueryStateHydration.PersistFor<TData>(_applicationState, QueryClient, _key, Services);
         }
 
         return Task.CompletedTask;

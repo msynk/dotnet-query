@@ -41,6 +41,24 @@ the query invalidated and refetched instead, so that write is never clobbered.
 
 With a `QueryDefinition`, use the extension: `TodoQueries.List(api).Optimistic<List<Todo>, string>(...)`.
 
+### Concurrent mutations of one list
+
+When several mutations of the same list are in flight (a user adding items quickly), refetching the list while some of
+them are still pending would replace their optimistic items with server data that does not include them yet. So while
+optimistic writes of pending mutations are on a query, its refreshes wait: invalidation (`Invalidates`,
+`InvalidateQueriesAsync`), `RefetchQueryAsync`, refetch intervals, focus/reconnect triggers and reads of stale data mark
+it stale and return the current (optimistic) state, an outdated fetch in flight is cancelled, and **one** refetch runs
+once the last of those mutations has settled (unless one already started). Every mutation can keep `Invalidates`; the
+burst is reconciled with a single refetch and the list never flashes the server's value without the pending items.
+
+- A mutation whose invalidation waits for others completes without waiting for that refetch (the last one to settle
+  runs it), so serial `Scope`s never wait on each other.
+- An inactive query is only marked stale; it refetches on its next use.
+- Loading an infinite query's next or previous page is not a refresh and runs at once.
+
+The [ECommerce sample](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.ECommerce) shows it:
+three concurrent adds, one rejected and rolled back alone, one reconciliation at the end.
+
 Updating several lists (for example "all" and "open" todos) is just more entries in `OptimisticUpdates`.
 
 ## Manual (full control)

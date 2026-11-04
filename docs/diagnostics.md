@@ -27,6 +27,53 @@ client.DiagnosticEvent += e =>
 };
 ```
 
+## Logging
+
+`AddDiagnosticLogging()` writes every client's event stream to the registered `ILoggerFactory` (category
+`DotNetQuery`), with source-generated `LoggerMessage`s (allocation-light, trim/AOT-safe):
+
+```csharp
+builder.Services.AddDotNetQuery(o => o.DiagnosticKeyFormatter = key => $"{key[0]}/...")
+    .AddDiagnosticLogging(new QueryDiagnosticsLoggingOptions { RoutineLevel = LogLevel.Trace });
+
+// Without DI:
+using var subscription = client.LogDiagnostics(loggerFactory.CreateLogger("DotNetQuery"));
+```
+
+| Event | Level | Event id |
+| --- | --- | --- |
+| Fetch started / completed / cancelled, invalidation, mutation started / succeeded, optimistic write / rollback | `RoutineLevel` (Debug) | 1000, 1001, 1003, 1005, 1100, 1101, 1103, 1104 |
+| Retry | `RetryLevel` (Information) | 1004 |
+| Fetch or mutation failed (with the exception) | `FailureLevel` (Warning) | 1002, 1102 |
+| A `StateChanged` subscriber threw | Error | 1006 |
+
+Keys are formatted with `QueryDiagnosticsLoggingOptions.KeyFormatter`, else the client's `DiagnosticKeyFormatter`.
+Mutation variables and cached data are never logged.
+
+## Query and mutation meta
+
+`QueryOptions.Meta` and `MutationOptions.Meta` attach application data that DotNetQuery never reads - TanStack Query's
+`meta` - and hand it to cache-wide handlers: `QueryCompletedEvent.Meta`, `QueryFailedEvent.Meta`,
+`MutationStartedEvent.Meta`, `MutationCompletedEvent.Meta`, `QueryDescriptor.Meta` and `MutationDescriptor.Meta`.
+Typical use: one global error toast whose message each query or mutation chooses.
+
+```csharp
+builder.Services.AddDotNetQuery(o => o
+    .SetQueryDefaults(QueryKey.Create("todos"), new QueryOptions { Meta = new Dictionary<string, object?> { ["error"] = "Could not load your todos" } })
+    .SetMutationDefaults(new MutationDefaults { Meta = new Dictionary<string, object?> { ["error"] = "Saving failed" } }));
+
+client.DiagnosticEvent += e =>
+{
+    switch (e)
+    {
+        case QueryFailedEvent { Meta: { } meta } when meta.TryGetValue("error", out var message): toasts.Show((string)message!); break;
+        case MutationCompletedEvent { Succeeded: false, Meta: { } meta } when meta.TryGetValue("error", out var message): toasts.Show((string)message!); break;
+    }
+};
+```
+
+Layering follows the other options: the most specific `Meta` that is set wins (dictionaries are not merged).
+
 ### Keeping secrets out of diagnostics
 
 ```csharp
@@ -91,6 +138,27 @@ see [Blazor](blazor.md#devtools)):
 
 For any app, `src/DotNetQuery.DevTools.Cli` renders an `ExportJson()` dump (file or stdin) as a console
 dashboard.
+
+### Live DevTools for any app
+
+Desktop, mobile, console and server apps have no Blazor panel; serve the DevTools model instead and watch it live from
+the CLI (development only):
+
+```csharp
+#if DEBUG
+var devtools = new QueryDevTools(client);
+await using var server = QueryDevToolsServer.Start(devtools, new QueryDevToolsServerOptions { Port = 9230 });
+#endif
+```
+
+```bash
+dotnet run --project src/DotNetQuery.DevTools.Cli -- watch http://127.0.0.1:9230/            # refreshes every second
+dotnet run --project src/DotNetQuery.DevTools.Cli -- http://127.0.0.1:9230/                  # one snapshot
+```
+
+The server listens on 127.0.0.1 only and serves the same export as `ExportJson()` (keys, statuses, timings, errors -
+never cached data or mutation variables). On a shared machine set `AccessToken` and pass it as `?token=...`. It uses
+reflection-based JSON (like `ExportJson`) and is not available in the browser.
 
 ### Debugging with DevTools
 

@@ -5,8 +5,9 @@
     <PackageId>Msynk.DotNetQuery.Blazor</PackageId>
     <Description>Blazor adapter for DotNetQuery: the &lt;Query&gt; component (loading/error templates, keep-previous-data pagination, prerender hydration), hook-style UseQuery/UseMutation/UseInfiniteQuery for components, per-circuit client registration, browser focus/online/visibility signal wiring, localStorage/IndexedDB cache persistence, and the visual DevTools panel.</Description>
     <!-- Razor-generated component classes carry no XML docs; their parameters do. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <IsAotCompatible>false</IsAotCompatible>
+    <!-- RS0041: Razor-generated BuildRenderTree overrides use oblivious nullability; the component surface is still recorded. -->
+    <NoWarn>$(NoWarn);CS1591;RS0041</NoWarn>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
     <!-- Static assets are served from _content/<PackageId> by default; keep the documented, PackageId-independent
          path (_content/DotNetQuery.Blazor/...) that the JS modules and scoped CSS are imported from. -->
     <StaticWebAssetBasePath>_content/DotNetQuery.Blazor</StaticWebAssetBasePath>

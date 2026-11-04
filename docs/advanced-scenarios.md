@@ -172,9 +172,57 @@ var sync = new QuerySynchronizer(client, channel, new QuerySyncOptions { Channel
 - Removals are not synchronized: garbage collection removes entries too, and that is local memory management.
 - `ChannelName` isolates incompatible participants (use your app or schema version).
 - Transports: `InMemoryQuerySyncHub` (several clients in one process, tests), the Blazor `BroadcastChannel`
-  transport (`AddCrossTabSync`, see the [Blazor guide](blazor.md)), or your own over named pipes, Redis pub/sub
-  or SignalR - implement `PostAsync` and raise `MessageReceived`.
+  transport (`AddCrossTabSync`, see the [Blazor guide](blazor.md)), `RedisQuerySyncChannel` (server instances, below),
+  or your own - implement `PostAsync` and raise `MessageReceived` (SignalR recipe below).
 - Messages carry serialized data: synchronize only what every participant may see.
+
+### Several server instances (Redis pub/sub)
+
+Behind a load balancer each instance has its own cache; a write handled by one instance leaves the others stale until
+their stale time passes. `RedisQuerySyncChannel` (in `Msynk.DotNetQuery.Persistence.Redis`) connects them over a Redis
+channel:
+
+```csharp
+var channel = await RedisQuerySyncChannel.CreateAsync(multiplexer, "myapp:dnq-sync");   // or ConnectAsync("redis:6379")
+var sync = new QuerySynchronizer(client, channel)
+    .RegisterPrefix(CatalogQueries.All, AppJson.Default.Product)
+    .Start();
+```
+
+Pub/sub is fire-and-forget: an instance disconnected while a message is published misses it, so keep a stale time
+that bounds how long that can matter. Use one channel name per application and schema version.
+
+### SignalR (recipe)
+
+To relay between browsers or apps through your own server, implement the channel over a hub connection and broadcast on
+the server:
+
+```csharp
+// Client (WebAssembly, MAUI, WPF ...): Microsoft.AspNetCore.SignalR.Client
+public sealed class SignalRQuerySyncChannel : IQuerySyncChannel
+{
+    private readonly HubConnection _hub;
+
+    public SignalRQuerySyncChannel(HubConnection hub)
+    {
+        _hub = hub;
+        _hub.On<string>("QuerySync", message => MessageReceived?.Invoke(message));
+    }
+
+    public event Action<string>? MessageReceived;
+
+    public Task PostAsync(string message, CancellationToken cancellationToken = default) =>
+        _hub.State == HubConnectionState.Connected ? _hub.SendAsync("Publish", message, cancellationToken) : Task.CompletedTask;
+}
+
+// Server: relay to everyone else (scope it with groups, for example per tenant)
+public sealed class QuerySyncHub : Hub
+{
+    public Task Publish(string message) => Clients.Others.SendAsync("QuerySync", message);
+}
+```
+
+Authorize the hub like any other endpoint: messages carry query data.
 
 ## Building keys safely
 

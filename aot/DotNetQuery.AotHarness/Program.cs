@@ -231,6 +231,53 @@ lifecycle.NotifyDeactivated();
 lifecycle.NotifyActivated();
 Check(focusSignals == 1, "lifecycle signals");
 
+// --- Meta, retry opt-out, logging, generated infinite/generic queries, shared queue lock -------------------------
+var metaEvents = new List<DotNetQueryEvent>();
+client.DiagnosticEvent += metaEvents.Add;
+await client.FetchAsync(QueryKey.Create("meta"), _ => Task.FromResult(1), new QueryOptions { Meta = new Dictionary<string, object?> { ["silent"] = true } });
+Check(metaEvents.OfType<QueryCompletedEvent>().Any(e => e.Meta?["silent"] is true), "query meta in diagnostic events");
+client.DiagnosticEvent -= metaEvents.Add;
+
+var retryCalls = 0;
+await client.CreateMutation<int, int>((_, _) => { retryCalls++; throw new InvalidOperationException(); },
+    new MutationOptions<int, int> { RetryCount = 0, ThrowOnError = false }).MutateAsync(1);
+Check(retryCalls == 1, "mutation retry count opt-out");
+
+var logger = new CountingLogger();
+using (client.LogDiagnostics(logger))
+{
+    await client.FetchAsync(QueryKey.Create("logged"), _ => Task.FromResult(1));
+}
+
+Check(logger.Count >= 2, "diagnostic logging (source-generated LoggerMessage)");
+
+using (var pages = FeedApiQueries.GetFeed(client, new FeedApi(), new InfiniteQueryOptions<int, Page>
+{
+    InitialPageParam = 0,
+    GetNextPageParam = (last, _, _) => last.Index < 1 ? NextPageParam.Of(last.Index + 1) : NextPageParam.None<int>(),
+}, "news"))
+{
+    await pages.FetchAsync();
+    await pages.FetchNextPageAsync();
+    var single = await client.FetchAsync(FeedApiQueries.GetItem<User>(new FeedApi(), 4));
+    Check(pages.CurrentState.PageCount == 2 && single.Data?.Id == 4, "generated infinite and generic queries");
+}
+
+var lockPath = Path.Combine(Path.GetTempPath(), $"dnq-aot-{Environment.ProcessId}.lock");
+var sharedStore = new InMemoryQueryPersister();
+var sent = 0;
+using (var queueA = new PersistentMutationQueue(sharedStore, new ConnectivityProvider(), new PersistentMutationQueueOptions { ReplayLock = new FileMutationQueueLock(lockPath) })
+    .RegisterHandler<User>("save", (_, _) => { Interlocked.Increment(ref sent); return Task.CompletedTask; }, HarnessJson.Default.User))
+using (var queueB = new PersistentMutationQueue(sharedStore, new ConnectivityProvider(), new PersistentMutationQueueOptions { ReplayLock = new FileMutationQueueLock(lockPath) })
+    .RegisterHandler<User>("save", (_, _) => { Interlocked.Increment(ref sent); return Task.CompletedTask; }, HarnessJson.Default.User))
+{
+    await queueA.EnqueueAsync("save", new User(1, "a"));
+    await Task.WhenAll(queueA.FlushAsync(), queueB.FlushAsync());
+    Check(sent == 1 && queueB.PendingCount == 0, "shared durable queue with a file lock");
+}
+
+File.Delete(lockPath);
+
 Console.WriteLine(failures == 0
     ? "\nAOT harness: all checks passed."
     : $"\nAOT harness: {failures} check(s) FAILED.");
@@ -256,6 +303,39 @@ internal sealed class UserApi : IUserApi
     public Task<User> GetUserAsync(int id, CancellationToken cancellationToken) => Task.FromResult(new User(id, $"User {id}"));
 
     public Task<User> RenameAsync(int id, string name, CancellationToken cancellationToken) => Task.FromResult(new User(id, name));
+}
+
+[GenerateQueries]
+internal interface IFeedApi
+{
+    [InfiniteQueryMethod("index")]
+    Task<Page> GetFeedAsync(string topic, int index, CancellationToken cancellationToken);
+
+    Task<T> GetItemAsync<T>(int id, CancellationToken cancellationToken)
+        where T : class;
+}
+
+internal sealed class FeedApi : IFeedApi
+{
+    public Task<Page> GetFeedAsync(string topic, int index, CancellationToken cancellationToken) => Task.FromResult(new Page(index, [index]));
+
+    public Task<T> GetItemAsync<T>(int id, CancellationToken cancellationToken)
+        where T : class => Task.FromResult((T)(object)new User(id, "item"));
+}
+
+internal sealed class CountingLogger : Microsoft.Extensions.Logging.ILogger
+{
+    public int Count;
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+    public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        _ = formatter(state, exception);
+        Interlocked.Increment(ref Count);
+    }
 }
 
 internal sealed class StubHandler(string body = "{\"id\":5,\"name\":\"Remote\"}") : HttpMessageHandler

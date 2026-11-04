@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <PackageId>Msynk.DotNetQuery.Uno</PackageId>
+    <Description>Uno Platform adapter for DotNetQuery: dispatcher-aware factories over the MVVM bindings (ObservableQuery, ObservableInfiniteQuery, ObservableMutation) and a lifecycle class that refetches stale data when a window is activated again and pauses queries while offline - on every Uno target (desktop, mobile, WebAssembly).</Description>
+    <!-- Uno's WinUI implementation is not annotated for trimming. -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnablePublicApiAnalyzer>true</EnablePublicApiAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The reference assemblies of Uno's WinUI API (Microsoft.UI.Xaml, Microsoft.UI.Dispatching). An app built with
+         the Uno.Sdk supplies the platform implementation; this library needs no Uno build tooling. -->
+    <PackageReference Include="Uno.WinUI" Version="6.7.135" ExcludeAssets="build;buildTransitive;buildMultitargeting;analyzers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DotNetQuery\DotNetQuery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotNetQuery.Uno.Tests" />
+  </ItemGroup>
+
+  <!-- Uno's XAML source generators need an Uno.Sdk app project; this library has no XAML, so drop them. -->
+  <Target Name="RemoveUnoXamlGenerators" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::Copy('%(Analyzer.Filename)').StartsWith('Uno.'))" />
+    </ItemGroup>
+  </Target>
+
+</Project>

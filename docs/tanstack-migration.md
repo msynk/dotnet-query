@@ -11,7 +11,7 @@ bindings instead of React hooks. This page maps the concepts.
 | TanStack Query | DotNetQuery | Notes |
 | --- | --- | --- |
 | `QueryClient` | `IQueryClient` / `QueryClient` | Registered with `AddDotNetQuery` (singleton) or `AddDotNetQueryBlazor` (scoped per circuit / tab). |
-| `QueryClientProvider` | DI | Components get the client via `@inject IQueryClient` or `DotNetQueryComponentBase`. |
+| `QueryClientProvider` | DI, or `<QueryClientProvider Client="...">` | Components get the registered client via `@inject IQueryClient` or `DotNetQueryComponentBase`; `<QueryClientProvider>` cascades a different one to the components below it. |
 | `queryKey: ['todos', id]` | `QueryKey.Create("todos", id)` | Structural, hierarchical, hashed once. `Append` derives child keys. |
 | `queryOptions({ queryKey, queryFn })` | `QueryDefinition<T>` | Key + fetcher + options, typed. Use definitions everywhere. |
 | `queryFn: ({ signal }) => ...` | `Func<CancellationToken, Task<T>>` | The token is cancelled on supersession, `CancelQueriesAsync`, or opt-in unobserved cancellation. |
@@ -40,6 +40,7 @@ bindings instead of React hooks. This page maps the concepts.
 | `notifyOnChangeProps` | `QueryStateProperties` flags on `Watch` |
 | `structuralSharing` | `StructuralSharing` / `DefaultStructuralSharing` - **off by default**, because it relies on `Equals` meaning full value equality |
 | `throwOnError` | `ThrowOnError` (Blazor surfaces it to `ErrorBoundary`) |
+| `meta` | `Meta` (on `QueryDescriptor` and the fetch events) |
 
 ## Query state
 
@@ -76,7 +77,8 @@ bindings instead of React hooks. This page maps the concepts.
 | Query filters (`exact`, `type`, `stale`, `fetchStatus`, `predicate`) | `QueryFilter` (`Exact`, `Type`, `Stale`, `Fetching`, `Status`, `Predicate`) |
 | `hydrate` / `dehydrate` | `HydrateQueryData`, Blazor prerender hydration (automatic), `QueryPersistenceManager` |
 | `persistQueryClient` | `QueryPersistenceManager` + an `IQueryPersister` (file, SQLite, Redis, localStorage, IndexedDB), `ProtectedQueryPersister` for encryption |
-| `broadcastQueryClient` (experimental) | `QuerySynchronizer`, Blazor `AddCrossTabSync` |
+| `broadcastQueryClient` (experimental) | `QuerySynchronizer`, Blazor `AddCrossTabSync`, `RedisQuerySyncChannel` across servers |
+| React Query Devtools | `<QueryDevToolsPanel />` (Blazor), `QueryDevToolsServer` + CLI `watch` (any app) |
 
 ## Mutations
 
@@ -85,11 +87,14 @@ bindings instead of React hooks. This page maps the concepts.
 | `onMutate` returning context | `OnMutate` (context flows to `OnSuccess` / `OnError` / `OnSettled`) |
 | Optimistic update in `onMutate` + rollback in `onError` | Declarative `OptimisticUpdates` - cancel, snapshot, apply atomically, exact rollback |
 | `onSettled: () => invalidateQueries(...)` | `Invalidates = [keys]` (the mutation stays pending until active queries refetched) |
-| `retry` | `RetryCount`, `RetryDelay`, `ShouldRetry` (default: no retries - mutations are not idempotent by default) |
+| `retry` | `RetryCount`, `RetryDelay`, `ShouldRetry` (default: no retries - mutations are not idempotent by default; `RetryCount = 0` opts out of retries from `SetMutationDefaults`) |
+| `meta` | `Meta` (on `MutationDescriptor` and the mutation events) |
 | `scope: { id }` | `Scope = "id"` (serial, start order, `IsPaused` while waiting) |
 | `mutationKey` | `MutationKey` |
 | Paused offline mutations, `resumePausedMutations` | `NetworkMode.Online` (waits in memory), `PersistentMutationQueue` (durable, at-least-once, dead letters) |
 | `mutationCache.subscribe` | `Cache.Mutations.Changed` |
+| `useMutationState` | `Cache.Mutations.FindAll(MutationFilter)` |
+| `QueryCache({ onError })` / `MutationCache({ onError })` global callbacks | `client.DiagnosticEvent` (`QueryFailedEvent`, `MutationCompletedEvent`) with `Meta`, or `AddDiagnosticLogging()` |
 
 ## Differences worth knowing
 
@@ -97,6 +102,9 @@ bindings instead of React hooks. This page maps the concepts.
   observing a dead entry.
 - **Invalidation cancels an outdated in-flight fetch** and hands its waiters the fresh result; background
   triggers (focus, reconnect, interval) deduplicate with it instead.
+- **Refreshes wait for pending optimistic updates** - while declarative optimistic updates of pending mutations are on
+  a query, its invalidations and refetches are deferred and one refetch runs once they settle, so concurrent mutations
+  need no `isMutating` checks before invalidating.
 - **Structural sharing is opt-in** - .NET types define their own `Equals`, and identity-only equality would make
   sharing keep stale instances.
 - **Blazor Server isolation** - the client is scoped per circuit; use `ResetOnUserChange()` so a WebAssembly

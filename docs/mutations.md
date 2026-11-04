@@ -47,7 +47,9 @@ run still completes (its callbacks fire and its task returns its own result) but
 `Invalidates` lists the query keys (prefix-matched) to invalidate once the mutation settles - after success
 **or** failure, so a failed optimistic update is also reconciled with the server. The mutation stays
 `Pending` until the resulting refetches of active queries complete, so a "Saving…" indicator covers the
-whole round trip.
+whole round trip - except for queries that still carry optimistic updates of other pending mutations: their refetch
+waits until those settle (the last one runs it), so a burst of mutations is reconciled once and never shows the server's
+value without the still-pending changes (see [Optimistic updates](optimistic-updates.md#concurrent-mutations-of-one-list)).
 
 ## Lifecycle
 
@@ -92,7 +94,9 @@ new MutationOptions<CreateTodo, Todo>
 }
 ```
 
-Only retry idempotent operations. `ShouldRetry` can only veto retries within the `RetryCount` budget.
+Only retry idempotent operations. `ShouldRetry` can only veto retries within the `RetryCount` budget. `RetryCount`
+left unset (`null`) uses the matching `MutationDefaults`, else 0; set `RetryCount = 0` to opt a mutation out of retries
+its defaults enable.
 
 ## Defaults for families of mutations
 
@@ -107,8 +111,8 @@ builder.Services.AddDotNetQuery(o => o
     }));
 ```
 
-A mutation's own options win; unset ones come from the most specific matching defaults (`RetryCount` is taken
-from the defaults when the mutation leaves it at 0).
+A mutation's own options win; unset (`null`) ones come from the most specific matching defaults, including `Meta`
+(application data for global handlers - see [Diagnostics](diagnostics.md#query-and-mutation-meta)).
 
 ## Progress and deduplication
 

@@ -30,7 +30,9 @@ Sample: [`samples/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/samp
 3. Choose the render mode per page (`@rendermode InteractiveServer` / `InteractiveWebAssembly` / `InteractiveAuto`);
    prerendered data hydrates in every mode, so nothing is fetched twice.
 4. For pages that need no interactivity, `[StreamRendering]` streams the `Loading` template and then the data.
-5. Register a `CircuitHandler` that refetches stale queries when a dropped Blazor Server connection comes back.
+5. Call `.RefetchOnCircuitReconnect()` (package `Msynk.DotNetQuery.Blazor.Server`) in the server project, so stale
+   queries refetch when a dropped Blazor Server connection comes back.
+6. In trimmed WebAssembly apps, register your JSON context for hydration: `.UseHydrationJson(AppJson.Default)`.
 
 Guide: [Blazor - render modes](blazor.md#render-modes).
 
@@ -66,7 +68,7 @@ Sample: [`samples/DotNetQuery.Sample.OfflineFirst`](https://github.com/msynk/dot
 1. Persist the queries the app needs offline with `QueryPersistenceManager` (`RegisterPrefix`, `RestoreAllAsync`,
    `StartAutoPersist`).
 2. Queue writes in a `PersistentMutationQueue` so they survive restarts, with an idempotency key the server
-   deduplicates on.
+   deduplicates on; with several tabs or windows over one store, give it a `ReplayLock`.
 3. Report connectivity (browser signals, `MauiConnectivityBridge`, `NetworkConnectivityMonitor`) - queries pause
    offline and the queue replays on reconnect.
 4. Decide what happens to a write the server rejects with `OnReplayFailure` (retry, drop, dead-letter, pause).
@@ -84,9 +86,10 @@ Sample: [`samples/DotNetQuery.Sample.ECommerce`](https://github.com/msynk/dotnet
 
 Guide: [Optimistic updates](optimistic-updates.md).
 
-## 7. A desktop or mobile app (WPF, WinUI, Avalonia, MAUI)
+## 7. A desktop or mobile app (WPF, WinUI, Avalonia, MAUI, Uno)
 
-Samples: [`samples/DotNetQuery.Sample.Avalonia`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Avalonia),
+Samples: [`samples/DotNetQuery.Sample.Wpf`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Wpf),
+[`samples/DotNetQuery.Sample.Avalonia`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Avalonia),
 [`samples/DotNetQuery.Sample.Maui`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Maui).
 
 1. Register with `services.AddDotNetQuery(...)`.
@@ -103,8 +106,10 @@ Guide: [Desktop and mobile](desktop-and-mobile.md).
 1. Blazor: `<QueryDevToolsPanel Floating="true" />` - queries, mutations, events, timelines, profiles (slowest
    queries), the key tree, snapshots you can restore (time travel), and the offline queue (`Queue="..."`).
 2. Any app: `new QueryDevTools(client)` - the same model in code, plus `ExportJson()` for a JSON report the
-   `DotNetQuery.DevTools.Cli` renders.
-3. Production: `Enabled="false"` (or tied to the environment) and `ShowData="false"`; telemetry respects
+   `DotNetQuery.DevTools.Cli` renders; `QueryDevToolsServer.Start(devtools)` serves it live for the CLI's `watch` mode.
+3. Logs: `AddDotNetQuery().AddDiagnosticLogging()`; a `Meta` entry per query or mutation drives one global error
+   handler.
+4. Production: `Enabled="false"` (or tied to the environment) and `ShowData="false"`; telemetry and logs respect
    `IncludeVariablesInDiagnostics` and `DiagnosticKeyFormatter`.
 
 Guides: [Diagnostics](diagnostics.md), [Troubleshooting](troubleshooting.md).

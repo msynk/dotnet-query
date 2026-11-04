@@ -169,7 +169,7 @@ else
                                 <td>@m.SubmittedAt.ToLocalTime().ToString("HH:mm:ss.fff")</td>
                                 <td>@(m.Duration is { } d ? $"{d.TotalMilliseconds:0.0}ms" : "…")</td>
                                 <td>@m.FailureCount</td>
-                                <td><code class="dnq-inline-json">@(ShowData ? Truncate(QueryDevTools.Preview(m.Variables), 120) : "(hidden)")</code></td>
+                                <td><code class="dnq-inline-json">@(ShowData ? Truncate(PreviewValue(m.Variables), 120) : "(hidden)")</code></td>
                                 <td>
                                     @if (m.OptimisticKeys.Count > 0)
                                     {
@@ -384,7 +384,7 @@ else
         _events = _devtools.RecentEvents();
         _mutations = _devtools.RecentMutations();
         _stats = _devtools.GetStats();
-        _preview = _selected is null || !ShowData ? null : _devtools.PreviewData(_selected);
+        _preview = _selected is null || !ShowData ? null : PreviewSelected(_selected);
         _timeline = _selected is null ? [] : _devtools.Timeline(_selected);
         _profile = _selected is null ? null : _devtools.ProfileQueries().FirstOrDefault(p => p.Key == _selected);
         _snapshots = _devtools.Snapshots;
@@ -463,6 +463,16 @@ else
         { } v when v == TimeSpan.Zero => "0 (always stale)",
         { } v => v.TotalSeconds < 60 ? $"{v.TotalSeconds:0.#}s" : $"{v.TotalMinutes:0.#}m",
     };
+
+    // Development tool: previews serialize arbitrary values with reflection-based JSON. In a trimmed app a preview may be
+    // incomplete or unavailable (it never throws); ShowData="false" skips previews entirely.
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Development-only previews; failures are reported in the preview text.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Development-only previews; failures are reported in the preview text.")]
+    private static string PreviewValue(object? value) => QueryDevTools.Preview(value);
+
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Development-only previews; failures are reported in the preview text.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Development-only previews; failures are reported in the preview text.")]
+    private string? PreviewSelected(QueryKey key) => _devtools!.PreviewData(key);
 
     private static string Truncate(string value, int max) => value.Length <= max ? value : value[..(max - 1)] + "…";
 

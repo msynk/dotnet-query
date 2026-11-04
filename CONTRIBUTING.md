@@ -8,7 +8,8 @@ dotnet test DotNetQuery.slnx -c Release
 ```
 
 The full solution (including the WPF and WinUI adapters, which target Windows) builds on Windows. The
-core and cross-platform adapters build and test on Linux/macOS too; CI runs both.
+core and cross-platform adapters build and test on Linux/macOS too; CI runs both. Install the .NET 8, 9 and 10 SDKs
+or targeting packs (the Uno adapter targets `net9.0`).
 
 **Platform adapters.** `DotNetQuery.Maui` is **not** in the solution (its platform heads need workloads
 and per-OS tooling). Build it directly:
@@ -26,10 +27,15 @@ Its target heads are environment-gated, so each builds where it can:
 - **iOS / Mac Catalyst** - added when building on macOS.
 
 `DotNetQuery.WinUI` builds with the plain CLI because it excludes the WindowsAppSDK MSBuild targets (see
-its README).
+its README). `DotNetQuery.Uno` references only Uno's WinUI API (`Uno.WinUI`) and strips Uno's XAML source generators,
+so it builds without the Uno.Sdk.
 
 **Test projects.** `DotNetQuery.Tests` and `DotNetQuery.Blazor.Tests` target both `net8.0` and `net10.0` (the
-libraries ship for both), so `dotnet test` runs every test twice; install both runtimes. `AllocationBudgetTests`
+libraries ship for both), so `dotnet test` runs every test twice; install both runtimes. `DotNetQuery.Desktop.Tests`
+(Windows) drives the WPF lifecycle class with a real `System.Windows.Application` and tests the WinUI activation
+mapping; `DotNetQuery.Uno.Tests` tests the Uno mapping. The Redis persistence and synchronization tests run against
+`DOTNETQUERY_REDIS` (default `localhost:6379`) and skip without a server:
+`docker run --rm -p 6379:6379 redis:7-alpine`. Coverage: `dotnet test --settings coverage.runsettings --collect:"XPlat Code Coverage"`. `AllocationBudgetTests`
 fail when a hot path (cache hit, `GetQueryData`, `SetQueryData`, key creation) starts allocating noticeably more -
 the measured cost is noted next to each budget; update it only together with the reason.
 
@@ -50,9 +56,14 @@ generated code at runtime. New diagnostics go into `AnalyzerReleases.Unshipped.m
 
 ## Documentation
 
-Guides live in `docs/` and are also built into a website with an API reference by DocFX
-(`docfx docs/docfx.json`, after `dotnet tool update -g docfx`); `.github/workflows/docs.yml` builds it on pull
-requests and publishes it to GitHub Pages from `main`.
+Guides live in `docs/` and are also built into a website with an API reference by DocFX (see
+[Documentation site](#documentation-site)); `.github/workflows/docs.yml` builds it on pull requests and publishes it to
+GitHub Pages from `main`.
+
+## Reporting problems
+
+Bugs and feature requests: GitHub issues (templates provided). Security vulnerabilities: privately, see
+[SECURITY.md](SECURITY.md). Everyone participating follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Public API surface is frozen
 
@@ -71,10 +82,10 @@ dotnet format analyzers <path-to-project> --diagnostics RS0016
 This appends new members to `PublicAPI.Unshipped.txt`. Review the diff - an unexpected entry means you
 exposed something you didn't intend. On a release, move `Unshipped` entries into `Shipped.txt`.
 
-Analyzer-enabled projects: `DotNetQuery`, `.Persistence.Sqlite`, `.Persistence.Redis`, `.Wpf`, `.WinUI`,
-`.Avalonia`, `.Maui`. The Razor adapter (`.Blazor`, which also carries the browser persisters and the
-DevTools panel) is excluded (its public surface is largely Razor-generated; component parameters are
-covered by bUnit tests instead).
+Every shipped package is analyzer-enabled: `DotNetQuery`, `.Blazor`, `.Blazor.Server`, `.Persistence.Sqlite`,
+`.Persistence.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`, `.Uno`. In the Razor adapter the Razor-generated
+component members are recorded too (`RS0041`, oblivious nullability in generated `BuildRenderTree`, is suppressed).
+Releases ship the baselines with `eng/prepare-release.ps1` (see [docs/releasing.md](docs/releasing.md)).
 
 ## Package layout
 
@@ -119,12 +130,28 @@ See [tests/DotNetQuery.Benchmarks/README.md](tests/DotNetQuery.Benchmarks/README
 
 ## NativeAOT / trimming
 
-Core, DependencyInjection, Persistence (all providers), Http and GraphQL are `IsAotCompatible`. Verify with
-the harness - a clean publish emits zero IL2xxx/IL3xxx
-warnings and produces a native binary:
+The core (DependencyInjection, Persistence, Http, GraphQL included), the persistence providers, `DotNetQuery.Blazor`
+and `DotNetQuery.Blazor.Server` are `IsAotCompatible`. Verify with the harness - a clean publish emits zero
+IL2xxx/IL3xxx warnings and produces a native binary:
 
 ```bash
 dotnet publish aot/DotNetQuery.AotHarness -c Release -r linux-x64   # or win-x64 / osx-arm64
 ```
 
-See [aot/DotNetQuery.AotHarness/README.md](aot/DotNetQuery.AotHarness/README.md).
+See [aot/DotNetQuery.AotHarness/README.md](aot/DotNetQuery.AotHarness/README.md). For the Blazor adapter, CI publishes
+`samples/TodoApp.Client` trimmed (`-p:SuppressTrimAnalysisWarnings=false -p:TrimmerSingleWarn=false`) and fails on
+any trim warning from a DotNetQuery assembly.
+
+## Documentation site
+
+`docs/docfx.json` reads the API reference from the built assemblies in `artifacts/docs-bin` (DocFX cannot run the Razor
+source generator, so building from the projects would miss the `.razor` components). `.github/workflows/docs.yml`
+builds them first; locally:
+
+```bash
+for p in src/DotNetQuery src/adapters/DotNetQuery.Blazor src/adapters/DotNetQuery.Blazor.Server src/adapters/DotNetQuery.Avalonia \
+         src/persistence/DotNetQuery.Persistence.Sqlite src/persistence/DotNetQuery.Persistence.Redis; do
+  dotnet build $p -c Release -f net10.0 -p:CopyLocalLockFileAssemblies=true -p:OutDir=$PWD/artifacts/docs-bin/
+done
+docfx docs/docfx.json --serve
+```
