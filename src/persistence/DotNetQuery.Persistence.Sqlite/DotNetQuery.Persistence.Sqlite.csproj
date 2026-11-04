@@ -20,7 +20,7 @@
   <!-- Override the transitive native SQLite bundle with the patched release
        (Microsoft.Data.Sqlite still pulls a version flagged by NU1903 / GHSA-2m69-gcr7-jv3q). -->
   <ItemGroup>
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.0" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
   </ItemGroup>
 
   <ItemGroup>
