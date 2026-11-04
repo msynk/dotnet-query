@@ -11,7 +11,8 @@
             "DotNetQuery.Blazor.Server.dll",
             "DotNetQuery.Avalonia.dll",
             "DotNetQuery.Persistence.Sqlite.dll",
-            "DotNetQuery.Persistence.Redis.dll"
+            "DotNetQuery.Persistence.Redis.dll",
+            "DotNetQuery.SignalR.dll"
           ]
         }
       ],

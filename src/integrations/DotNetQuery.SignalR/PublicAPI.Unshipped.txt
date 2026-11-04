@@ -1,0 +1,27 @@
+#nullable enable
+DotNetQuery.SignalR.HubConnectionQueryEventSource
+DotNetQuery.SignalR.HubConnectionQueryEventSource.Connection.get -> Microsoft.AspNetCore.SignalR.Client.HubConnection!
+DotNetQuery.SignalR.HubConnectionQueryEventSource.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.SignalR.HubConnectionQueryEventSource.HubConnectionQueryEventSource(Microsoft.AspNetCore.SignalR.Client.HubConnection! connection, DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? options = null) -> void
+DotNetQuery.SignalR.HubConnectionQueryEventSource.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.SignalR.HubConnectionQueryEventSource.State.get -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.SignalR.HubConnectionQueryEventSource.StateChanged -> System.Action<DotNetQuery.Synchronization.QueryEventSourceStateChange>?
+DotNetQuery.SignalR.HubConnectionQueryEventSource.Subscribe<TEvent>(string! eventName, System.Func<TEvent, System.Threading.Tasks.ValueTask>! handler) -> System.IDisposable!
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.<Clone>$() -> DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions!
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.Equals(DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? other) -> bool
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.HubConnectionQueryEventSourceOptions() -> void
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.OnConnected.get -> System.Func<Microsoft.AspNetCore.SignalR.Client.HubConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.OnConnected.init -> void
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.OwnsConnection.get -> bool
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.OwnsConnection.init -> void
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.RestartDelay.get -> System.Func<int, System.Exception!, System.TimeSpan?>?
+DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.RestartDelay.init -> void
+Microsoft.Extensions.DependencyInjection.DotNetQuerySignalRServiceCollectionExtensions
+override DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.Equals(object? obj) -> bool
+override DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.GetHashCode() -> int
+override DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.ToString() -> string!
+static DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.operator !=(DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? left, DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? right) -> bool
+static DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions.operator ==(DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? left, DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? right) -> bool
+static Microsoft.Extensions.DependencyInjection.DotNetQuerySignalRServiceCollectionExtensions.AddSignalRSync(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, System.Func<System.IServiceProvider!, Microsoft.AspNetCore.SignalR.Client.HubConnection!>! connection, System.Action<DotNetQuery.Synchronization.QueryEventSynchronizer!>! configure, DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? sourceOptions = null, DotNetQuery.Synchronization.QueryEventSyncOptions? syncOptions = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+static Microsoft.Extensions.DependencyInjection.DotNetQuerySignalRServiceCollectionExtensions.AddSignalRSync(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, System.Func<System.IServiceProvider!, Microsoft.AspNetCore.SignalR.Client.HubConnection!>! connection, System.Action<System.IServiceProvider!, DotNetQuery.Synchronization.QueryEventSynchronizer!>! configure, DotNetQuery.SignalR.HubConnectionQueryEventSourceOptions? sourceOptions = null, DotNetQuery.Synchronization.QueryEventSyncOptions? syncOptions = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!

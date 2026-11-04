@@ -36,6 +36,12 @@ Prefer one prefix invalidation over many exact ones:
 await client.InvalidateQueriesAsync(QueryKey.Create("users")); // one call, whole hierarchy
 ```
 
+Real-time event mappings do this for you: a `QueryEventSynchronizer` coalesces the invalidations of a burst of events
+and issues them once the queue drains, so 100 events invalidating one list refetch it once. Each data mapping that
+matches by key prefix scans the cache once per event (~2.6 µs per event with 10 cached queries, ~19 µs with 1,000); keep
+entity prefixes narrow and prefer exact keys where you can - see
+[Real-time synchronization](realtime-sync.md#performance).
+
 ## Choose retry policies deliberately
 
 Retries multiply load on a struggling origin. Exponential back-off with jitter (the default) spreads retries

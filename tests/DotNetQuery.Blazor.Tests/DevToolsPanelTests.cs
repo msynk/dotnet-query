@@ -163,4 +163,25 @@ public class DevToolsPanelTests : TestContext
 
         Assert.Equal(1, client.GetQueryData<int>(QueryKey.Create("value")).Data);
     }
+
+    [Fact]
+    public async Task Sync_tab_shows_synchronizer_status_mappings_and_failures()
+    {
+        var client = Services.GetRequiredService<IQueryClient>();
+        await using var sync = new DotNetQuery.Synchronization.QueryEventSynchronizer(client, options: new() { Name = "live" });
+        sync.Map<int>("Broken", m => m.Update<int>(QueryKey.Create("n"), (_, _) => throw new InvalidOperationException("cannot apply")));
+        client.SetQueryData(QueryKey.Create("n"), 0);
+        await sync.ProcessAsync("Broken", 1);
+
+        var cut = RenderComponent<QueryDevToolsPanel>(ps => ps
+            .Add(p => p.RefreshThrottle, TimeSpan.Zero)
+            .Add(p => p.Synchronizers, new[] { sync }));
+        cut.FindAll("button").First(b => b.TextContent.StartsWith("Sync", StringComparison.Ordinal)).Click();
+
+        Assert.Contains("live", cut.Markup);
+        Assert.Contains("Synchronized", cut.Markup);
+        Assert.Contains("Broken", cut.Markup);
+        Assert.Contains("cannot apply", cut.Markup);
+        Assert.Contains("1 failed", cut.Markup);
+    }
 }

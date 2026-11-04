@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
     <ProjectReference Include="..\..\src\adapters\DotNetQuery.Blazor\DotNetQuery.Blazor.csproj" />
+    <ProjectReference Include="..\..\src\integrations\DotNetQuery.SignalR\DotNetQuery.SignalR.csproj" />
   </ItemGroup>
 
 </Project>

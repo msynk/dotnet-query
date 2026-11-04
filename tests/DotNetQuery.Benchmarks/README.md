@@ -38,6 +38,7 @@ dotnet run -c Release --project tests/DotNetQuery.Benchmarks -- --list flat
 | `InfiniteQueryMemoryBenchmarks` | Loading 50 pages of 100 items into a cache-backed infinite query. |
 | `PersistenceBenchmarks` | Persisting and restoring 100 queries (source-generated JSON, in-memory store). |
 | `EvictionBenchmarks` | Garbage-collecting 10,000 expired inactive queries; trimming them to 100 (LRU). |
+| `EventSyncBenchmarks` | Real-time event synchronization with 10 / 1,000 cached queries: one event end to end, a rejected duplicate, an entity upsert into a list and detail, and a coalesced burst of 100 invalidations. |
 | `BlazorRenderBenchmarks` | Mounting `<Query>` over cached data, and the re-render a cache write triggers (through bUnit's renderer). |
 
 ## Baselines

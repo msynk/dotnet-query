@@ -56,6 +56,21 @@ public static class DotNetQueryDiagnostics
 
     internal static readonly Histogram<double> MutationDuration =
         Meter.CreateHistogram<double>("dotnetquery.mutation.duration", unit: "ms", description: "Duration of mutations.");
+
+    internal static readonly Counter<long> SyncEventsReceived =
+        Meter.CreateCounter<long>("dotnetquery.sync.events.received", unit: "{event}", description: "Number of real-time events received by query event synchronizers.");
+
+    internal static readonly Counter<long> SyncEventsProcessed =
+        Meter.CreateCounter<long>("dotnetquery.sync.events.processed", unit: "{event}", description: "Number of real-time events processed, by outcome.");
+
+    internal static readonly UpDownCounter<long> SyncQueueDepth =
+        Meter.CreateUpDownCounter<long>("dotnetquery.sync.queue.depth", unit: "{event}", description: "Number of real-time events waiting to be processed.");
+
+    internal static readonly Counter<long> SyncRecoveries =
+        Meter.CreateCounter<long>("dotnetquery.sync.recoveries", unit: "{recovery}", description: "Number of synchronization recoveries, by reason and result.");
+
+    internal static readonly Histogram<double> SyncRecoveryDuration =
+        Meter.CreateHistogram<double>("dotnetquery.sync.recovery.duration", unit: "ms", description: "Duration of synchronization recoveries, including the refetches they caused.");
 }
 
 /// <summary>

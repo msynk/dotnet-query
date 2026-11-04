@@ -9,6 +9,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DotNetQuery;
 using DotNetQuery.Persistence;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 
 int failures = 0;
 void Check(bool ok, string what)
@@ -277,6 +279,36 @@ using (var queueB = new PersistentMutationQueue(sharedStore, new ConnectivityPro
 }
 
 File.Delete(lockPath);
+
+// --- Real-time event synchronization: mappings, entity upserts, dedup, recovery, relay, SignalR source ----------
+var entity = DotNetQuery.Synchronization.QueryEntity.Create<User, int>(QueryKey.Create("rt"), u => u.Id, detailKey: id => QueryKey.Create("rt", id));
+client.SetQueryData(QueryKey.Create("rt", "list"), new List<User> { new(1, "a") });
+client.SetQueryData(QueryKey.Create("rt", 1), new User(1, "a"));
+var eventSource = new DotNetQuery.Synchronization.InMemoryQueryEventSource();
+await using (var events = new DotNetQuery.Synchronization.QueryEventSynchronizer(client, eventSource))
+using (var relayed = new DotNetQuery.Synchronization.QueryEventRelay(events, hub.CreateChannel()).Start())
+{
+    events.Map<DotNetQuery.Synchronization.QueryEventEnvelope<User>>("UserChanged", m => m
+        .Upsert(entity, e => e.Payload, DotNetQuery.Synchronization.EntityMissingBehavior.Append)
+        .Invalidate(QueryKey.Create("rt", "stats")));
+    await events.StartAsync();
+    await eventSource.PublishAsync("UserChanged", new DotNetQuery.Synchronization.QueryEventEnvelope<User> { EventId = "e1", Sequence = 1, Payload = new User(1, "b") });
+    var duplicate = await events.ProcessAsync("UserChanged", new DotNetQuery.Synchronization.QueryEventEnvelope<User> { EventId = "e1", Sequence = 1, Payload = new User(1, "c") });
+    await events.ResynchronizeAsync();
+    Check(client.GetQueryData<User>(QueryKey.Create("rt", 1)).Data?.Name == "b"
+          && duplicate == DotNetQuery.Synchronization.QueryEventOutcome.Duplicate
+          && relayed.MessagesSent >= 1, "real-time event synchronization (mappings, dedup, recovery, relay)");
+}
+
+var hubConnection = new Microsoft.AspNetCore.SignalR.Client.HubConnectionBuilder()
+    .WithUrl("http://127.0.0.1:1/hub")
+    .AddJsonProtocol(o => o.PayloadSerializerOptions.TypeInfoResolverChain.Insert(0, HarnessJson.Default))
+    .Build();
+await using (var signalRSource = new DotNetQuery.SignalR.HubConnectionQueryEventSource(hubConnection, new() { OwnsConnection = true }))
+{
+    using var subscription = signalRSource.Subscribe<User>("UserChanged", _ => default);
+    Check(signalRSource.State == DotNetQuery.Synchronization.QueryEventSourceState.Disconnected, "SignalR event source (typed handler registration)");
+}
 
 Console.WriteLine(failures == 0
     ? "\nAOT harness: all checks passed."

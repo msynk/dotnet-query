@@ -173,3 +173,18 @@ virtual DotNetQuery.Blazor.DotNetQueryComponentBase.PersistQueryState.get -> boo
 ~override DotNetQuery.Blazor.QueryClientProvider.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
 ~override DotNetQuery.Blazor.ScrollRestoration.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
 ~override DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseQueryEvents<TEvent>(DotNetQuery.Synchronization.QueryEventSynchronizer! synchronizer, string! eventName, System.Action<DotNetQuery.Synchronization.QueryEventMapping<TEvent>!>! configure, object? dependsOn = null, string! callerFilePath = "", int callerLineNumber = 0) -> void
+DotNetQuery.Blazor.DotNetQueryComponentBase.UseQuerySyncStatus(DotNetQuery.Synchronization.QueryEventSynchronizer! synchronizer, string! callerFilePath = "", int callerLineNumber = 0) -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Blazor.DotNetQueryCrossTabEvents
+DotNetQuery.Blazor.DotNetQueryCrossTabEvents.DotNetQueryCrossTabEvents() -> void
+DotNetQuery.Blazor.QueryEventRelayHost
+DotNetQuery.Blazor.QueryEventRelayHost.Channel.get -> DotNetQuery.Blazor.BroadcastChannelQuerySync!
+DotNetQuery.Blazor.QueryEventRelayHost.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Blazor.QueryEventRelayHost.QueryEventRelayHost(Microsoft.JSInterop.IJSRuntime! js, DotNetQuery.Synchronization.QueryEventSynchronizer! synchronizer, string! channelName, DotNetQuery.Synchronization.QueryEventRelayOptions? options = null) -> void
+DotNetQuery.Blazor.QueryEventRelayHost.Relay.get -> DotNetQuery.Synchronization.QueryEventRelay!
+DotNetQuery.Blazor.QueryEventRelayHost.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+override DotNetQuery.Blazor.DotNetQueryCrossTabEvents.OnAfterRenderAsync(bool firstRender) -> System.Threading.Tasks.Task!
+static Microsoft.Extensions.DependencyInjection.DotNetQueryBlazorServiceCollectionExtensions.AddCrossTabEventRelay(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, DotNetQuery.Synchronization.QueryEventRelayOptions? options = null, string! channelName = "dotnetquery-events") -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+~override DotNetQuery.Blazor.DotNetQueryCrossTabEvents.BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder) -> void
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Synchronizers.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Synchronization.QueryEventSynchronizer!>?
+DotNetQuery.DevTools.Blazor.QueryDevToolsPanel.Synchronizers.set -> void

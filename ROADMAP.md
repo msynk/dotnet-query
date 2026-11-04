@@ -1,7 +1,8 @@
 # DotNetQuery - Path to 1.0
 
 Status: **feature-complete core and Blazor adapter, 8 UI adapters (Blazor, Blazor Server, MVVM, WPF, WinUI, Avalonia,
-MAUI, Uno), 1,135 tests, 10 NuGet packages, eight verified samples, a BenchmarkDotNet suite, a verified NativeAOT
+MAUI, Uno), real-time synchronization with a SignalR integration, 1,272 tests, 11 NuGet packages, nine verified samples,
+a BenchmarkDotNet suite, a verified NativeAOT
 publish and trimmed Blazor WebAssembly publish, CI with coverage, a tag-driven release workflow, and a frozen public API
 surface for every package.** This document tracks what remains before a formal 1.0 tag. See
 [CHANGELOG.md](CHANGELOG.md) for the latest changes and [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the
@@ -31,6 +32,12 @@ verified evidence.
   IndexedDB) with timestamp-preserving restore, `MaxAge`, `Buster`, auto-persist, and trim-safe registration.
 - **Synchronization** - `QuerySynchronizer` over `BroadcastChannel` (tabs), in-memory hubs and Redis pub/sub
   (`RedisQuerySyncChannel`, server instances); a SignalR transport recipe.
+- **Real-time events** - `QueryEventSynchronizer` in the core (typed event mappings to invalidations, incremental
+  updates and entity upserts/removals; duplicate, version and sequence protection; coalesced refetches; recovery by
+  invalidation, snapshot or replay after reconnects, gaps and overflows; diagnostics, metrics, DevTools);
+  `Msynk.DotNetQuery.SignalR` (hub event source with group resubscription, restart policy, connection ownership,
+  `AddSignalRSync`); Blazor component-scoped mappings, status hook and a cross-tab notice relay; a real-time sample and
+  live updates in the TodoApp WebAssembly pages.
 - **Blazor** - .NET 8 + .NET 10; scoped per-circuit clients; `<Query>` with templates, keep-previous-data,
   dependent queries and automatic prerender hydration (trim-safe with `UseHydrationJson`); hook-style
   `UseQuery`/`UseMutation`/`UseInfiniteQuery`; browser signals; inline/floating DevTools panel; Blazor Server circuit
@@ -72,7 +79,9 @@ verified evidence.
 | Item | Notes |
 | --- | --- |
 | Visual DevTools for XAML apps | The live endpoint and CLI cover any app; an in-app panel for WPF/WinUI/Avalonia/MAUI/Uno would match the Blazor one. |
-| SignalR synchronization package | A ready-made `IQuerySyncChannel` + hub (recipe in the advanced scenarios guide today). |
+| SignalR `IQuerySyncChannel` | Event synchronization ships in `Msynk.DotNetQuery.SignalR`; a ready-made channel + hub for relaying `QuerySynchronizer` *data* through a server is still a recipe. |
+| Prefix index for event mappings | Data mappings matching by key prefix scan the cache once per event (~19 µs with 1,000 cached queries); an index would make dispatch independent of the cache size. |
+| Durable deduplication/checkpoints | Deduplication and checkpoints are in memory; a pluggable store would let replay resume across restarts without application code. |
 | Native Kiota request-builder generation | Kiota clients are supported through a thin wrapper class; generating from request builders directly would remove it. |
 
 ## Known characteristics (documented, not bugs)
@@ -88,6 +97,9 @@ verified evidence.
   matching query is first used (a key cannot be rebuilt from its persisted text).
 - Removals are not synchronized between caches; prefix synchronization updates only queries the receiving cache holds.
 - `NetworkConnectivityMonitor` reports whether a network interface is up, not whether the server is reachable.
+- Real-time event synchronization: deduplication is in memory (no exactly-once delivery across restarts); incremental
+  updates are only ordered when events carry versions or sequences (otherwise use invalidation); replay recovery needs a
+  server that retains its event history; payload deserialization failures happen in SignalR, before the synchronizer.
 - Structural sharing is opt-in: it relies on `Equals` meaning full value equality.
 - In a trimmed app that trims its own assemblies, prerender hydration needs `UseHydrationJson` for the app's types
   (Blazor's default partial trimming keeps them).

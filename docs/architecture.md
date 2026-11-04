@@ -106,6 +106,15 @@ resets and refetches it rather than stranding its observers.
   (`ProtectedQueryPersister`). A per-key write gate keeps an older save from overwriting a newer one.
 - `QuerySynchronizer` keeps registered queries consistent across caches over an `IQuerySyncChannel` - browser tabs
   (`BroadcastChannel`), processes, or servers (Redis pub/sub).
+- `QueryEventSynchronizer` applies *server* events to the cache. The core defines the contracts - `IQueryEventSource`
+  (a transport: subscribe to named, typed events; report connection state), `QueryEventMapping<TEvent>` (what an event
+  does), `QueryEntity<TItem, TId>` (where an entity is cached), `QuerySyncRecovery` - and the orchestration: a bounded
+  queue drained by one loop (events apply in arrival order and never block the transport), metadata-based deduplication
+  and ordering, atomic writes through the same transaction protocol as `SetQueriesData`, supersession of fetches that
+  predate an event (the invalidation machinery's cancel-and-refetch with a logical-time join), coalesced invalidations,
+  and recovery after missed events. Transports live in their own packages (`Msynk.DotNetQuery.SignalR`), so the core has
+  no SignalR, browser or UI dependency; `QueryEventRelay` shares event notices between tabs over any `IQuerySyncChannel`.
+  See [Real-time synchronization](realtime-sync.md).
 - `PersistentMutationQueue` instances that share a store coordinate through an `IMutationQueueLock` (Web Locks in the
   browser, a lock file for processes): the holder reconciles with the store and replays.
 

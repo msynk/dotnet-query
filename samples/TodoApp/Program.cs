@@ -1,4 +1,6 @@
 using DotNetQuery;
+using DotNetQuery.Synchronization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using TodoApp;
 using TodoApp.Client;
@@ -28,6 +30,10 @@ builder.Services.AddDotNetQueryBlazor(options =>
 builder.Services.AddSingleton<TodoApi>();
 builder.Services.AddScoped<ITodoClient, ServerTodoClient>();   // prerendering of the WebAssembly/Auto pages
 
+// Real-time: the WebAssembly pages subscribe to todo events and invalidate their cached list when another user (or
+// device, or a script calling the API) changes it.
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 app.UseAntiforgery();
@@ -37,11 +43,19 @@ app.MapStaticAssets(); // serves _framework/blazor.web.js and library assets in 
 var api = app.MapGroup("/api/todos");
 api.MapGet("/", async (TodoApi todos, CancellationToken ct) =>
     (await todos.GetAllAsync(TodoFilter.All, ct)).Select(t => new TodoItem(t.Id, t.Title, t.Done)));
-api.MapPost("/", async (TodoApi todos, [Microsoft.AspNetCore.Mvc.FromBody] string title, CancellationToken ct) =>
+api.MapPost("/", async (TodoApi todos, IHubContext<TodoEventsHub> events, [Microsoft.AspNetCore.Mvc.FromBody] string title, CancellationToken ct) =>
 {
     var todo = await todos.AddAsync(title, ct);
-    return Results.Created($"/api/todos/{todo.Id}", new TodoItem(todo.Id, todo.Title, todo.Done));
+    var item = new TodoItem(todo.Id, todo.Title, todo.Done);
+    await events.Clients.All.SendAsync(TodoEvents.Added, new QueryEventEnvelope<TodoItem>
+    {
+        EventId = Guid.NewGuid().ToString("N"),
+        EntityId = item.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        Payload = item,
+    }, ct);
+    return Results.Created($"/api/todos/{todo.Id}", item);
 });
+app.MapHub<TodoEventsHub>(TodoEvents.HubPath);
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
@@ -49,3 +63,6 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(ITodoClient).Assembly);
 
 app.Run();
+
+/// <summary>The hub the WebAssembly pages listen to; the server pushes todo events through it.</summary>
+internal sealed class TodoEventsHub : Hub;

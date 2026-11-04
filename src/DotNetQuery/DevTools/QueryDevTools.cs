@@ -35,6 +35,8 @@ public sealed class QueryDevTools : IDisposable
 
     private readonly Dictionary<QueryKey, ProfileAccumulator> _profiles = [];
     private readonly List<DevToolsSnapshot> _snapshots = [];
+    private readonly List<Synchronization.QueryEventSynchronizer> _synchronizers = [];
+    private readonly Action<Synchronization.QuerySyncStatusChange> _syncHandler;
     private Persistence.PersistentMutationQueue? _queue;
     private long _fetchesStarted;
     private long _fetchesSucceeded;
@@ -58,6 +60,7 @@ public sealed class QueryDevTools : IDisposable
         _events = new Queue<DotNetQueryEvent>(Math.Min(eventLogCapacity, 64));
         _handler = Record;
         _cacheHandler = _ => RaiseChanged();
+        _syncHandler = _ => RaiseChanged();
         _client.DiagnosticEvent += _handler;
         _client.Cache.Changed += _cacheHandler;
     }
@@ -283,6 +286,42 @@ public sealed class QueryDevTools : IDisposable
         RaiseChanged();
     }
 
+    /// <summary>
+    /// Attaches a real-time event synchronizer so its mappings, connection status, checkpoints, counters, recent failures
+    /// and pending recovery can be inspected (<see cref="Synchronizers"/>, the export and the DevTools panels).
+    /// </summary>
+    public void AttachSynchronizer(Synchronization.QueryEventSynchronizer synchronizer)
+    {
+        ArgumentNullException.ThrowIfNull(synchronizer);
+        lock (_gate)
+        {
+            if (_synchronizers.Contains(synchronizer))
+            {
+                return;
+            }
+
+            _synchronizers.Add(synchronizer);
+        }
+
+        synchronizer.StatusChanged += _syncHandler;
+        RaiseChanged();
+    }
+
+    /// <summary>Gets a point-in-time view of every attached synchronizer (see <see cref="AttachSynchronizer"/>).</summary>
+    public IReadOnlyList<Synchronization.QuerySyncStatistics> Synchronizers
+    {
+        get
+        {
+            Synchronization.QueryEventSynchronizer[] attached;
+            lock (_gate)
+            {
+                attached = [.. _synchronizers];
+            }
+
+            return attached.Select(static s => s.GetStatistics()).ToArray();
+        }
+    }
+
     /// <summary>Gets the attached queue (see <see cref="AttachQueue"/>), if any.</summary>
     public Persistence.PersistentMutationQueue? Queue => _queue;
 
@@ -347,6 +386,32 @@ public sealed class QueryDevTools : IDisposable
                 p.MaxDurationMs,
             }).ToArray(),
             Events = RecentEvents().Select(ToExport).ToArray(),
+            Synchronizers = Synchronizers.Select(s => new
+            {
+                s.Name,
+                Status = s.Status.ToString(),
+                s.Scope,
+                s.Mappings,
+                CoveredKeys = s.CoveredKeys.Select(k => k.ToString()).ToArray(),
+                s.Received,
+                s.Applied,
+                s.Duplicates,
+                s.Stale,
+                s.Filtered,
+                s.Rejected,
+                s.Echoes,
+                s.Gaps,
+                s.Failed,
+                s.Dropped,
+                s.QueueDepth,
+                s.Recoveries,
+                s.RecoveryFallbacks,
+                s.RecoveryPending,
+                s.Checkpoints,
+                s.LastEventAt,
+                s.LastSynchronizedAt,
+                s.RecentErrors,
+            }).ToArray(),
         };
         return JsonSerializer.Serialize(export, options);
     }
@@ -570,6 +635,18 @@ public sealed class QueryDevTools : IDisposable
         if (_queue is not null)
         {
             _queue.PendingChanged -= RaiseChanged;
+        }
+
+        Synchronization.QueryEventSynchronizer[] attached;
+        lock (_gate)
+        {
+            attached = [.. _synchronizers];
+            _synchronizers.Clear();
+        }
+
+        foreach (var synchronizer in attached)
+        {
+            synchronizer.StatusChanged -= _syncHandler;
         }
     }
 }

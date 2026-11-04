@@ -129,6 +129,11 @@ await client.FetchGraphQLAsync<UserResponse>(
 
 ## Real-time updates (SignalR, channels, gRPC streaming)
 
+For server *events* (an entity changed, was created or deleted), use the event synchronizer: typed mappings to
+invalidations, incremental updates and entity upserts, with duplicate and ordering protection and recovery after a
+reconnect - see [Real-time synchronization](realtime-sync.md) and the `Msynk.DotNetQuery.SignalR` package. The
+`StreamIntoCacheAsync` bridge below suits a continuous *stream* of values for one query (a price ticker, a log tail).
+
 `StreamIntoCacheAsync` bridges any `IAsyncEnumerable<T>` into the cache: each emitted value is written
 under a key, so observers (the Blazor `<Query>` component, MVVM bindings, …) update live. It pairs
 directly with SignalR's `HubConnection.StreamAsync<T>`, a `Channel<T>` reader, or gRPC server streaming -
@@ -194,8 +199,10 @@ that bounds how long that can matter. Use one channel name per application and s
 
 ### SignalR (recipe)
 
-To relay between browsers or apps through your own server, implement the channel over a hub connection and broadcast on
-the server:
+To keep caches current with *server-side* changes, prefer the event synchronizer (`Msynk.DotNetQuery.SignalR`, see
+[Real-time synchronization](realtime-sync.md)). The recipe below instead relays `QuerySynchronizer` messages - cached
+data written by one client - between browsers or apps through your own server: implement the channel over a hub
+connection and broadcast on the server:
 
 ```csharp
 // Client (WebAssembly, MAUI, WPF ...): Microsoft.AspNetCore.SignalR.Client

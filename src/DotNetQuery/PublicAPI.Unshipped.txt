@@ -1635,3 +1635,418 @@ static DotNetQuery.QueryDiagnosticsLogging.LogDiagnostics(this DotNetQuery.IQuer
 static DotNetQuery.QueryDiagnosticsLoggingOptions.operator !=(DotNetQuery.QueryDiagnosticsLoggingOptions? left, DotNetQuery.QueryDiagnosticsLoggingOptions? right) -> bool
 static DotNetQuery.QueryDiagnosticsLoggingOptions.operator ==(DotNetQuery.QueryDiagnosticsLoggingOptions? left, DotNetQuery.QueryDiagnosticsLoggingOptions? right) -> bool
 static Microsoft.Extensions.DependencyInjection.DotNetQueryLoggingBuilderExtensions.AddDiagnosticLogging(this Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder! builder, DotNetQuery.QueryDiagnosticsLoggingOptions? options = null) -> Microsoft.Extensions.DependencyInjection.IDotNetQueryBuilder!
+DotNetQuery.Synchronization.EntityDetailRemoval
+DotNetQuery.Synchronization.EntityDetailRemoval.Ignore = 2 -> DotNetQuery.Synchronization.EntityDetailRemoval
+DotNetQuery.Synchronization.EntityDetailRemoval.Invalidate = 0 -> DotNetQuery.Synchronization.EntityDetailRemoval
+DotNetQuery.Synchronization.EntityDetailRemoval.Remove = 1 -> DotNetQuery.Synchronization.EntityDetailRemoval
+DotNetQuery.Synchronization.EntityMissingBehavior
+DotNetQuery.Synchronization.EntityMissingBehavior.Append = 1 -> DotNetQuery.Synchronization.EntityMissingBehavior
+DotNetQuery.Synchronization.EntityMissingBehavior.Ignore = 3 -> DotNetQuery.Synchronization.EntityMissingBehavior
+DotNetQuery.Synchronization.EntityMissingBehavior.Invalidate = 0 -> DotNetQuery.Synchronization.EntityMissingBehavior
+DotNetQuery.Synchronization.EntityMissingBehavior.Prepend = 2 -> DotNetQuery.Synchronization.EntityMissingBehavior
+DotNetQuery.Synchronization.IQueryEventMetadataProvider
+DotNetQuery.Synchronization.IQueryEventMetadataProvider.GetQueryEventMetadata() -> DotNetQuery.Synchronization.QueryEventMetadata
+DotNetQuery.Synchronization.IQueryEventSource
+DotNetQuery.Synchronization.IQueryEventSource.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Synchronization.IQueryEventSource.State.get -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.IQueryEventSource.StateChanged -> System.Action<DotNetQuery.Synchronization.QueryEventSourceStateChange>?
+DotNetQuery.Synchronization.IQueryEventSource.Subscribe<TEvent>(string! eventName, System.Func<TEvent, System.Threading.Tasks.ValueTask>! handler) -> System.IDisposable!
+DotNetQuery.Synchronization.InMemoryQueryEventSource
+DotNetQuery.Synchronization.InMemoryQueryEventSource.InMemoryQueryEventSource() -> void
+DotNetQuery.Synchronization.InMemoryQueryEventSource.PublishAsync<TEvent>(string! eventName, TEvent payload) -> System.Threading.Tasks.ValueTask<bool>
+DotNetQuery.Synchronization.InMemoryQueryEventSource.SetState(DotNetQuery.Synchronization.QueryEventSourceState state, System.Exception? error = null) -> void
+DotNetQuery.Synchronization.InMemoryQueryEventSource.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Synchronization.InMemoryQueryEventSource.State.get -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.InMemoryQueryEventSource.StateChanged -> System.Action<DotNetQuery.Synchronization.QueryEventSourceStateChange>?
+DotNetQuery.Synchronization.InMemoryQueryEventSource.Subscribe<TEvent>(string! eventName, System.Func<TEvent, System.Threading.Tasks.ValueTask>! handler) -> System.IDisposable!
+DotNetQuery.Synchronization.InMemoryQueryEventSource.SubscriberCount(string! eventName) -> int
+DotNetQuery.Synchronization.QueryEntity
+DotNetQuery.Synchronization.QueryEntity<TItem, TId>
+DotNetQuery.Synchronization.QueryEntity<TItem, TId>.Key.get -> DotNetQuery.QueryKey!
+DotNetQuery.Synchronization.QueryEntity<TItem, TId>.WithCollection<TData>(System.Func<TData, System.Collections.Generic.IReadOnlyList<TItem>!>! items, System.Func<TData, System.Collections.Generic.IReadOnlyList<TItem>!, TData>! withItems, bool refetchOnMembershipChange = false) -> DotNetQuery.Synchronization.QueryEntity<TItem, TId>!
+DotNetQuery.Synchronization.QueryEntity<TItem, TId>.WithInfinitePages<TParam, TPage>(System.Func<TPage, System.Collections.Generic.IReadOnlyList<TItem>!>! items, System.Func<TPage, System.Collections.Generic.IReadOnlyList<TItem>!, TPage>! withItems, bool refetchOnMembershipChange = true) -> DotNetQuery.Synchronization.QueryEntity<TItem, TId>!
+DotNetQuery.Synchronization.QueryEventContext<TEvent>
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.Client.get -> DotNetQuery.IQueryClient!
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.Event.get -> TEvent
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.EventName.get -> string!
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.Invalidate(DotNetQuery.QueryFilter! filter) -> void
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.Invalidate(DotNetQuery.QueryKey! key) -> void
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.IsReplay.get -> bool
+DotNetQuery.Synchronization.QueryEventContext<TEvent>.Metadata.get -> DotNetQuery.Synchronization.QueryEventMetadata
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.<Clone>$() -> DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>!
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.CorrelationId.get -> string?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.CorrelationId.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.EntityId.get -> string?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.EntityId.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Equals(DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>? other) -> bool
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.EventId.get -> string?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.EventId.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.EventType.get -> string?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.EventType.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.GetQueryEventMetadata() -> DotNetQuery.Synchronization.QueryEventMetadata
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Payload.get -> TPayload
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Payload.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.QueryEventEnvelope() -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Scope.get -> string?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Scope.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Sequence.get -> long?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Sequence.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Stream.get -> string?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Stream.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Timestamp.get -> System.DateTimeOffset?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Timestamp.init -> void
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Version.get -> long?
+DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Version.init -> void
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Covers(params DotNetQuery.QueryKey![]! keys) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.EventName.get -> string!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Handle(System.Action<DotNetQuery.Synchronization.QueryEventContext<TEvent>!>! handler) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Handle(System.Func<DotNetQuery.Synchronization.QueryEventContext<TEvent>!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! handler) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.IgnoreLocalEchoes() -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Invalidate(DotNetQuery.QueryKey! key) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Invalidate(System.Func<TEvent, DotNetQuery.QueryFilter!>! filter) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Invalidate(System.Func<TEvent, DotNetQuery.QueryKey!>! key) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.NoRecovery() -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Remove<TItem, TId>(DotNetQuery.Synchronization.QueryEntity<TItem, TId>! entity, System.Func<TEvent, TId>! id, DotNetQuery.Synchronization.EntityDetailRemoval detail = DotNetQuery.Synchronization.EntityDetailRemoval.Invalidate) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.SetData<TData>(System.Func<TEvent, DotNetQuery.QueryKey!>! key, System.Func<TEvent, TData>! data, bool createIfMissing = false) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Update<TData>(DotNetQuery.QueryKey! key, System.Func<TData, TEvent, TData>! update) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Update<TData>(System.Func<TEvent, DotNetQuery.QueryFilter!>! filter, System.Func<TData, TEvent, TData>! update) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Upsert<TItem, TId>(DotNetQuery.Synchronization.QueryEntity<TItem, TId>! entity, System.Func<TEvent, TItem>! item, DotNetQuery.Synchronization.EntityMissingBehavior whenMissing = DotNetQuery.Synchronization.EntityMissingBehavior.Invalidate) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.Where(System.Func<TEvent, bool>! predicate) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMapping<TEvent>.WithMetadata(System.Func<TEvent, DotNetQuery.Synchronization.QueryEventMetadata>! metadata) -> DotNetQuery.Synchronization.QueryEventMapping<TEvent>!
+DotNetQuery.Synchronization.QueryEventMetadata
+DotNetQuery.Synchronization.QueryEventMetadata.CorrelationId.get -> string?
+DotNetQuery.Synchronization.QueryEventMetadata.CorrelationId.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.EntityId.get -> string?
+DotNetQuery.Synchronization.QueryEventMetadata.EntityId.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.Equals(DotNetQuery.Synchronization.QueryEventMetadata other) -> bool
+DotNetQuery.Synchronization.QueryEventMetadata.EventId.get -> string?
+DotNetQuery.Synchronization.QueryEventMetadata.EventId.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.QueryEventMetadata() -> void
+DotNetQuery.Synchronization.QueryEventMetadata.Scope.get -> string?
+DotNetQuery.Synchronization.QueryEventMetadata.Scope.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.Sequence.get -> long?
+DotNetQuery.Synchronization.QueryEventMetadata.Sequence.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.Stream.get -> string?
+DotNetQuery.Synchronization.QueryEventMetadata.Stream.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.Timestamp.get -> System.DateTimeOffset?
+DotNetQuery.Synchronization.QueryEventMetadata.Timestamp.init -> void
+DotNetQuery.Synchronization.QueryEventMetadata.Version.get -> long?
+DotNetQuery.Synchronization.QueryEventMetadata.Version.init -> void
+DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Applied = 0 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Cancelled = 11 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Dropped = 9 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Duplicate = 1 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Echo = 6 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Failed = 8 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Filtered = 3 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Gap = 7 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.NoMapping = 10 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.OutOfScope = 4 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Rejected = 5 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventOutcome.Stale = 2 -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceState.Connected = 2 -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceState.Connecting = 1 -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceState.Disconnected = 0 -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceState.Reconnecting = 3 -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceState.Resubscribing = 4 -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceStateChange
+DotNetQuery.Synchronization.QueryEventSourceStateChange.Deconstruct(out DotNetQuery.Synchronization.QueryEventSourceState State, out System.Exception? Error) -> void
+DotNetQuery.Synchronization.QueryEventSourceStateChange.Equals(DotNetQuery.Synchronization.QueryEventSourceStateChange other) -> bool
+DotNetQuery.Synchronization.QueryEventSourceStateChange.Error.get -> System.Exception?
+DotNetQuery.Synchronization.QueryEventSourceStateChange.Error.init -> void
+DotNetQuery.Synchronization.QueryEventSourceStateChange.QueryEventSourceStateChange() -> void
+DotNetQuery.Synchronization.QueryEventSourceStateChange.QueryEventSourceStateChange(DotNetQuery.Synchronization.QueryEventSourceState State, System.Exception? Error = null) -> void
+DotNetQuery.Synchronization.QueryEventSourceStateChange.State.get -> DotNetQuery.Synchronization.QueryEventSourceState
+DotNetQuery.Synchronization.QueryEventSourceStateChange.State.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions
+DotNetQuery.Synchronization.QueryEventSyncOptions.<Clone>$() -> DotNetQuery.Synchronization.QueryEventSyncOptions!
+DotNetQuery.Synchronization.QueryEventSyncOptions.ContiguousSequences.get -> bool
+DotNetQuery.Synchronization.QueryEventSyncOptions.ContiguousSequences.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.DeduplicationCapacity.get -> int
+DotNetQuery.Synchronization.QueryEventSyncOptions.DeduplicationCapacity.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.DeduplicationWindow.get -> System.TimeSpan
+DotNetQuery.Synchronization.QueryEventSyncOptions.DeduplicationWindow.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.Equals(DotNetQuery.Synchronization.QueryEventSyncOptions? other) -> bool
+DotNetQuery.Synchronization.QueryEventSyncOptions.MaxBatchSize.get -> int
+DotNetQuery.Synchronization.QueryEventSyncOptions.MaxBatchSize.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.Name.get -> string!
+DotNetQuery.Synchronization.QueryEventSyncOptions.Name.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.OverflowPolicy.get -> DotNetQuery.Synchronization.QueueOverflowPolicy
+DotNetQuery.Synchronization.QueryEventSyncOptions.OverflowPolicy.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.QueryEventSyncOptions() -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.QueueCapacity.get -> int
+DotNetQuery.Synchronization.QueryEventSyncOptions.QueueCapacity.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.RecoverOnConnect.get -> bool
+DotNetQuery.Synchronization.QueryEventSyncOptions.RecoverOnConnect.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.Recovery.get -> DotNetQuery.Synchronization.QuerySyncRecovery!
+DotNetQuery.Synchronization.QueryEventSyncOptions.Recovery.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.RequireEventId.get -> bool
+DotNetQuery.Synchronization.QueryEventSyncOptions.RequireEventId.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.Scope.get -> string?
+DotNetQuery.Synchronization.QueryEventSyncOptions.Scope.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.TimeProvider.get -> System.TimeProvider?
+DotNetQuery.Synchronization.QueryEventSyncOptions.TimeProvider.init -> void
+DotNetQuery.Synchronization.QueryEventSyncOptions.VersionTrackingCapacity.get -> int
+DotNetQuery.Synchronization.QueryEventSyncOptions.VersionTrackingCapacity.init -> void
+DotNetQuery.Synchronization.QueryEventSynchronizer
+DotNetQuery.Synchronization.QueryEventSynchronizer.ChangeScope(string? scope) -> void
+DotNetQuery.Synchronization.QueryEventSynchronizer.Client.get -> DotNetQuery.IQueryClient!
+DotNetQuery.Synchronization.QueryEventSynchronizer.Dispose() -> void
+DotNetQuery.Synchronization.QueryEventSynchronizer.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DotNetQuery.Synchronization.QueryEventSynchronizer.GetCheckpoint(string? stream = null) -> long?
+DotNetQuery.Synchronization.QueryEventSynchronizer.GetStatistics() -> DotNetQuery.Synchronization.QuerySyncStatistics!
+DotNetQuery.Synchronization.QueryEventSynchronizer.Map<TEvent>(string! eventName, System.Action<DotNetQuery.Synchronization.QueryEventMapping<TEvent>!>! configure) -> System.IDisposable!
+DotNetQuery.Synchronization.QueryEventSynchronizer.MarkLocalOrigin(string! correlationId) -> void
+DotNetQuery.Synchronization.QueryEventSynchronizer.Name.get -> string!
+DotNetQuery.Synchronization.QueryEventSynchronizer.Post<TEvent>(string! eventName, TEvent payload) -> bool
+DotNetQuery.Synchronization.QueryEventSynchronizer.ProcessAsync<TEvent>(string! eventName, TEvent payload, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DotNetQuery.Synchronization.QueryEventOutcome>
+DotNetQuery.Synchronization.QueryEventSynchronizer.QueryEventSynchronizer(DotNetQuery.IQueryClient! client, DotNetQuery.Synchronization.IQueryEventSource? source = null, DotNetQuery.Synchronization.QueryEventSyncOptions? options = null, bool ownsSource = false) -> void
+DotNetQuery.Synchronization.QueryEventSynchronizer.ResynchronizeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Synchronization.QueryEventSynchronizer.Scope.get -> string?
+DotNetQuery.Synchronization.QueryEventSynchronizer.SetCheckpoint(long sequence, string? stream = null) -> void
+DotNetQuery.Synchronization.QueryEventSynchronizer.Source.get -> DotNetQuery.Synchronization.IQueryEventSource?
+DotNetQuery.Synchronization.QueryEventSynchronizer.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DotNetQuery.Synchronization.QueryEventSynchronizer.Status.get -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QueryEventSynchronizer.StatusChanged -> System.Action<DotNetQuery.Synchronization.QuerySyncStatusChange>?
+DotNetQuery.Synchronization.QuerySyncError
+DotNetQuery.Synchronization.QuerySyncError.<Clone>$() -> DotNetQuery.Synchronization.QuerySyncError!
+DotNetQuery.Synchronization.QuerySyncError.Deconstruct(out System.DateTimeOffset Timestamp, out string? EventName, out string! Message, out string! ErrorType) -> void
+DotNetQuery.Synchronization.QuerySyncError.Equals(DotNetQuery.Synchronization.QuerySyncError? other) -> bool
+DotNetQuery.Synchronization.QuerySyncError.ErrorType.get -> string!
+DotNetQuery.Synchronization.QuerySyncError.ErrorType.init -> void
+DotNetQuery.Synchronization.QuerySyncError.EventName.get -> string?
+DotNetQuery.Synchronization.QuerySyncError.EventName.init -> void
+DotNetQuery.Synchronization.QuerySyncError.Message.get -> string!
+DotNetQuery.Synchronization.QuerySyncError.Message.init -> void
+DotNetQuery.Synchronization.QuerySyncError.QuerySyncError(System.DateTimeOffset Timestamp, string? EventName, string! Message, string! ErrorType) -> void
+DotNetQuery.Synchronization.QuerySyncError.Timestamp.get -> System.DateTimeOffset
+DotNetQuery.Synchronization.QuerySyncError.Timestamp.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Duration.get -> System.TimeSpan
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Duration.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Equals(DotNetQuery.Synchronization.QuerySyncEventProcessedEvent? other) -> bool
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Error.get -> System.Exception?
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Error.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.EventId.get -> string?
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.EventId.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.EventName.get -> string!
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.EventName.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.IsReplay.get -> bool
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.IsReplay.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Outcome.get -> DotNetQuery.Synchronization.QueryEventOutcome
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Outcome.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.QuerySyncEventProcessedEvent() -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Sequence.get -> long?
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Sequence.init -> void
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Synchronizer.get -> string!
+DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Synchronizer.init -> void
+DotNetQuery.Synchronization.QuerySyncRecovery
+DotNetQuery.Synchronization.QuerySyncRecovery.Kind.get -> DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Duration.get -> System.TimeSpan
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Duration.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Equals(DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent? other) -> bool
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Error.get -> System.Exception?
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Error.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.FellBack.get -> bool
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.FellBack.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.QuerySyncRecoveryCompletedEvent() -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Reason.get -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Reason.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Strategy.get -> DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Strategy.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Succeeded.get -> bool
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Succeeded.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Synchronizer.get -> string!
+DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Synchronizer.init -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryContext
+DotNetQuery.Synchronization.QuerySyncRecoveryContext.ApplyAsync<TEvent>(string! eventName, TEvent payload, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DotNetQuery.Synchronization.QueryEventOutcome>
+DotNetQuery.Synchronization.QuerySyncRecoveryContext.Client.get -> DotNetQuery.IQueryClient!
+DotNetQuery.Synchronization.QuerySyncRecoveryContext.CoveredKeys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.Synchronization.QuerySyncRecoveryContext.GetCheckpoint(string? stream = null) -> long?
+DotNetQuery.Synchronization.QuerySyncRecoveryContext.Reason.get -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryContext.SetCheckpoint(long sequence, string? stream = null) -> void
+DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryKind.Custom = 3 -> DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryKind.Invalidate = 0 -> DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryKind.Replay = 2 -> DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryKind.Snapshot = 1 -> DotNetQuery.Synchronization.QuerySyncRecoveryKind
+DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryReason.Connected = 0 -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryReason.Manual = 4 -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryReason.QueueOverflow = 3 -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryReason.Reconnected = 1 -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncRecoveryReason.SequenceGap = 2 -> DotNetQuery.Synchronization.QuerySyncRecoveryReason
+DotNetQuery.Synchronization.QuerySyncStatistics
+DotNetQuery.Synchronization.QuerySyncStatistics.<Clone>$() -> DotNetQuery.Synchronization.QuerySyncStatistics!
+DotNetQuery.Synchronization.QuerySyncStatistics.Applied.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Applied.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Checkpoints.get -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+DotNetQuery.Synchronization.QuerySyncStatistics.Checkpoints.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.CoveredKeys.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.QueryKey!>!
+DotNetQuery.Synchronization.QuerySyncStatistics.CoveredKeys.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Dropped.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Dropped.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Duplicates.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Duplicates.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Echoes.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Echoes.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Equals(DotNetQuery.Synchronization.QuerySyncStatistics? other) -> bool
+DotNetQuery.Synchronization.QuerySyncStatistics.Failed.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Failed.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Filtered.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Filtered.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Gaps.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Gaps.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.LastEventAt.get -> System.DateTimeOffset?
+DotNetQuery.Synchronization.QuerySyncStatistics.LastEventAt.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.LastSynchronizedAt.get -> System.DateTimeOffset?
+DotNetQuery.Synchronization.QuerySyncStatistics.LastSynchronizedAt.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Mappings.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
+DotNetQuery.Synchronization.QuerySyncStatistics.Mappings.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Name.get -> string!
+DotNetQuery.Synchronization.QuerySyncStatistics.Name.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.QuerySyncStatistics() -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.QueueDepth.get -> int
+DotNetQuery.Synchronization.QuerySyncStatistics.QueueDepth.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Received.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Received.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.RecentErrors.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Synchronization.QuerySyncError!>!
+DotNetQuery.Synchronization.QuerySyncStatistics.RecentErrors.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Recoveries.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Recoveries.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.RecoveryFallbacks.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.RecoveryFallbacks.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.RecoveryPending.get -> bool
+DotNetQuery.Synchronization.QuerySyncStatistics.RecoveryPending.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Rejected.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Rejected.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Scope.get -> string?
+DotNetQuery.Synchronization.QuerySyncStatistics.Scope.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Stale.get -> long
+DotNetQuery.Synchronization.QuerySyncStatistics.Stale.init -> void
+DotNetQuery.Synchronization.QuerySyncStatistics.Status.get -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatistics.Status.init -> void
+DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.Connecting = 1 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.Disconnected = 0 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.Reconnecting = 2 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.RecoveryFailed = 6 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.Resubscribing = 3 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.Synchronized = 5 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatus.Synchronizing = 4 -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatusChange
+DotNetQuery.Synchronization.QuerySyncStatusChange.Deconstruct(out DotNetQuery.Synchronization.QuerySyncStatus Status, out DotNetQuery.Synchronization.QuerySyncStatus Previous, out System.Exception? Error) -> void
+DotNetQuery.Synchronization.QuerySyncStatusChange.Equals(DotNetQuery.Synchronization.QuerySyncStatusChange other) -> bool
+DotNetQuery.Synchronization.QuerySyncStatusChange.Error.get -> System.Exception?
+DotNetQuery.Synchronization.QuerySyncStatusChange.Error.init -> void
+DotNetQuery.Synchronization.QuerySyncStatusChange.Previous.get -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatusChange.Previous.init -> void
+DotNetQuery.Synchronization.QuerySyncStatusChange.QuerySyncStatusChange() -> void
+DotNetQuery.Synchronization.QuerySyncStatusChange.QuerySyncStatusChange(DotNetQuery.Synchronization.QuerySyncStatus Status, DotNetQuery.Synchronization.QuerySyncStatus Previous, System.Exception? Error = null) -> void
+DotNetQuery.Synchronization.QuerySyncStatusChange.Status.get -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatusChange.Status.init -> void
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Equals(DotNetQuery.Synchronization.QuerySyncStatusChangedEvent? other) -> bool
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Error.get -> System.Exception?
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Error.init -> void
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Previous.get -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Previous.init -> void
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.QuerySyncStatusChangedEvent() -> void
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Status.get -> DotNetQuery.Synchronization.QuerySyncStatus
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Status.init -> void
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Synchronizer.get -> string!
+DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Synchronizer.init -> void
+DotNetQuery.Synchronization.QueueOverflowPolicy
+DotNetQuery.Synchronization.QueueOverflowPolicy.Resynchronize = 0 -> DotNetQuery.Synchronization.QueueOverflowPolicy
+DotNetQuery.Synchronization.QueueOverflowPolicy.Wait = 1 -> DotNetQuery.Synchronization.QueueOverflowPolicy
+override DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.GetHashCode() -> int
+override DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.ToString() -> string!
+override DotNetQuery.Synchronization.QueryEventMetadata.GetHashCode() -> int
+override DotNetQuery.Synchronization.QueryEventSourceStateChange.GetHashCode() -> int
+override DotNetQuery.Synchronization.QueryEventSyncOptions.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QueryEventSyncOptions.GetHashCode() -> int
+override DotNetQuery.Synchronization.QueryEventSyncOptions.ToString() -> string!
+override DotNetQuery.Synchronization.QuerySyncError.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QuerySyncError.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncError.ToString() -> string!
+override DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.<Clone>$() -> DotNetQuery.Synchronization.QuerySyncEventProcessedEvent!
+override DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.ToString() -> string!
+override DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.<Clone>$() -> DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent!
+override DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.ToString() -> string!
+override DotNetQuery.Synchronization.QuerySyncStatistics.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QuerySyncStatistics.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncStatistics.ToString() -> string!
+override DotNetQuery.Synchronization.QuerySyncStatusChange.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.<Clone>$() -> DotNetQuery.Synchronization.QuerySyncStatusChangedEvent!
+override DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.GetHashCode() -> int
+override DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.ToString() -> string!
+override sealed DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.Equals(DotNetQuery.DotNetQueryEvent? other) -> bool
+override sealed DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.Equals(DotNetQuery.DotNetQueryEvent? other) -> bool
+override sealed DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.Equals(DotNetQuery.DotNetQueryEvent? other) -> bool
+static DotNetQuery.Synchronization.QueryEntity.Create<TItem, TId>(DotNetQuery.QueryKey! key, System.Func<TItem, TId>! id, System.Func<TItem, long>? version = null, System.Func<TId, DotNetQuery.QueryKey!>? detailKey = null, System.Collections.Generic.IEqualityComparer<TId>? comparer = null) -> DotNetQuery.Synchronization.QueryEntity<TItem, TId>!
+static DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.operator !=(DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>? left, DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>? right) -> bool
+static DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>.operator ==(DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>? left, DotNetQuery.Synchronization.QueryEventEnvelope<TPayload>? right) -> bool
+static DotNetQuery.Synchronization.QueryEventMetadata.operator !=(DotNetQuery.Synchronization.QueryEventMetadata left, DotNetQuery.Synchronization.QueryEventMetadata right) -> bool
+static DotNetQuery.Synchronization.QueryEventMetadata.operator ==(DotNetQuery.Synchronization.QueryEventMetadata left, DotNetQuery.Synchronization.QueryEventMetadata right) -> bool
+static DotNetQuery.Synchronization.QueryEventSourceStateChange.operator !=(DotNetQuery.Synchronization.QueryEventSourceStateChange left, DotNetQuery.Synchronization.QueryEventSourceStateChange right) -> bool
+static DotNetQuery.Synchronization.QueryEventSourceStateChange.operator ==(DotNetQuery.Synchronization.QueryEventSourceStateChange left, DotNetQuery.Synchronization.QueryEventSourceStateChange right) -> bool
+static DotNetQuery.Synchronization.QueryEventSyncOptions.operator !=(DotNetQuery.Synchronization.QueryEventSyncOptions? left, DotNetQuery.Synchronization.QueryEventSyncOptions? right) -> bool
+static DotNetQuery.Synchronization.QueryEventSyncOptions.operator ==(DotNetQuery.Synchronization.QueryEventSyncOptions? left, DotNetQuery.Synchronization.QueryEventSyncOptions? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncError.operator !=(DotNetQuery.Synchronization.QuerySyncError? left, DotNetQuery.Synchronization.QuerySyncError? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncError.operator ==(DotNetQuery.Synchronization.QuerySyncError? left, DotNetQuery.Synchronization.QuerySyncError? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.operator !=(DotNetQuery.Synchronization.QuerySyncEventProcessedEvent? left, DotNetQuery.Synchronization.QuerySyncEventProcessedEvent? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncEventProcessedEvent.operator ==(DotNetQuery.Synchronization.QuerySyncEventProcessedEvent? left, DotNetQuery.Synchronization.QuerySyncEventProcessedEvent? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncRecovery.Custom(System.Func<DotNetQuery.Synchronization.QuerySyncRecoveryContext!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>! recover) -> DotNetQuery.Synchronization.QuerySyncRecovery!
+static DotNetQuery.Synchronization.QuerySyncRecovery.Invalidate.get -> DotNetQuery.Synchronization.QuerySyncRecovery!
+static DotNetQuery.Synchronization.QuerySyncRecovery.Replay(System.Func<DotNetQuery.Synchronization.QuerySyncRecoveryContext!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>! replay) -> DotNetQuery.Synchronization.QuerySyncRecovery!
+static DotNetQuery.Synchronization.QuerySyncRecovery.Snapshot(System.Func<DotNetQuery.Synchronization.QuerySyncRecoveryContext!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! snapshot) -> DotNetQuery.Synchronization.QuerySyncRecovery!
+static DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.operator !=(DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent? left, DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent.operator ==(DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent? left, DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncStatistics.operator !=(DotNetQuery.Synchronization.QuerySyncStatistics? left, DotNetQuery.Synchronization.QuerySyncStatistics? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncStatistics.operator ==(DotNetQuery.Synchronization.QuerySyncStatistics? left, DotNetQuery.Synchronization.QuerySyncStatistics? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncStatusChange.operator !=(DotNetQuery.Synchronization.QuerySyncStatusChange left, DotNetQuery.Synchronization.QuerySyncStatusChange right) -> bool
+static DotNetQuery.Synchronization.QuerySyncStatusChange.operator ==(DotNetQuery.Synchronization.QuerySyncStatusChange left, DotNetQuery.Synchronization.QuerySyncStatusChange right) -> bool
+static DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.operator !=(DotNetQuery.Synchronization.QuerySyncStatusChangedEvent? left, DotNetQuery.Synchronization.QuerySyncStatusChangedEvent? right) -> bool
+static DotNetQuery.Synchronization.QuerySyncStatusChangedEvent.operator ==(DotNetQuery.Synchronization.QuerySyncStatusChangedEvent? left, DotNetQuery.Synchronization.QuerySyncStatusChangedEvent? right) -> bool
+~override DotNetQuery.Synchronization.QueryEventMetadata.Equals(object obj) -> bool
+~override DotNetQuery.Synchronization.QueryEventMetadata.ToString() -> string
+~override DotNetQuery.Synchronization.QueryEventSourceStateChange.Equals(object obj) -> bool
+~override DotNetQuery.Synchronization.QueryEventSourceStateChange.ToString() -> string
+~override DotNetQuery.Synchronization.QuerySyncStatusChange.Equals(object obj) -> bool
+~override DotNetQuery.Synchronization.QuerySyncStatusChange.ToString() -> string
+DotNetQuery.Synchronization.QueryEventRelay
+DotNetQuery.Synchronization.QueryEventRelay.Dispose() -> void
+DotNetQuery.Synchronization.QueryEventRelay.Error -> System.Action<System.Exception!>?
+DotNetQuery.Synchronization.QueryEventRelay.MessagesApplied.get -> long
+DotNetQuery.Synchronization.QueryEventRelay.MessagesIgnored.get -> long
+DotNetQuery.Synchronization.QueryEventRelay.MessagesSent.get -> long
+DotNetQuery.Synchronization.QueryEventRelay.QueryEventRelay(DotNetQuery.Synchronization.QueryEventSynchronizer! synchronizer, DotNetQuery.Synchronization.IQuerySyncChannel! channel, DotNetQuery.Synchronization.QueryEventRelayOptions? options = null) -> void
+DotNetQuery.Synchronization.QueryEventRelay.Start() -> DotNetQuery.Synchronization.QueryEventRelay!
+DotNetQuery.Synchronization.QueryEventRelayOptions
+DotNetQuery.Synchronization.QueryEventRelayOptions.<Clone>$() -> DotNetQuery.Synchronization.QueryEventRelayOptions!
+DotNetQuery.Synchronization.QueryEventRelayOptions.ChannelName.get -> string!
+DotNetQuery.Synchronization.QueryEventRelayOptions.ChannelName.init -> void
+DotNetQuery.Synchronization.QueryEventRelayOptions.DeduplicationCapacity.get -> int
+DotNetQuery.Synchronization.QueryEventRelayOptions.DeduplicationCapacity.init -> void
+DotNetQuery.Synchronization.QueryEventRelayOptions.DeduplicationWindow.get -> System.TimeSpan
+DotNetQuery.Synchronization.QueryEventRelayOptions.DeduplicationWindow.init -> void
+DotNetQuery.Synchronization.QueryEventRelayOptions.Equals(DotNetQuery.Synchronization.QueryEventRelayOptions? other) -> bool
+DotNetQuery.Synchronization.QueryEventRelayOptions.QueryEventRelayOptions() -> void
+override DotNetQuery.Synchronization.QueryEventRelayOptions.Equals(object? obj) -> bool
+override DotNetQuery.Synchronization.QueryEventRelayOptions.GetHashCode() -> int
+override DotNetQuery.Synchronization.QueryEventRelayOptions.ToString() -> string!
+static DotNetQuery.Synchronization.QueryEventRelayOptions.operator !=(DotNetQuery.Synchronization.QueryEventRelayOptions? left, DotNetQuery.Synchronization.QueryEventRelayOptions? right) -> bool
+static DotNetQuery.Synchronization.QueryEventRelayOptions.operator ==(DotNetQuery.Synchronization.QueryEventRelayOptions? left, DotNetQuery.Synchronization.QueryEventRelayOptions? right) -> bool
+DotNetQuery.DevTools.QueryDevTools.AttachSynchronizer(DotNetQuery.Synchronization.QueryEventSynchronizer! synchronizer) -> void
+DotNetQuery.DevTools.QueryDevTools.Synchronizers.get -> System.Collections.Generic.IReadOnlyList<DotNetQuery.Synchronization.QuerySyncStatistics!>!

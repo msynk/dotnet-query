@@ -23,6 +23,10 @@ client.DiagnosticEvent += e =>
         case QueryRetryEvent r:        logger.LogDebug(r.Error, "retrying {Key} (failure {N})", r.Key, r.FailureCount); break;
         case OptimisticUpdateAppliedEvent a:    logger.LogDebug("mutation #{Id} wrote {Keys} optimistically", a.MutationId, a.Keys); break;
         case OptimisticUpdateRolledBackEvent b: logger.LogDebug("mutation #{Id} rolled back {Keys}", b.MutationId, b.Restored); break;
+        // Real-time synchronization (DotNetQuery.Synchronization) - payloads are never included:
+        case QuerySyncEventProcessedEvent p:    logger.LogDebug("{Sync}: {Event} {Outcome}", p.Synchronizer, p.EventName, p.Outcome); break;
+        case QuerySyncStatusChangedEvent s:     logger.LogInformation("{Sync}: {Status}", s.Synchronizer, s.Status); break;
+        case QuerySyncRecoveryCompletedEvent r: logger.LogInformation("{Sync}: recovered ({Reason})", r.Synchronizer, r.Reason); break;
     }
 };
 ```
@@ -107,6 +111,10 @@ meterProviderBuilder.AddMeter(DotNetQueryDiagnostics.MeterName);              //
 - **Metrics** - `dotnetquery.queries.started` / `.succeeded` / `.failed` / `.cancelled`,
   `dotnetquery.query.duration`, `dotnetquery.mutations.started` / `.completed` / `.failed`, and
   `dotnetquery.mutation.duration`.
+- **Real-time synchronization** - `dotnetquery.sync.events.received`, `dotnetquery.sync.events.processed` (tagged with
+  the outcome), `dotnetquery.sync.queue.depth`, `dotnetquery.sync.recoveries` and `dotnetquery.sync.recovery.duration`,
+  all tagged with the synchronizer name, and a `dotnetquery.sync.recovery` span per recovery (see
+  [Real-time synchronization](realtime-sync.md#diagnostics)).
 
 ## DevTools
 
@@ -127,7 +135,9 @@ await devtools.RefetchAsync(key);                     // manual actions: refetch
 string export = devtools.ExportJson();                // export the full diagnostic state
 ```
 
-`Changed` fires for every recorded event and every cache change, so UIs can refresh live.
+`Changed` fires for every recorded event and every cache change, so UIs can refresh live. `AttachQueue` adds a durable
+offline queue and `AttachSynchronizer` a real-time event synchronizer (status, mappings, checkpoints, counters, recent
+failures, pending recovery) to the model, its export and the Blazor panel.
 
 For Blazor, add the visual panel that ships in `DotNetQuery.Blazor` (`@using DotNetQuery.DevTools.Blazor`;
 see [Blazor](blazor.md#devtools)):

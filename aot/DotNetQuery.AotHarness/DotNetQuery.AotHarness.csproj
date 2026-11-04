@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
+    <!-- The SignalR integration must stay trim/AOT-clean as well. -->
+    <ProjectReference Include="..\..\src\integrations\DotNetQuery.SignalR\DotNetQuery.SignalR.csproj" />
     <!-- [GenerateQueries]: generated code must stay trim/AOT-clean too. -->
     <ProjectReference Include="..\..\src\DotNetQuery.SourceGenerators\DotNetQuery.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

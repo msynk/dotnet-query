@@ -15,16 +15,17 @@ The same guides are published as a website with an API reference (built by DocFX
 6. [Optimistic Updates](optimistic-updates.md) - instant UI with automatic rollback
 7. [Infinite Queries](infinite-queries.md) - pagination (offset, cursor, bidirectional)
 8. [Offline Mode](offline-mode.md) - pausing, resuming, in-memory and durable mutation queues
-9. [Diagnostics](diagnostics.md) - event stream, logging, meta, OpenTelemetry traces & metrics, DevTools (panel, live endpoint, CLI)
-10. [Performance Tips](performance.md) - deduplication, threading, trimming & NativeAOT
-11. [Advanced Scenarios](advanced-scenarios.md) - persistence, transports, streaming, synchronization, testing
-12. [Generated queries (Refit, OpenAPI, Kiota)](source-generation.md) - `[GenerateQueries]`: keys, definitions, mutations and infinite queries from an API interface or class
-13. [Desktop and mobile](desktop-and-mobile.md) - WPF, WinUI, Avalonia, MAUI, Uno: MVVM bindings, commands, lifecycle refetch
-14. [Architecture and lifecycle](architecture.md) - how a fetch, a mutation and a notification flow through the engine
-15. [Troubleshooting](troubleshooting.md) - symptoms, causes, fixes
-16. [Coming from TanStack Query](tanstack-migration.md) - concept and API mapping
-17. [Migrating between releases](migration.md) - package IDs, behavior changes
-18. [Versioning and releases](releasing.md) - semantic versioning, what counts as breaking, release checklist
+9. [Real-time synchronization](realtime-sync.md) - SignalR events to cache operations: mappings, ordering, deduplication, reconnect recovery, cross-tab relay
+10. [Diagnostics](diagnostics.md) - event stream, logging, meta, OpenTelemetry traces & metrics, DevTools (panel, live endpoint, CLI)
+11. [Performance Tips](performance.md) - deduplication, threading, trimming & NativeAOT
+12. [Advanced Scenarios](advanced-scenarios.md) - persistence, transports, streaming, synchronization, testing
+13. [Generated queries (Refit, OpenAPI, Kiota)](source-generation.md) - `[GenerateQueries]`: keys, definitions, mutations and infinite queries from an API interface or class
+14. [Desktop and mobile](desktop-and-mobile.md) - WPF, WinUI, Avalonia, MAUI, Uno: MVVM bindings, commands, lifecycle refetch
+15. [Architecture and lifecycle](architecture.md) - how a fetch, a mutation and a notification flow through the engine
+16. [Troubleshooting](troubleshooting.md) - symptoms, causes, fixes
+17. [Coming from TanStack Query](tanstack-migration.md) - concept and API mapping
+18. [Migrating between releases](migration.md) - package IDs, behavior changes
+19. [Versioning and releases](releasing.md) - semantic versioning, what counts as breaking, release checklist
 
 ## Core concepts at a glance
 

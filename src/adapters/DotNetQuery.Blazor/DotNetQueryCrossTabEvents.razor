@@ -1,0 +1,14 @@
+@inject QueryEventRelayHost Relay
+
+@* Invisible component: place once in an interactive layout to relay real-time event notices between browser tabs
+   (see AddCrossTabEventRelay). The relay is scoped and owned by DI; this component only opens its channel. *@
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Relay.StartAsync();
+        }
+    }
+}

@@ -788,6 +788,78 @@ happened.
   fail. When the second response only arrives after the first mutation's refetch started, that refetch may predate the
   second write, so it is still restarted - correctly (this is why the ECommerce sample keeps distinct server latencies).
 
+### 56. Real-time cache synchronization (SignalR), 2026-11-04
+
+Plan: the real-time cache synchronization plan (typed SignalR event mappings, deduplication and ordering, reconnect
+recovery, race safety with fetches and optimistic mutations, cross-tab relay, diagnostics, tests, samples, docs).
+
+**Found at the start.** `StreamIntoCacheAsync` (an `IAsyncEnumerable` written into one key), `QuerySynchronizer`
+(data and invalidation replication between caches over `IQuerySyncChannel`, with BroadcastChannel and Redis transports)
+and a SignalR *channel* recipe in the docs. Missing: event-to-cache mappings, event identity/ordering, recovery after a
+reconnect, coordination with in-flight fetches, a SignalR package, diagnostics for any of it.
+
+**Design decisions.**
+- The engine is in the core (`DotNetQuery.Synchronization`): `QueryEventSynchronizer`, `QueryEventMapping<TEvent>`,
+  `QueryEntity<TItem, TId>`, `QueryEventMetadata`/`QueryEventEnvelope<T>`, `QuerySyncRecovery`, `IQueryEventSource` +
+  `InMemoryQueryEventSource`, `QueryEventRelay`. No SignalR, browser or UI dependency (the core's package references
+  are unchanged). Transports are separate packages: `Msynk.DotNetQuery.SignalR` (`HubConnectionQueryEventSource`,
+  `AddSignalRSync`).
+- Reused, not duplicated: writes go through the existing atomic transaction (`QueryDataTransaction`, one per mapping,
+  with a new internal `SkipUnchanged` so unchanged queries are not re-rendered); invalidations through
+  `InvalidateQueriesAsync`; fetch supersession through `RefetchAsync(CancelAndRefetch, joinRefreshStartedAfter)` and the
+  logical clock of item 55; optimistic conflicts through the existing layer rollback (a foreign write makes the rollback
+  refetch instead of restoring); cross-tab transport through `IQuerySyncChannel`/`BroadcastChannelQuerySync`.
+- One bounded channel drained by one loop: events apply in arrival order and the transport callback only enqueues.
+  Overflow drops and schedules a recovery (or waits, opt-in). Invalidations are coalesced per burst.
+- Every recovery strategy falls back to invalidation; mappings whose targets depend on the event must declare `Covers`
+  (or `NoRecovery()`), so a recovery cannot miss a query. Replay is only offered as an explicit server protocol.
+- Cross-tab notices carry no payload, data or keys (only event name/id, scope, schema version); a receiver invalidates
+  what its own mappings cover.
+
+**Fixed during self-review.** `ChangeScope` cleared the sequence checkpoints immediately, so an event of the old scope
+still being processed could re-seed them and make the new scope's first events stale (now cleared on the loop); an
+event discarded as stale by its entity version did not consume its sequence position, so a contiguous stream reported a
+false gap (now advanced). Both have regression tests.
+
+**Tests.** Core: `QueryEventSynchronizerTests` (44: every operation and shape, atomicity, failure isolation, handlers,
+validation, concurrent duplicates, window expiry and capacity, required ids, malformed metadata, version and sequence
+ordering, gaps, replay, replay without history, throwing recovery, snapshot watermark, scopes and scope change, local
+echoes, a fetch predating an event, a first fetch in flight, an event during a pending optimistic update surviving the
+rollback, a late mutation response, burst coalescing, overflow, disposal under concurrent delivery, self-disposal from a
+handler, subscription lifetime, reconnect recovery coalescing, permanent failure, first-connect recovery, envelopes,
+diagnostic events), `QueryEventRelayTests` (6), `QuerySyncDiagnosticsTests` (2: logging without payloads, DevTools).
+SignalR (`tests/DotNetQuery.SignalR.Tests`, in-process TestServer hub with a switchable network): typed delivery,
+redelivery, reconnect with group rejoin and missed-event recovery, replay through a hub method, three reconnect cycles
+with one subscription, failed start with and without a restart policy, a rejected resubscription, a connection closed for
+good, ownership, disposal during a recovery, a 2,000-event ordered burst, DI (12, net8.0 and net10.0). Blazor:
+`QuerySyncComponentTests` (3) and a DevTools "Sync" tab test. E2E: a todo added through the API appears in an open
+WebAssembly tab through SignalR. Sync suites stable over repeated runs (core 8x, SignalR 6x, both target frameworks).
+
+**Other evidence.** `samples/DotNetQuery.Sample.Realtime` exits 0 (3 runs; CI smoke test added). Trimmed self-contained
+AOT harness publish with the SignalR package: 0 IL warnings, all checks pass including the two new ones (NativeAOT link:
+CI only, as before). Trimmed `TodoApp.Client` publish (now with the SignalR client): 0 trim warnings from DotNetQuery
+assemblies. BenchmarkDotNet `EventSyncBenchmarks` ShortRun baseline committed
+(`tests/DotNetQuery.Benchmarks/Baselines/2026-11-04-shortrun-eventsync.md`).
+
+**Not done / limits.** No server-side event store (replay needs the application's own history endpoint); deduplication
+and checkpoints are in memory; prefix-matching mappings scan the cache per event (no index); the cross-tab relay does not
+elect a leader connection (every tab keeps its own); the Blazor panel's Sync tab is read-only.
+
+## Verification snapshot (after item 56, 2026-11-04)
+
+Measured on this machine without a Redis server; checks not re-run since the previous snapshot are not repeated here.
+
+| Check | Result |
+| --- | --- |
+| `dotnet build DotNetQuery.slnx -c Release` | 0 warnings, 0 errors |
+| `dotnet test DotNetQuery.slnx -c Release` | **1,260 passed**, 12 skipped (the Redis tests: no `DOTNETQUERY_REDIS`), 0 failed: core 542 + 542, Blazor 62 + 62, SignalR 12 + 12, source generator 9, WPF/WinUI 4, Uno 1, Playwright E2E 14 |
+| Realtime sample | exits 0, all checks pass (3 runs) |
+| Trimmed self-contained AOT harness publish (with `Msynk.DotNetQuery.SignalR`) | 0 IL warnings, all checks pass; NativeAOT native link not available locally (CI job) |
+| Trimmed Blazor WebAssembly publish (`TodoApp.Client`, now with the SignalR client) | 0 trim warnings from DotNetQuery assemblies |
+| `dotnet list package --vulnerable --include-transitive` | clean (the SignalR package references the patched 10.0.14 client; 10.0.0 is flagged by GHSA-334f-vvp4-7g6p) |
+| `dotnet pack` with package validation | 10 solution packages (new: `Msynk.DotNetQuery.SignalR`), no validation errors; `Msynk.DotNetQuery`'s dependencies unchanged |
+| Not re-run | coverage report, DocFX site build, .NET 11 roll-forward, MAUI build, `eng/prepare-release.ps1` |
+
 ## Final verification snapshot (after items 42-55, 2026-11-04)
 
 | Check | Result |

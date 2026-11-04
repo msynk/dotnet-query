@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using DotNetQuery.Synchronization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -292,6 +293,79 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
         _slots[slot] = new InfiniteSlot<TParam, TPage>(query, this);
         Track(ObserveAsync(query.FetchAsync()));
         return query;
+    }
+
+    /// <summary>
+    /// Registers (once per call site) a real-time event mapping that lives as long as this component - for events only
+    /// this screen cares about, such as messages of the chat room it shows. The mapping is removed when the component
+    /// is disposed, and replaced when <paramref name="dependsOn"/> changes (for example the room id the mapping filters
+    /// on). The synchronizer and its connection are shared and owned elsewhere (typically DI); the component never
+    /// creates or disposes them.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// protected override void OnParametersSet() =>
+    ///     UseQueryEvents&lt;Message&gt;(Sync, "MessageAdded", m => m
+    ///         .Where(msg => msg.RoomId == RoomId)
+    ///         .Update&lt;List&lt;Message&gt;&gt;(ChatKeys.Room(RoomId), (list, msg) => [.. list, msg]),
+    ///         dependsOn: RoomId);
+    /// </code>
+    /// </example>
+    protected void UseQueryEvents<TEvent>(
+        QueryEventSynchronizer synchronizer,
+        string eventName,
+        Action<QueryEventMapping<TEvent>> configure,
+        object? dependsOn = null,
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
+    {
+        ArgumentNullException.ThrowIfNull(synchronizer);
+        ArgumentException.ThrowIfNullOrEmpty(eventName);
+        ArgumentNullException.ThrowIfNull(configure);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var slot = SlotId(callerFilePath, callerLineNumber);
+        if (_slots.TryGetValue(slot, out var existing))
+        {
+            if (existing is EventMappingSlot current && current.Matches(synchronizer, eventName, dependsOn))
+            {
+                return;
+            }
+
+            existing.Dispose();
+            _slots.Remove(slot);
+        }
+
+        _slots[slot] = new EventMappingSlot(synchronizer.Map(eventName, configure), synchronizer, eventName, dependsOn);
+    }
+
+    /// <summary>
+    /// Returns the synchronizer's current status and re-renders this component whenever it changes - for a
+    /// "live / reconnecting / syncing" indicator. Subscribed once per call site; unsubscribed with the component. Call
+    /// it while rendering (for example <c>@UseQuerySyncStatus(Sync)</c> in markup), so each re-render reads the new status.
+    /// </summary>
+    protected QuerySyncStatus UseQuerySyncStatus(
+        QueryEventSynchronizer synchronizer,
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
+    {
+        ArgumentNullException.ThrowIfNull(synchronizer);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var slot = SlotId(callerFilePath, callerLineNumber);
+        if (_slots.TryGetValue(slot, out var existing))
+        {
+            if (existing is SyncStatusSlot current && ReferenceEquals(current.Synchronizer, synchronizer))
+            {
+                return synchronizer.Status;
+            }
+
+            existing.Dispose();
+            _slots.Remove(slot);
+        }
+
+        _slots[slot] = new SyncStatusSlot(synchronizer, this);
+        return synchronizer.Status;
     }
 
     /// <summary>Releases every subscription created by the <c>Use*</c> methods.</summary>
@@ -593,5 +667,33 @@ public abstract class DotNetQueryComponentBase : ComponentBase, IDisposable
             Query.StateChanged -= OnChanged;
             Query.Dispose();
         }
+    }
+
+    private sealed class EventMappingSlot(IDisposable registration, QueryEventSynchronizer synchronizer, string eventName, object? dependsOn) : IDisposable
+    {
+        public bool Matches(QueryEventSynchronizer other, string otherEventName, object? otherDependsOn) =>
+            ReferenceEquals(synchronizer, other)
+            && string.Equals(eventName, otherEventName, StringComparison.Ordinal)
+            && Equals(dependsOn, otherDependsOn);
+
+        public void Dispose() => registration.Dispose();
+    }
+
+    private sealed class SyncStatusSlot : IDisposable
+    {
+        private readonly DotNetQueryComponentBase _owner;
+
+        public SyncStatusSlot(QueryEventSynchronizer synchronizer, DotNetQueryComponentBase owner)
+        {
+            Synchronizer = synchronizer;
+            _owner = owner;
+            synchronizer.StatusChanged += OnChanged;
+        }
+
+        public QueryEventSynchronizer Synchronizer { get; }
+
+        private void OnChanged(QuerySyncStatusChange change) => _owner.Rerender();
+
+        public void Dispose() => Synchronizer.StatusChanged -= OnChanged;
     }
 }

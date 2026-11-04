@@ -410,6 +410,15 @@ public sealed class QueryClient : IQueryClient, IQueryEventSink
     /// <inheritdoc />
     public void Clear() => Cache.Clear();
 
+    /// <summary>Whether anything subscribes to <see cref="DiagnosticEvent"/> (skip building events nobody reads).</summary>
+    internal bool HasDiagnosticListeners => DiagnosticEvent is not null;
+
+    /// <summary>Raises a diagnostic event produced by a component built on the client (event synchronization).</summary>
+    internal void RaiseDiagnostic(DotNetQueryEvent @event) => Raise(@event);
+
+    /// <summary>Formats a key for traces with <see cref="QueryClientOptions.DiagnosticKeyFormatter"/>.</summary>
+    internal string FormatDiagnosticKey(QueryKey key) => FormatKey(key);
+
     private void Raise(DotNetQueryEvent @event)
     {
         var handlers = DiagnosticEvent;

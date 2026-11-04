@@ -12,6 +12,9 @@
     <Project Path="src/adapters/DotNetQuery.Uno/DotNetQuery.Uno.csproj" />
     <Project Path="src/adapters/DotNetQuery.WinUI/DotNetQuery.WinUI.csproj" />
   </Folder>
+  <Folder Name="/src/integrations/">
+    <Project Path="src/integrations/DotNetQuery.SignalR/DotNetQuery.SignalR.csproj" />
+  </Folder>
   <Folder Name="/src/persistence/">
     <Project Path="src/persistence/DotNetQuery.Persistence.Sqlite/DotNetQuery.Persistence.Sqlite.csproj" />
     <Project Path="src/persistence/DotNetQuery.Persistence.Redis/DotNetQuery.Persistence.Redis.csproj" />
@@ -24,6 +27,7 @@
     <Project Path="samples/TodoApp.Client/TodoApp.Client.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Avalonia/DotNetQuery.Sample.Avalonia.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Chat/DotNetQuery.Sample.Chat.csproj" />
+    <Project Path="samples/DotNetQuery.Sample.Realtime/DotNetQuery.Sample.Realtime.csproj" />
     <Project Path="samples/DotNetQuery.Sample.OfflineFirst/DotNetQuery.Sample.OfflineFirst.csproj" />
     <Project Path="samples/DotNetQuery.Sample.ECommerce/DotNetQuery.Sample.ECommerce.csproj" />
     <Project Path="samples/DotNetQuery.Sample.Dashboard/DotNetQuery.Sample.Dashboard.csproj" />
@@ -34,6 +38,7 @@
     <Project Path="tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj" />
     <Project Path="tests/DotNetQuery.Desktop.Tests/DotNetQuery.Desktop.Tests.csproj" />
     <Project Path="tests/DotNetQuery.E2E/DotNetQuery.E2E.csproj" />
+    <Project Path="tests/DotNetQuery.SignalR.Tests/DotNetQuery.SignalR.Tests.csproj" />
     <Project Path="tests/DotNetQuery.SourceGenerators.Tests/DotNetQuery.SourceGenerators.Tests.csproj" />
     <Project Path="tests/DotNetQuery.Tests/DotNetQuery.Tests.csproj" />
     <Project Path="tests/DotNetQuery.Uno.Tests/DotNetQuery.Uno.Tests.csproj" />

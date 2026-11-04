@@ -108,6 +108,18 @@ tests in `FetchLifecycleTests`, `OfflineBehaviorTests` and `ConcurrencyRegressio
 - Garbage collection never removes an entry with observers, an in-flight fetch, or a fetch deferred while
   offline.
 
+`QueryEventSynchronizer` (real-time events) adds its own rules, covered by `QueryEventSynchronizerTests`,
+`QueryEventRelayTests` and `tests/DotNetQuery.SignalR.Tests`:
+
+- Events are processed by one loop in arrival order; the deduplication window and version tracker are touched only by
+  that loop (work that must run in order with events is queued as an item, as `ChangeScope` does).
+- An event id, sequence or version is recorded only after the event was handled (applied, reconciled by invalidation,
+  filtered or discarded as stale).
+- A transport callback only enqueues; cache work, recoveries and handlers never run on it.
+- A recovery requested while one is pending coalesces with it; one requested while one runs runs again afterwards.
+- Refetches started by the synchronizer must not inherit the loop's execution context (`ExecutionContext.SuppressFlow`).
+- The synchronizer never disposes the client, nor a source or connection it does not own.
+
 ## Browser end-to-end tests
 
 `tests/DotNetQuery.E2E` drives the `samples/TodoApp` Blazor app in a real browser with Playwright: prerender

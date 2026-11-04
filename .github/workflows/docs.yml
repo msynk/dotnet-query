@@ -40,7 +40,7 @@ jobs:
       # the projects: DocFX cannot run the Razor source generator, so components written in .razor would be missing.
       - name: Build the documented assemblies
         run: |
-          for project in src/DotNetQuery src/adapters/DotNetQuery.Blazor src/adapters/DotNetQuery.Blazor.Server                          src/adapters/DotNetQuery.Avalonia src/persistence/DotNetQuery.Persistence.Sqlite                          src/persistence/DotNetQuery.Persistence.Redis; do
+          for project in src/DotNetQuery src/adapters/DotNetQuery.Blazor src/adapters/DotNetQuery.Blazor.Server                          src/adapters/DotNetQuery.Avalonia src/persistence/DotNetQuery.Persistence.Sqlite                          src/persistence/DotNetQuery.Persistence.Redis src/integrations/DotNetQuery.SignalR; do
             dotnet build "$project" -c Release -f net10.0 -p:CopyLocalLockFileAssemblies=true -p:OutDir="$PWD/artifacts/docs-bin/"
           done
 

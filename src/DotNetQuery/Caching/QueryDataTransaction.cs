@@ -313,6 +313,12 @@ internal abstract class BatchWrite
     /// <summary>Whether this write belongs to a mutation's optimistic update (it then joins the entry's optimistic layers).</summary>
     public bool Optimistic { get; set; }
 
+    /// <summary>
+    /// Whether an updater that returns the current data unchanged (the same instance, or an equal value type) skips the
+    /// write, so observers are not notified and the data keeps its timestamp. Used by event synchronization.
+    /// </summary>
+    public bool SkipUnchanged { get; set; }
+
     /// <summary>Rolls back the write (the caller holds every involved lock).</summary>
     public abstract RollbackOutcome RollbackLocked(out object? rebasePlan);
 
@@ -426,7 +432,17 @@ internal sealed class BatchWrite<T>(QueryKey key, Func<T?, T> updater, QueryEntr
         }
 
         _candidate = value!;
+        if (SkipUnchanged && _previous.HasData && IsUnchanged(_previous.Data, _candidate))
+        {
+            _skipped = true;
+        }
     }
+
+    // Reference identity for reference types (an Equals override may compare ids only), value equality otherwise.
+    private static bool IsUnchanged(T? previous, T candidate) =>
+        typeof(T).IsValueType
+            ? EqualityComparer<T>.Default.Equals(previous!, candidate)
+            : ReferenceEquals(previous, candidate);
 
     public override bool IsCurrentLocked() => _observedVersion >= 0 && _entry!.IsAtVersionLocked(_observedVersion);
 

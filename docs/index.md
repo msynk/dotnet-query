@@ -33,7 +33,8 @@ builder.Services.AddDotNetQueryBlazor(o => o.DefaultStaleTime = TimeSpan.FromSec
 ## Concepts
 
 [Caching](caching.md) · [Mutations](mutations.md) · [Optimistic updates](optimistic-updates.md) ·
-[Infinite queries](infinite-queries.md) · [Offline mode](offline-mode.md) · [Diagnostics](diagnostics.md) ·
+[Infinite queries](infinite-queries.md) · [Offline mode](offline-mode.md) · [Real-time sync](realtime-sync.md) ·
+[Diagnostics](diagnostics.md) ·
 [Performance](performance.md) · [Advanced scenarios](advanced-scenarios.md) ·
 [Architecture and lifecycle](architecture.md)
 

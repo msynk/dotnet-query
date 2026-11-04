@@ -20,6 +20,8 @@
       href: infinite-queries.md
     - name: Offline mode
       href: offline-mode.md
+    - name: Real-time synchronization (SignalR)
+      href: realtime-sync.md
     - name: Generated queries (Refit, OpenAPI, Kiota)
       href: source-generation.md
     - name: Diagnostics and DevTools

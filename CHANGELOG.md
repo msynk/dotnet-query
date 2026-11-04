@@ -11,6 +11,29 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 
 ### Added
 
+- **Real-time cache synchronization** (`DotNetQuery.Synchronization`, core package, no transport dependency):
+  `QueryEventSynchronizer` turns server events into cache operations through typed mappings
+  (`Map<TEvent>(name, m => ...)`: `Invalidate`, `SetData`, `Update<TData>`, `Upsert`/`Remove` of a `QueryEntity<TItem, TId>`
+  across detail, list, paged and infinite shapes, custom `Handle`), applied atomically per mapping, without creating
+  cache entries, and superseding fetches that predate the event. Duplicate detection by event id (bounded window),
+  ordering by entity version and stream sequence with gap detection (`QueryEventMetadata`, `QueryEventEnvelope<T>`,
+  `IQueryEventMetadataProvider`), scopes (`ChangeScope`), local-echo suppression (`MarkLocalOrigin`,
+  `IgnoreLocalEchoes`), a bounded queue with an explicit overflow policy, coalesced invalidations per burst, and
+  recovery after reconnects, gaps and overflows (`QuerySyncRecovery.Invalidate`/`Snapshot`/`Replay`/`Custom`, always
+  falling back to invalidation). Transports implement `IQueryEventSource` (`InMemoryQueryEventSource` for tests);
+  `QueryEventRelay` shares invalidation notices between tabs or windows over any `IQuerySyncChannel`. Status
+  (`QuerySyncStatus`, `StatusChanged`), statistics (`GetStatistics`), diagnostic events
+  (`QuerySyncEventProcessedEvent`, `QuerySyncStatusChangedEvent`, `QuerySyncRecoveryCompletedEvent`), `ILogger`
+  messages (1200-1202), metrics (`dotnetquery.sync.*`), a recovery trace span, and `QueryDevTools.AttachSynchronizer`.
+- **`Msynk.DotNetQuery.SignalR`:** `HubConnectionQueryEventSource` (typed hub handlers, connection lifecycle,
+  `OnConnected` resubscription of groups after every reconnect, `RestartDelay` policy, explicit connection ownership)
+  and `AddSignalRSync` for DI.
+- **Blazor real-time helpers:** `UseQueryEvents` (component-scoped mappings that follow a dependency) and
+  `UseQuerySyncStatus` on `DotNetQueryComponentBase`; `AddCrossTabEventRelay` + `<DotNetQueryCrossTabEvents />`
+  (BroadcastChannel relay of event notices, no payloads); a "Sync" tab in `QueryDevToolsPanel` (`Synchronizers`).
+- **Samples:** `samples/DotNetQuery.Sample.Realtime` (SignalR hub, incremental updates, optimistic mutation vs
+  broadcast, reconnect replay, duplicates, relay; CI smoke test); the TodoApp WebAssembly pages receive live updates
+  over SignalR and relay them across tabs.
 - **Query and mutation `Meta`:** `QueryOptions.Meta`, `MutationOptions.Meta` and `MutationDefaults.Meta` attach
   application data for cache-wide handlers; surfaced on `QueryDescriptor`, `MutationDescriptor`, `QueryCompletedEvent`,
   `QueryFailedEvent`, `MutationStartedEvent` and `MutationCompletedEvent`.

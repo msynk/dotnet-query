@@ -269,6 +269,18 @@ public sealed class QueryCache
 
     internal IReadOnlyList<IQueryEntry> GetEntries() => _entries.Values.ToArray();
 
+    /// <summary>
+    /// Enumerates the live entries without snapshotting the whole dictionary (lock-free; entries added or removed
+    /// concurrently may or may not be seen). For hot paths that scan the cache, such as event synchronization.
+    /// </summary>
+    internal IEnumerable<IQueryEntry> EnumerateEntries()
+    {
+        foreach (var pair in _entries)
+        {
+            yield return pair.Value;
+        }
+    }
+
     /// <summary>Attempts to get the current state of a query without triggering a fetch.</summary>
     /// <returns><see langword="true"/> if an entry of type <typeparamref name="T"/> exists for <paramref name="key"/>.</returns>
     public bool TryGetState<T>(QueryKey key, out QueryState<T> state)

@@ -1,0 +1,34 @@
+@using DotNetQuery.Synchronization
+@using Microsoft.Extensions.DependencyInjection
+@inherits DotNetQueryComponentBase
+@inject IServiceProvider Services
+
+@* Starts the real-time synchronizer and shows its status. Only the browser (WebAssembly) registers it: during
+   prerendering and on the server-interactive render this component renders nothing. *@
+
+@if (_sync is not null)
+{
+    <p class="live-status">Live updates: @UseQuerySyncStatus(_sync)</p>
+    <DotNetQueryCrossTabEvents />
+}
+
+@code {
+    private QueryEventSynchronizer? _sync;
+
+    protected override void OnInitialized() => _sync = Services.GetService<QueryEventSynchronizer>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _sync is not null)
+        {
+            try
+            {
+                await _sync.StartAsync(); // idempotent: a later page only resubscribes the shared connection
+            }
+            catch (Exception)
+            {
+                // Live updates are unavailable (the restart policy gave up); queries keep working without them.
+            }
+        }
+    }
+}

@@ -80,6 +80,9 @@ jobs:
       - name: Chat sample end-to-end smoke test (infinite query + streaming)
         run: dotnet run --project samples/DotNetQuery.Sample.Chat -c Release --no-build
 
+      - name: Realtime sample end-to-end smoke test (SignalR hub, event mappings, reconnect replay, relay)
+        run: dotnet run --project samples/DotNetQuery.Sample.Realtime -c Release --no-build
+
       - name: OfflineFirst sample end-to-end smoke test (persist + durable queue across restarts + dead letters)
         run: dotnet run --project samples/DotNetQuery.Sample.OfflineFirst -c Release --no-build
 
@@ -149,6 +152,9 @@ jobs:
 
       - name: Test Blazor adapters (WebAssembly-compatible and server)
         run: dotnet test tests/DotNetQuery.Blazor.Tests/DotNetQuery.Blazor.Tests.csproj -c Release
+
+      - name: Test SignalR integration (in-process hub)
+        run: dotnet test tests/DotNetQuery.SignalR.Tests/DotNetQuery.SignalR.Tests.csproj -c Release
 
       - name: Test source generator
         run: dotnet test tests/DotNetQuery.SourceGenerators.Tests/DotNetQuery.SourceGenerators.Tests.csproj -c Release

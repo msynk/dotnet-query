@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DotNetQuery;
+using DotNetQuery.Synchronization;
 
 namespace TodoApp.Client;
 
@@ -46,4 +47,15 @@ public static class ClientTodoQueries
 [JsonSerializable(typeof(List<TodoItem>))]
 [JsonSerializable(typeof(TodoItem))]
 [JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(QueryEventEnvelope<TodoItem>))]
 public sealed partial class TodoClientJson : JsonSerializerContext;
+
+/// <summary>The real-time contract between the server and the WebAssembly pages.</summary>
+public static class TodoEvents
+{
+    /// <summary>The SignalR hub path.</summary>
+    public const string HubPath = "/hubs/todos";
+
+    /// <summary>Raised with a <see cref="QueryEventEnvelope{TPayload}"/> of the new <see cref="TodoItem"/>.</summary>
+    public const string Added = "TodoAdded";
+}

@@ -38,6 +38,22 @@ public sealed class TodoAppPagesTests(TodoAppFixture app)
     }
 
     [SkippableFact]
+    public async Task WebAssembly_page_shows_a_todo_another_user_added_through_signalr()
+    {
+        var page = await OpenAsync();
+        await page.GotoAsync($"{app.BaseUrl}/wasm");
+        await Assertions.Expect(page.Locator(".render-mode")).ToHaveTextAsync("Rendering: WebAssembly", new() { Timeout = 30000 });
+        await Assertions.Expect(page.Locator(".live-status")).ToHaveTextAsync("Live updates: Synchronized", new() { Timeout = 15000 });
+
+        // Another user adds a todo through the API: the hub event invalidates the open page's list (its stale time is
+        // 30 seconds, so only the push can make it refetch this soon).
+        var title = $"Pushed {Guid.NewGuid():N}"[..15];
+        await CreateTodoAsync(title);
+
+        await Assertions.Expect(page.Locator(".client-todos li", new() { HasText = title })).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
+    [SkippableFact]
     public async Task WebAssembly_page_keeps_working_offline_and_syncs_a_queued_todo_on_reconnect()
     {
         var page = await OpenAsync();

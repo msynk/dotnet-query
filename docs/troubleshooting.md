@@ -110,6 +110,13 @@ Start a `QueryDevToolsServer` in debug builds and run the CLI's `watch` mode - s
 Something replaces the data instance on every refetch. Turn on `StructuralSharing` so an equal refetch keeps the
 same instance; `ObservableQuery` raises `Data` only when the instance changes.
 
+## Real-time synchronization
+
+**Server events do not reach the cache, or stop after a reconnect.** Check `synchronizer.GetStatistics()` (mappings,
+counters, recent errors) and the `QuerySyncEventProcessedEvent` outcomes; rejoin SignalR groups in
+`HubConnectionQueryEventSourceOptions.OnConnected`, since memberships do not survive a reconnect. The
+[real-time guide](realtime-sync.md#troubleshooting) has a symptom table.
+
 ## Logging
 
 **Nothing is logged.** `AddDiagnosticLogging()` needs an `ILoggerFactory` in the container (the generic host and

@@ -72,6 +72,36 @@ public static class DotNetQueryBlazorServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Relays real-time event notices between the browser tabs of the same origin: when one tab's
+    /// <see cref="QueryEventSynchronizer"/> processes an event (or recovers after missed ones), the other tabs invalidate
+    /// what their own mappings of that event cover - no payloads, data or keys cross the channel. Requires a registered
+    /// <see cref="QueryEventSynchronizer"/> (for example <c>AddSignalRSync</c>). Place
+    /// <c>&lt;DotNetQueryCrossTabEvents /&gt;</c> once in an interactive layout to start it.
+    /// </summary>
+    /// <param name="builder">The builder returned by <c>AddDotNetQueryBlazor</c>.</param>
+    /// <param name="options">Relay options; set <see cref="QueryEventRelayOptions.ChannelName"/> to your app version.</param>
+    /// <param name="channelName">The BroadcastChannel name (distinct from the one used by <c>AddCrossTabSync</c>).</param>
+    /// <remarks>
+    /// Tabs of one origin share the browser profile's sign-in. Notices carry the synchronizer's scope and are ignored by
+    /// tabs in another scope; change the scope (<see cref="QueryEventSynchronizer.ChangeScope"/>) on tenant switches and
+    /// reset the cache on sign-out (<c>ResetOnUserChange</c>).
+    /// </remarks>
+    public static IDotNetQueryBuilder AddCrossTabEventRelay(
+        this IDotNetQueryBuilder builder,
+        QueryEventRelayOptions? options = null,
+        string channelName = "dotnetquery-events")
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(channelName);
+        builder.Services.TryAddScoped(sp => new QueryEventRelayHost(
+            sp.GetRequiredService<IJSRuntime>(),
+            sp.GetRequiredService<QueryEventSynchronizer>(),
+            channelName,
+            options));
+        return builder;
+    }
+
+    /// <summary>
     /// Clears the query cache whenever the signed-in identity changes (sign-out, or sign-in as another user), so one
     /// user's cached data is never shown to the next - essential in Blazor WebAssembly, where the scoped client lives
     /// as long as the browser tab. Requires an <see cref="AuthenticationStateProvider"/> (the guard is inert

@@ -137,6 +137,43 @@ namespace DotNetQuery
                     case OptimisticUpdateRolledBackEvent b when _logger.IsEnabled(routine):
                         OptimisticRolledBack(_logger, routine, b.MutationId, b.Restored.Count, b.Refetched.Count);
                         break;
+                    case Synchronization.QuerySyncEventProcessedEvent p:
+                        LogSyncEvent(p);
+                        break;
+                    case Synchronization.QuerySyncStatusChangedEvent s:
+                        var statusLevel = s.Status is Synchronization.QuerySyncStatus.RecoveryFailed
+                            || (s.Status is Synchronization.QuerySyncStatus.Disconnected && s.Error is not null)
+                            ? _options.FailureLevel
+                            : _options.RetryLevel;
+                        if (_logger.IsEnabled(statusLevel))
+                        {
+                            SyncStatusChanged(_logger, statusLevel, s.Error, s.Synchronizer, s.Previous.ToString(), s.Status.ToString());
+                        }
+
+                        break;
+                    case Synchronization.QuerySyncRecoveryCompletedEvent r:
+                        var recoveryLevel = !r.Succeeded || r.FellBack ? _options.FailureLevel : _options.RetryLevel;
+                        if (_logger.IsEnabled(recoveryLevel))
+                        {
+                            SyncRecovered(_logger, recoveryLevel, r.Error, r.Synchronizer, r.Reason.ToString(), r.Strategy.ToString(), r.FellBack, r.Succeeded, r.Duration.TotalMilliseconds);
+                        }
+
+                        break;
+                }
+            }
+
+            // Payloads are never logged - only the event name, outcome, id and sequence.
+            private void LogSyncEvent(Synchronization.QuerySyncEventProcessedEvent e)
+            {
+                var level = e.Outcome switch
+                {
+                    Synchronization.QueryEventOutcome.Failed or Synchronization.QueryEventOutcome.Rejected => _options.FailureLevel,
+                    Synchronization.QueryEventOutcome.Gap or Synchronization.QueryEventOutcome.Dropped => _options.RetryLevel,
+                    _ => _options.RoutineLevel,
+                };
+                if (_logger.IsEnabled(level))
+                {
+                    SyncEventProcessed(_logger, level, e.Error, e.Synchronizer, e.EventName, e.Outcome.ToString(), e.EventId ?? "-", e.Sequence?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-");
                 }
             }
         }
@@ -176,6 +213,15 @@ namespace DotNetQuery
 
         [LoggerMessage(EventId = 1104, EventName = "OptimisticUpdateRolledBack", Message = "Mutation #{MutationId} rolled back {Restored} key(s), refetching {Refetched}")]
         private static partial void OptimisticRolledBack(ILogger logger, LogLevel level, long mutationId, int restored, int refetched);
+
+        [LoggerMessage(EventId = 1200, EventName = "SyncEventProcessed", Message = "Synchronizer {Synchronizer}: event {EventName} {Outcome} (id {EventId}, sequence {Sequence})")]
+        private static partial void SyncEventProcessed(ILogger logger, LogLevel level, Exception? error, string synchronizer, string eventName, string outcome, string eventId, string sequence);
+
+        [LoggerMessage(EventId = 1201, EventName = "SyncStatusChanged", Message = "Synchronizer {Synchronizer}: {Previous} -> {Status}")]
+        private static partial void SyncStatusChanged(ILogger logger, LogLevel level, Exception? error, string synchronizer, string previous, string status);
+
+        [LoggerMessage(EventId = 1202, EventName = "SyncRecovered", Message = "Synchronizer {Synchronizer}: recovery after {Reason} with {Strategy} (fell back: {FellBack}, succeeded: {Succeeded}) in {DurationMs:0.0} ms")]
+        private static partial void SyncRecovered(ILogger logger, LogLevel level, Exception? error, string synchronizer, string reason, string strategy, bool fellBack, bool succeeded, double durationMs);
     }
 }
 

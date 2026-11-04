@@ -41,6 +41,7 @@ Package IDs carry the owner-scoped `Msynk.` prefix (namespaces do not: `using Do
 | `Msynk.DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers and mutations, the `[GenerateQueries]` source generator, MVVM bindings (`ObservableQuery`/`ObservableInfiniteQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
 | `Msynk.DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, cross-tab sync, `localStorage`/IndexedDB persisters, the Web Locks queue lock, and the visual DevTools panel. Trim/AOT-safe. |
 | `Msynk.DotNetQuery.Blazor.Server` | Server-only: refetches the stale queries on screen when a dropped Blazor Server circuit reconnects (`RefetchOnCircuitReconnect()`). |
+| `Msynk.DotNetQuery.SignalR` | Real-time cache synchronization over SignalR: typed hub events feed the core's `QueryEventSynchronizer` (invalidations, incremental updates, entity upserts, duplicate and ordering protection), with group resubscription and recovery after every reconnect (`AddSignalRSync`). Trim/AOT-safe. |
 | `Msynk.DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers; the Redis package also carries the Redis pub/sub synchronization channel. |
 | `Msynk.DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` / `.Uno` | Dispatcher-aware factories over the MVVM bindings and lifecycle classes (focus/resume refetch, connectivity) for XAML apps. |
 
@@ -176,6 +177,11 @@ await client.FetchAsync(PetStoreApiQueries.GetPetById(petStore, 7));
 // Fold any IAsyncEnumerable (SignalR, channels, gRPC streaming) into the cache, atomically.
 _ = client.StreamIntoCacheAsync<List<Message>, Message>(QueryKey.Create("chat", roomId),
         hub.StreamAsync<Message>("Messages", roomId), (messages, m) => [.. messages ?? [], m], ct);
+
+// Server events -> cache operations (Msynk.DotNetQuery.SignalR): deduplicated, ordered by version/sequence,
+// reconciled after reconnects. See docs/realtime-sync.md.
+builder.Services.AddDotNetQuery().AddSignalRSync(_ => hubConnection, sync => sync
+    .Map<QueryEventEnvelope<Todo>>("TodoChanged", m => m.Upsert(TodoQueries.Entity, e => e.Payload).Invalidate(TodoQueries.Stats)));
 ```
 
 ### Diagnostics
@@ -209,7 +215,7 @@ await using var devtoolsServer = QueryDevToolsServer.Start(new QueryDevTools(cli
 Guides live in [`docs/`](docs/README.md): [Getting Started](docs/getting-started.md) ·
 [Blazor](docs/blazor.md) · [Caching](docs/caching.md) · [Mutations](docs/mutations.md) ·
 [Optimistic Updates](docs/optimistic-updates.md) · [Infinite Queries](docs/infinite-queries.md) ·
-[Offline Mode](docs/offline-mode.md) · [Diagnostics](docs/diagnostics.md) ·
+[Offline Mode](docs/offline-mode.md) · [Real-time sync](docs/realtime-sync.md) · [Diagnostics](docs/diagnostics.md) ·
 [Performance](docs/performance.md) · [Advanced Scenarios](docs/advanced-scenarios.md) ·
 [Generated queries](docs/source-generation.md) · [Desktop and mobile](docs/desktop-and-mobile.md) ·
 [Tutorials](docs/tutorials.md) · [Architecture](docs/architecture.md) · [Troubleshooting](docs/troubleshooting.md) ·
@@ -220,8 +226,9 @@ Guides live in [`docs/`](docs/README.md): [Getting Started](docs/getting-started
 
 | Sample | Shows |
 | --- | --- |
-| `samples/TodoApp` (+ `TodoApp.Client`) | Blazor Web App with per-page Server / WebAssembly / Auto / static-SSR render modes: prerender hydration, optimistic mutations, `EditForm`, 10,000-row `Virtualize`, `QuickGrid`, multi-tenant keys, floating DevTools |
+| `samples/TodoApp` (+ `TodoApp.Client`) | Blazor Web App with per-page Server / WebAssembly / Auto / static-SSR render modes: prerender hydration, optimistic mutations, `EditForm`, 10,000-row `Virtualize`, `QuickGrid`, multi-tenant keys, floating DevTools, SignalR live updates and the cross-tab event relay on the WebAssembly pages |
 | `samples/DotNetQuery.Sample.Chat` | Infinite history pagination + live streaming into the cache |
+| `samples/DotNetQuery.Sample.Realtime` | SignalR hub → typed event mappings: incremental updates of two views, targeted invalidation, an optimistic mutation racing its broadcast, disconnect → missed events → reconnect → replay, duplicates, a follower tab via the relay |
 | `samples/DotNetQuery.Sample.OfflineFirst` | Persist → restart offline → restore → durable queue across restarts → reconnect replay with idempotency keys and dead letters |
 | `samples/DotNetQuery.Sample.ECommerce` | Concurrent declarative optimistic updates; only the rejected one rolls back |
 | `samples/DotNetQuery.Sample.Dashboard` | Deduplication and background refresh |

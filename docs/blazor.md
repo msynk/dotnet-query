@@ -287,17 +287,38 @@ builder.Services.AddDotNetQueryBlazor().RefetchOnCircuitReconnect(new QueryCircu
 
 ### Real-time updates (SignalR)
 
-Server pushes map onto the cache: write the pushed entity with `SetQueryData` when the message carries it, or
-invalidate the affected keys when it only says something changed. Observed queries re-render; unobserved ones
-refetch the next time they are shown.
+Server pushes map onto the cache through a `QueryEventSynchronizer` (`Msynk.DotNetQuery.SignalR`): typed mappings to
+invalidations and incremental updates, with duplicate and ordering protection, group resubscription and recovery after
+every reconnect - see [Real-time synchronization](realtime-sync.md). Components can own mappings for as long as they are
+shown and render the connection status:
 
 ```csharp
-hub.On<Todo>("TodoChanged", todo =>
-{
-    client.SetQueryData(TodoQueries.All.Append("by-id", todo.Id), todo);
-    _ = client.InvalidateQueriesAsync(QueryFilter.ForKey(TodoQueries.All));
-});
+builder.Services.AddDotNetQueryBlazor()
+    .AddSignalRSync(_ => new HubConnectionBuilder().WithUrl(hubUrl).WithAutomaticReconnect().Build(),
+        sync => sync.Map<QueryEventEnvelope<Todo>>("TodoChanged", m => m.Upsert(TodoQueries.Entity, e => e.Payload)),
+        new HubConnectionQueryEventSourceOptions { OwnsConnection = true })
+    .AddCrossTabEventRelay();   // optional: tabs share event notices; place <DotNetQueryCrossTabEvents /> in the layout
 ```
+
+```razor
+@inherits DotNetQueryComponentBase
+@inject QueryEventSynchronizer Sync
+
+<span class="live">@UseQuerySyncStatus(Sync)</span>
+
+@code {
+    [Parameter] public int RoomId { get; set; }
+
+    protected override void OnParametersSet() =>
+        UseQueryEvents<Message>(Sync, "MessageAdded", m => m
+            .Where(msg => msg.RoomId == RoomId)
+            .Update<List<Message>>(ChatKeys.Room(RoomId), (list, msg) => [.. list, msg]),
+            dependsOn: RoomId);   // removed with the component, re-registered when the room changes
+}
+```
+
+In WebAssembly, start the synchronizer from a component after the first render (see the TodoApp sample's
+`LiveUpdates.razor`) - the renderer's scope holds the app's query client.
 
 For high-frequency streams, `StreamIntoCacheAsync` (see [Advanced scenarios](advanced-scenarios.md)) folds an
 `IAsyncEnumerable` into one cached value.

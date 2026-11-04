@@ -43,6 +43,10 @@ else
             {
                 <button class="dnq-tab @(_tab == Tab.Queue ? "dnq-active" : null)" @onclick="() => _tab = Tab.Queue">Offline queue (@_devtools.QueuedMutations.Count)</button>
             }
+            @if (_synchronizers.Count > 0)
+            {
+                <button class="dnq-tab @(_tab == Tab.Sync ? "dnq-active" : null)" @onclick="() => _tab = Tab.Sync">Sync (@string.Join(", ", _synchronizers.Select(s => s.Status)))</button>
+            }
             @if (_tab == Tab.Queries)
             {
                 <input class="dnq-filter" placeholder="Filter keys…" @bind="_filter" @bind:event="oninput" />
@@ -237,6 +241,43 @@ else
                 </table>
                 break;
 
+            case Tab.Sync:
+                @foreach (var sync in _synchronizers)
+                {
+                    <section class="dnq-details">
+                        <h4>@sync.Name: <span class="@(sync.Status is DotNetQuery.Synchronization.QuerySyncStatus.Synchronized ? null : "dnq-error-text")">@sync.Status</span>@(sync.Scope is null ? null : $" (scope {sync.Scope})")</h4>
+                        <dl>
+                            <dt>Events</dt><dd>@sync.Received received, @sync.Applied applied, @sync.Duplicates duplicates, @sync.Stale stale, @sync.Filtered filtered, @sync.Failed failed, @sync.Dropped dropped, @sync.Gaps gaps</dd>
+                            <dt>Queue</dt><dd>@sync.QueueDepth waiting</dd>
+                            <dt>Recovery</dt><dd>@sync.Recoveries run (@sync.RecoveryFallbacks fell back)@(sync.RecoveryPending ? ", one pending" : null)</dd>
+                            <dt>Last event</dt><dd>@(sync.LastEventAt?.ToLocalTime().ToString("HH:mm:ss") ?? "-")</dd>
+                            <dt>Last synchronized</dt><dd>@(sync.LastSynchronizedAt?.ToLocalTime().ToString("HH:mm:ss") ?? "-")</dd>
+                            <dt>Checkpoints</dt><dd>@(sync.Checkpoints.Count == 0 ? "-" : string.Join(", ", sync.Checkpoints.Select(c => $"{(c.Key.Length == 0 ? "default" : c.Key)}: {c.Value}")))</dd>
+                            <dt>Covers</dt><dd>@string.Join(", ", sync.CoveredKeys)</dd>
+                        </dl>
+                        <table class="dnq-table">
+                            <thead><tr><th>Event</th><th>Mappings</th></tr></thead>
+                            <tbody>
+                                @foreach (var mapping in sync.Mappings)
+                                {
+                                    <tr><td><code>@mapping.Key</code></td><td>@mapping.Value</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                        @if (sync.RecentErrors.Count > 0)
+                        {
+                            <h5>Recent failures</h5>
+                            <ul class="dnq-log">
+                                @foreach (var error in sync.RecentErrors.Reverse())
+                                {
+                                    <li class="dnq-error-text">@error.Timestamp.ToLocalTime().ToString("HH:mm:ss") @(error.EventName ?? "connection/recovery"): @error.ErrorType: @error.Message</li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                }
+                break;
+
             default:
                 <ul class="dnq-log">
                     @foreach (var e in _events.Reverse().Take(100))
@@ -250,7 +291,9 @@ else
 }
 
 @code {
-    private enum Tab { Queries, Mutations, Events, Snapshots, Queue }
+    private enum Tab { Queries, Mutations, Events, Snapshots, Queue, Sync }
+
+    private IReadOnlyList<DotNetQuery.Synchronization.QuerySyncStatistics> _synchronizers = [];
 
     private QueryDevTools? _devtools;
     private IReadOnlyList<QueryDescriptor> _queries = [];
@@ -313,6 +356,12 @@ else
     /// <summary>A durable offline queue to inspect and manage in the "Offline queue" tab.</summary>
     [Parameter] public DotNetQuery.Persistence.PersistentMutationQueue? Queue { get; set; }
 
+    /// <summary>
+    /// Real-time event synchronizers to inspect in the "Sync" tab: connection status, mappings, checkpoints, counters,
+    /// recent failures and pending recovery.
+    /// </summary>
+    [Parameter] public IReadOnlyList<DotNetQuery.Synchronization.QueryEventSynchronizer>? Synchronizers { get; set; }
+
     private IEnumerable<(QueryKeyNode Node, int Depth)> FlattenTree()
     {
         var stack = new Stack<(QueryKeyNode Node, int Depth)>(_devtools!.KeyTree().Reverse().Select(n => (n, 0)));
@@ -341,6 +390,10 @@ else
         if (Queue is not null)
         {
             _devtools.AttachQueue(Queue);
+        }
+        foreach (var synchronizer in Synchronizers ?? [])
+        {
+            _devtools.AttachSynchronizer(synchronizer);
         }
         Refresh();
     }
@@ -388,6 +441,7 @@ else
         _timeline = _selected is null ? [] : _devtools.Timeline(_selected);
         _profile = _selected is null ? null : _devtools.ProfileQueries().FirstOrDefault(p => p.Key == _selected);
         _snapshots = _devtools.Snapshots;
+        _synchronizers = _devtools.Synchronizers;
         StateHasChanged();
     }
 
@@ -489,6 +543,9 @@ else
         OptimisticUpdateRolledBackEvent o => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ↶ mutation #{o.MutationId} rolled back {string.Join(", ", o.Restored)}{RefetchedSuffix(o)}",
         MutationStartedEvent m => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ▶ mutation #{m.MutationId} {m.MutationKey} started",
         MutationCompletedEvent m => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  {(m.Succeeded ? "✔" : "✖")} mutation #{m.MutationId} {m.MutationKey} ({m.Duration.TotalMilliseconds:0.0}ms){(m.Error is null ? null : ": " + m.Error.Message)}",
+        DotNetQuery.Synchronization.QuerySyncEventProcessedEvent s => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⚡ {s.Synchronizer}: {s.EventName} {s.Outcome}{(s.IsReplay ? " (replayed)" : null)}{(s.Error is null ? null : ": " + s.Error.Message)}",
+        DotNetQuery.Synchronization.QuerySyncStatusChangedEvent s => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ⇄ {s.Synchronizer}: {s.Previous} → {s.Status}{(s.Error is null ? null : ": " + s.Error.Message)}",
+        DotNetQuery.Synchronization.QuerySyncRecoveryCompletedEvent s => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  ↺ {s.Synchronizer}: recovered after {s.Reason} via {s.Strategy}{(s.FellBack ? " (fell back to invalidation)" : null)} in {s.Duration.TotalMilliseconds:0}ms",
         _ => $"{e.Timestamp.ToLocalTime():HH:mm:ss.fff}  {e.GetType().Name}",
     };
 
