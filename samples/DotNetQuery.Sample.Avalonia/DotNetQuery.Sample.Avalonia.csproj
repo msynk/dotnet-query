@@ -17,10 +17,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.2.1" />
+    <PackageReference Include="Avalonia" Version="12.1.5" />
     <PackageReference Include="Avalonia.Desktop" Version="11.2.1" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.1" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.5" />
     <!-- Enables the headless render self-check (the "verify" arg; no display required).
          Avalonia.Skia lets the headless renderer capture a real frame to PNG. -->
     <PackageReference Include="Avalonia.Headless" Version="11.2.1" />
