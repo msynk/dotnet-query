@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.OfflineFirst
+# DotNetQuery.Demo.OfflineFirst
 
 A console walkthrough of the offline-first feature cluster, with no UI-framework noise:
 
@@ -18,7 +18,7 @@ A console walkthrough of the offline-first feature cluster, with no UI-framework
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.OfflineFirst
+dotnet run --project demo/DotNetQuery.Demo.OfflineFirst
 ```
 
 The run is deterministic and exits `0` on success, so it also runs as an end-to-end smoke test in CI.

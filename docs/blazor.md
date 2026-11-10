@@ -219,7 +219,7 @@ scroll position per id (in `sessionStorage`) and restores it when the view rende
 ## Render modes
 
 The adapter works the same in every interactive render mode, and a Blazor Web App can mix them per page (the
-[TodoApp sample](https://github.com/msynk/dotnet-query/tree/main/samples/TodoApp) does: `@rendermode InteractiveServer`, `InteractiveWebAssembly` and
+[TodoApp demo](https://github.com/msynk/dotnet-query/tree/main/demo/TodoApp) does: `@rendermode InteractiveServer`, `InteractiveWebAssembly` and
 `InteractiveAuto` pages side by side, all covered by the Playwright tests).
 
 - **Register in both projects.** Call `AddDotNetQueryBlazor()` in the server's `Program.cs` and in the `.Client`
@@ -259,7 +259,7 @@ builder.Services.AddDotNetQueryBlazor().RefetchOnCircuitReconnect(new QueryCircu
 - **`EditForm`**: load the entity with `UseQuery`, copy it into a form model once (not on every render, or the
   user's edits are overwritten by background refetches), and save through `UseMutation` with an optimistic update
   of the detail and list keys plus `Invalidates`. See
-  [EditTodo.razor](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/Components/Pages/EditTodo.razor).
+  [EditTodo.razor](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/Components/Pages/EditTodo.razor).
 - **`QuickGrid`**: make each page a query, so paging back and forth is served from the cache and pages are
   deduplicated and refreshed like any query:
 
@@ -317,7 +317,7 @@ builder.Services.AddDotNetQueryBlazor()
 }
 ```
 
-In WebAssembly, start the synchronizer from a component after the first render (see the TodoApp sample's
+In WebAssembly, start the synchronizer from a component after the first render (see the TodoApp demo's
 `LiveUpdates.razor`) - the renderer's scope holds the app's query client.
 
 For high-frequency streams, `StreamIntoCacheAsync` (see [Advanced scenarios](advanced-scenarios.md)) folds an

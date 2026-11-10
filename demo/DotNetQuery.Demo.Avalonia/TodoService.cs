@@ -1,7 +1,7 @@
-namespace DotNetQuery.Sample.Avalonia;
+namespace DotNetQuery.Demo.Avalonia;
 
 /// <summary>
-/// A stand-in data source with a little simulated latency so the sample shows the query lifecycle
+/// A stand-in data source with a little simulated latency so the demo shows the query lifecycle
 /// (loading → success, refetch). The fetch counter makes refetches visible.
 /// </summary>
 public sealed class TodoService

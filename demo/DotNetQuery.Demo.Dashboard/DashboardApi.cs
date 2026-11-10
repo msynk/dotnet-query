@@ -1,7 +1,7 @@
-namespace DotNetQuery.Sample.Dashboard;
+namespace DotNetQuery.Demo.Dashboard;
 
 /// <summary>
-/// A stand-in metrics backend. Each endpoint counts its calls so the sample can prove request
+/// A stand-in metrics backend. Each endpoint counts its calls so the demo can prove request
 /// deduplication (two concurrent requests for one key → a single call) and background refresh.
 /// </summary>
 public sealed class DashboardApi

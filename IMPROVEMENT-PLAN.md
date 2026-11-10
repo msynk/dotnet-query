@@ -15,12 +15,12 @@ Priorities: **P0** production readiness (correctness, structural sharing, select
 data, mutation cache, transactions, auth isolation, E2E tests, performance baselines, naming) ·
 **P1** competitive core (advanced query/mutation management, cross-tab sync, memory management, HTTP
 conditional requests, offline queue reliability, pagination, Blazor lifecycle, DevTools) · **P2** ecosystem
-(OpenAPI generation, GraphQL, real-time, platforms, time travel) · **P3** adoption (docs, guides, samples,
+(OpenAPI generation, GraphQL, real-time, platforms, time travel) · **P3** adoption (docs, guides, demos,
 packaging).
 
 ## 2. Initial investigation
 
-- [x] Inspect repository structure, docs, projects, public APIs, tests, benchmarks, CI, samples
+- [x] Inspect repository structure, docs, projects, public APIs, tests, benchmarks, CI, demos
 - [x] Identify TODOs / incomplete implementations (none marked in source)
 - [x] Compare documented capabilities against implementation and tests
 - [x] Establish build and test baselines
@@ -162,7 +162,7 @@ packaging).
 - [x] No duplicate requests during prerendering (hooks included)
 - [x] Navigation-aware refetching and cancellation (DotNetQueryNavigation)
 - [x] Visibility and focus events
-- [x] Server reconnection handling (CircuitHandler pattern, sample + docs)
+- [x] Server reconnection handling (CircuitHandler pattern, demo + docs)
 - [x] Authentication and circuit lifecycle (ResetOnUserChange)
 - [x] Cache isolation between users and circuits (scoped clients + user-change reset)
 - [x] Browser-only APIs never break server execution (JS calls guarded; prerender-safe components)
@@ -221,7 +221,7 @@ packaging).
 - [x] NativeAOT and trimming verified (trimmed publish locally with 0 IL warnings incl. generated code; native link via the CI aot job)
 - [x] All target frameworks validated (core and Blazor tests on net8.0 and net10.0)
 - [x] Public API baselines maintained (PublicAPI.Unshipped.txt for every package, enforced by the build)
-- [x] Dependency and vulnerability scanning (CI step; one sample advisory fixed)
+- [x] Dependency and vulnerability scanning (CI step; one demo advisory fixed)
 
 ## 15. Testing and CI
 
@@ -237,7 +237,7 @@ packaging).
 - [x] NativeAOT publish and execution tests (CI aot job publishes and runs the harness)
 - [x] Trimming tests (trimmed self-contained harness publish, 0 IL warnings, all checks pass)
 - [x] Performance regression tests (AllocationBudgetTests)
-- [x] Samples validated in CI (console samples run, Avalonia headless, TodoApp smoke + Playwright)
+- [x] Demos validated in CI (console demos run, Avalonia headless, TodoApp smoke + Playwright)
 
 ## 16. Documentation and packaging
 
@@ -248,8 +248,8 @@ packaging).
 - [x] Caching, invalidation, synchronization docs (caching.md, advanced-scenarios.md)
 - [x] Offline guarantees docs
 - [x] SSR and hydration docs (blazor.md: prerendering, render modes, streaming SSR)
-- [x] Tutorials and samples (Blazor Server/WASM/Web App, MAUI/desktop, CRUD, auth, multi-tenant,
-      infinite scrolling, optimistic/conflict, DevTools) (docs/tutorials.md + samples)
+- [x] Tutorials and demos (Blazor Server/WASM/Web App, MAUI/desktop, CRUD, auth, multi-tenant,
+      infinite scrolling, optimistic/conflict, DevTools) (docs/tutorials.md + demos)
 - [x] Troubleshooting and performance guides (troubleshooting.md, performance.md with measured numbers)
 - [x] Package strategy (Msynk.-prefixed IDs; features without extra dependencies stay in the core package)
 - [x] Naming and discoverability collision (Msynk.DotNetQuery.* package IDs)
@@ -270,7 +270,7 @@ packaging).
 - [x] Code coverage in CI
 - [x] Package validation
 - [x] Analyzer release tracking shipped by the release script
-- [x] WPF/WinUI lifecycle runtime tests and a WPF sample
+- [x] WPF/WinUI lifecycle runtime tests and a WPF demo
 - [x] DocFX API reference includes the Razor components
 - [x] Live DevTools for non-Blazor apps (`QueryDevToolsServer` + CLI `watch`)
 - [x] `ILogger` integration (`AddDiagnosticLogging`)
@@ -279,7 +279,7 @@ packaging).
 - [x] Uno Platform adapter; Blazor Hybrid guidance
 - [x] Generator: classes (Kiota wrappers), generic methods, infinite queries
 - [x] Query and mutation `Meta`
-- [x] Samples match the tutorials (durable queue in OfflineFirst, declarative optimistic updates in ECommerce)
+- [x] Demos match the tutorials (durable queue in OfflineFirst, declarative optimistic updates in ECommerce)
 - [x] Refreshes wait for pending optimistic updates (no flash of server data during concurrent mutations)
 - [x] `DeduplicatePending` race (a call right after completion joined the settled run)
 - [x] Mutations settling together refetch once (invalidation joins a refetch started after the server call)

@@ -61,7 +61,7 @@ public interface IQueryEventSource
 }
 
 /// <summary>
-/// An in-process <see cref="IQueryEventSource"/> for tests, samples and in-process publishers: <see cref="PublishAsync"/>
+/// An in-process <see cref="IQueryEventSource"/> for tests, demos and in-process publishers: <see cref="PublishAsync"/>
 /// delivers an event to its subscribers while connected (and drops it otherwise, like a real transport that is offline),
 /// and <see cref="SetState"/> simulates connection loss and recovery.
 /// </summary>

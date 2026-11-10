@@ -9,7 +9,7 @@ visual inspector - built around `Task`, `CancellationToken`, immutable state, an
 > **Status: path to 1.0.** Feature-complete core with a frozen public API (PublicApiAnalyzers baselines for every
 > package), 1,135 tests (unit, concurrency/regression, bUnit component, WPF/WinUI lifecycle, Playwright browser
 > end-to-end), a verified NativeAOT publish and trimmed Blazor WebAssembly publish, a BenchmarkDotNet suite, CI with
-> coverage, and eight runnable samples. See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md) and
+> coverage, and eight runnable demos. See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md) and
 > [implementation status](IMPLEMENTATION-STATUS.md).
 
 ## Why
@@ -222,19 +222,19 @@ Guides live in [`docs/`](docs/README.md): [Getting Started](docs/getting-started
 [Coming from TanStack Query](docs/tanstack-migration.md) · [Migrating between releases](docs/migration.md) ·
 [Versioning](docs/releasing.md)
 
-## Samples
+## Demos
 
-| Sample | Shows |
+| Demo | Shows |
 | --- | --- |
-| `samples/TodoApp` (+ `TodoApp.Client`) | Blazor Web App with per-page Server / WebAssembly / Auto / static-SSR render modes: prerender hydration, optimistic mutations, `EditForm`, 10,000-row `Virtualize`, `QuickGrid`, multi-tenant keys, floating DevTools, SignalR live updates and the cross-tab event relay on the WebAssembly pages |
-| `samples/DotNetQuery.Sample.Chat` | Infinite history pagination + live streaming into the cache |
-| `samples/DotNetQuery.Sample.Realtime` | SignalR hub → typed event mappings: incremental updates of two views, targeted invalidation, an optimistic mutation racing its broadcast, disconnect → missed events → reconnect → replay, duplicates, a follower tab via the relay |
-| `samples/DotNetQuery.Sample.OfflineFirst` | Persist → restart offline → restore → durable queue across restarts → reconnect replay with idempotency keys and dead letters |
-| `samples/DotNetQuery.Sample.ECommerce` | Concurrent declarative optimistic updates; only the rejected one rolls back |
-| `samples/DotNetQuery.Sample.Dashboard` | Deduplication and background refresh |
-| `samples/DotNetQuery.Sample.Avalonia` / `.Wpf` / `.Maui` | MVVM bindings, commands and lifecycle refetch on Avalonia (headless-verified in CI), WPF (verified in CI) and MAUI |
+| `demo/TodoApp` (+ `TodoApp.Client`) | Blazor Web App with per-page Server / WebAssembly / Auto / static-SSR render modes: prerender hydration, optimistic mutations, `EditForm`, 10,000-row `Virtualize`, `QuickGrid`, multi-tenant keys, floating DevTools, SignalR live updates and the cross-tab event relay on the WebAssembly pages |
+| `demo/DotNetQuery.Demo.Chat` | Infinite history pagination + live streaming into the cache |
+| `demo/DotNetQuery.Demo.Realtime` | SignalR hub → typed event mappings: incremental updates of two views, targeted invalidation, an optimistic mutation racing its broadcast, disconnect → missed events → reconnect → replay, duplicates, a follower tab via the relay |
+| `demo/DotNetQuery.Demo.OfflineFirst` | Persist → restart offline → restore → durable queue across restarts → reconnect replay with idempotency keys and dead letters |
+| `demo/DotNetQuery.Demo.ECommerce` | Concurrent declarative optimistic updates; only the rejected one rolls back |
+| `demo/DotNetQuery.Demo.Dashboard` | Deduplication and background refresh |
+| `demo/DotNetQuery.Demo.Avalonia` / `.Wpf` / `.Maui` | MVVM bindings, commands and lifecycle refetch on Avalonia (headless-verified in CI), WPF (verified in CI) and MAUI |
 
-Run the Blazor sample with `dotnet run --project samples/TodoApp`. The console samples and the Avalonia and WPF
+Run the Blazor demo with `dotnet run --project demo/TodoApp`. The console demos and the Avalonia and WPF
 self-checks run as CI smoke tests.
 
 ## Building & testing

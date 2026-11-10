@@ -40,7 +40,7 @@ abstraction they use: [HttpTodoClient](../TodoApp.Client/TodoClient.cs) in the b
 ## Run it
 
 ```bash
-dotnet run --project samples/TodoApp
+dotnet run --project demo/TodoApp
 ```
 
 Then open <http://localhost:5199>. CI runs a smoke test against it (the served pages must contain the todo list

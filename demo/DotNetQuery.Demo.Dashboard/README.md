@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.Dashboard
+# DotNetQuery.Demo.Dashboard
 
 A console showcase of two DotNetQuery behaviors a dashboard relies on, with no UI-framework noise:
 
@@ -13,7 +13,7 @@ A console showcase of two DotNetQuery behaviors a dashboard relies on, with no U
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.Dashboard
+dotnet run --project demo/DotNetQuery.Demo.Dashboard
 ```
 
 Expected: three widgets load (with the two `[users]` requests deduplicated to one server call), then the

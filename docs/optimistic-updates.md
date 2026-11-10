@@ -56,7 +56,7 @@ burst is reconciled with a single refetch and the list never flashes the server'
 - An inactive query is only marked stale; it refetches on its next use.
 - Loading an infinite query's next or previous page is not a refresh and runs at once.
 
-The [ECommerce sample](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.ECommerce) shows it:
+The [ECommerce demo](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.ECommerce) shows it:
 three concurrent adds, one rejected and rolled back alone, one reconciliation at the end.
 
 Updating several lists (for example "all" and "open" todos) is just more entries in `OptimisticUpdates`.

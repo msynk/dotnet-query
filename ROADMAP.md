@@ -1,7 +1,7 @@
 # DotNetQuery - Path to 1.0
 
 Status: **feature-complete core and Blazor adapter, 8 UI adapters (Blazor, Blazor Server, MVVM, WPF, WinUI, Avalonia,
-MAUI, Uno), real-time synchronization with a SignalR integration, 1,272 tests, 11 NuGet packages, nine verified samples,
+MAUI, Uno), real-time synchronization with a SignalR integration, 1,272 tests, 11 NuGet packages, nine verified demos,
 a BenchmarkDotNet suite, a verified NativeAOT
 publish and trimmed Blazor WebAssembly publish, CI with coverage, a tag-driven release workflow, and a frozen public API
 surface for every package.** This document tracks what remains before a formal 1.0 tag. See
@@ -36,7 +36,7 @@ verified evidence.
   updates and entity upserts/removals; duplicate, version and sequence protection; coalesced refetches; recovery by
   invalidation, snapshot or replay after reconnects, gaps and overflows; diagnostics, metrics, DevTools);
   `Msynk.DotNetQuery.SignalR` (hub event source with group resubscription, restart policy, connection ownership,
-  `AddSignalRSync`); Blazor component-scoped mappings, status hook and a cross-tab notice relay; a real-time sample and
+  `AddSignalRSync`); Blazor component-scoped mappings, status hook and a cross-tab notice relay; a real-time demo and
   live updates in the TodoApp WebAssembly pages.
 - **Blazor** - .NET 8 + .NET 10; scoped per-circuit clients; `<Query>` with templates, keep-previous-data,
   dependent queries and automatic prerender hydration (trim-safe with `UseHydrationJson`); hook-style

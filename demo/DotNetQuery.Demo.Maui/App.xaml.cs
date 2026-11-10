@@ -1,7 +1,7 @@
 ﻿using DotNetQuery.Maui;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DotNetQuery.Sample.Maui;
+namespace DotNetQuery.Demo.Maui;
 
 public partial class App : Application
 {

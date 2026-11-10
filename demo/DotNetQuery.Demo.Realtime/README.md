@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.Realtime
+# DotNetQuery.Demo.Realtime
 
 Real-time cache synchronization end to end, in one console process: an ASP.NET Core server ([Server.cs](Server.cs))
 with a SignalR hub publishes versioned, sequenced todo changes as `QueryEventEnvelope<Todo>`s and keeps their history;
@@ -21,7 +21,7 @@ What it shows, in order:
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.Realtime
+dotnet run --project demo/DotNetQuery.Demo.Realtime
 ```
 
 The run is deterministic and prints `[ok]`/`[FAIL]` for every check; it exits `0` when all pass, so it also runs as an

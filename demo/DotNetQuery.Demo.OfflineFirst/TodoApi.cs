@@ -1,10 +1,10 @@
 using System.Net;
 
-namespace DotNetQuery.Sample.OfflineFirst;
+namespace DotNetQuery.Demo.OfflineFirst;
 
 /// <summary>
 /// A stand-in server holding the authoritative to-do list. <see cref="Reads"/> counts read round-trips so
-/// the sample can prove that offline reads are served from the cache without hitting the network, and writes carry an
+/// the demo can prove that offline reads are served from the cache without hitting the network, and writes carry an
 /// idempotency key the server deduplicates on.
 /// </summary>
 public sealed class TodoApi

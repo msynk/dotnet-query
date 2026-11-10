@@ -1,7 +1,7 @@
 using DotNetQuery.Maui;
 using DotNetQuery.Mvvm;
 
-namespace DotNetQuery.Sample.Maui;
+namespace DotNetQuery.Demo.Maui;
 
 public partial class MainPage : ContentPage
 {

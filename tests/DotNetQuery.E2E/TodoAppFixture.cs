@@ -7,9 +7,9 @@ using Xunit;
 namespace DotNetQuery.E2E;
 
 /// <summary>
-/// Starts the TodoApp sample in a real Kestrel process and a headless browser. The browser is the locally installed
+/// Starts the TodoApp demo in a real Kestrel process and a headless browser. The browser is the locally installed
 /// Chrome (or Edge) driven through Playwright, so no browser download is needed; when neither is available (or the
-/// sample was not built) <see cref="SkipReason"/> is set and the tests are skipped rather than failed.
+/// demo was not built) <see cref="SkipReason"/> is set and the tests are skipped rather than failed.
 /// </summary>
 public sealed class TodoAppFixture : IAsyncLifetime
 {
@@ -28,10 +28,10 @@ public sealed class TodoAppFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var appDll = LocateSample();
+        var appDll = LocateDemo();
         if (appDll is null)
         {
-            SkipReason = "The TodoApp sample has not been built for this configuration.";
+            SkipReason = "The TodoApp demo has not been built for this configuration.";
             return;
         }
 
@@ -45,7 +45,7 @@ public sealed class TodoAppFixture : IAsyncLifetime
             UseShellExecute = false,
         };
         start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-        start.Environment["ASPNETCORE_CONTENTROOT"] = SampleDirectory();
+        start.Environment["ASPNETCORE_CONTENTROOT"] = DemoDirectory();
         _server = Process.Start(start)!;
         _server.OutputDataReceived += (_, e) => { lock (_log) { _log.AppendLine(e.Data); } };
         _server.ErrorDataReceived += (_, e) => { lock (_log) { _log.AppendLine(e.Data); } };
@@ -113,15 +113,15 @@ public sealed class TodoAppFixture : IAsyncLifetime
         _server?.Dispose();
     }
 
-    private static string SampleDirectory() =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples", "TodoApp"));
+    private static string DemoDirectory() =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "demo", "TodoApp"));
 
-    // tests/DotNetQuery.E2E/bin/<Configuration>/<tfm>/ -> samples/TodoApp/bin/<Configuration>/<tfm>/TodoApp.dll
-    private static string? LocateSample()
+    // tests/DotNetQuery.E2E/bin/<Configuration>/<tfm>/ -> demo/TodoApp/bin/<Configuration>/<tfm>/TodoApp.dll
+    private static string? LocateDemo()
     {
         var tfmDirectory = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
         var configuration = tfmDirectory.Parent!.Name;
-        var dll = Path.Combine(SampleDirectory(), "bin", configuration, tfmDirectory.Name, "TodoApp.dll");
+        var dll = Path.Combine(DemoDirectory(), "bin", configuration, tfmDirectory.Name, "TodoApp.dll");
         return File.Exists(dll) ? dll : null;
     }
 

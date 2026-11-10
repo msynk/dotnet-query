@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using DotNetQuery;
 using DotNetQuery.Persistence;
-using DotNetQuery.Sample.OfflineFirst;
+using DotNetQuery.Demo.OfflineFirst;
 
 // An offline-first walkthrough: persist the cache online, restart offline and restore it, keep working with writes
 // queued durably, close the app, start again, reconnect and replay - in order, once, with idempotency keys - and let a
@@ -23,13 +23,13 @@ PersistentMutationQueue CreateQueue(IConnectivityProvider connectivity) =>
             OnReplayFailure = (_, error, _) => HttpRetryPolicy.IsConflict(error) ? ReplayDecision.Fail : ReplayDecision.Default,
         })
         // The queued mutation's stable id travels as an idempotency key, so a replay after a crash is not applied twice.
-        .RegisterHandler<string>("todos/add", (text, mutation, ct) => api.AddTodoAsync(text, mutation.Id, ct), SampleJson.Default.String);
+        .RegisterHandler<string>("todos/add", (text, mutation, ct) => api.AddTodoAsync(text, mutation.Id, ct), DemoJson.Default.String);
 
 // --- Session 1 (online): fetch and persist --------------------------------------------------------
 Console.WriteLine("=== Session 1 (online): fetch + persist ===");
 using (var client1 = new QueryClient(connectivity: new ConnectivityProvider()))
 {
-    var persistence1 = new QueryPersistenceManager(client1, cacheStore).Register(key, SampleJson.Default.ListString);
+    var persistence1 = new QueryPersistenceManager(client1, cacheStore).Register(key, DemoJson.Default.ListString);
     var result = await client1.FetchAsync(key, api.GetTodosAsync);
     await persistence1.PersistAllAsync();
     Console.WriteLine($"Fetched {result.Data!.Count} todos; persisted to the store.\n");
@@ -44,7 +44,7 @@ bool offlineServedFromCache;
 using (var client2 = new QueryClient(connectivity: offline))
 using (var queue2 = CreateQueue(offline))
 {
-    var persistence2 = new QueryPersistenceManager(client2, cacheStore).Register(key, SampleJson.Default.ListString);
+    var persistence2 = new QueryPersistenceManager(client2, cacheStore).Register(key, DemoJson.Default.ListString);
     var restored = await persistence2.RestoreAllAsync();
     startupData = client2.GetQueryData<List<string>>(key).Data!;
     Console.WriteLine($"Restored {restored} query from the store: {startupData.Count} todos available at startup, offline.");
@@ -96,4 +96,4 @@ return ok ? 0 : 1;
 
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(string))]
-internal sealed partial class SampleJson : JsonSerializerContext;
+internal sealed partial class DemoJson : JsonSerializerContext;

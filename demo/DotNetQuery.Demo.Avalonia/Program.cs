@@ -5,7 +5,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using DotNetQuery.Avalonia;
 
-namespace DotNetQuery.Sample.Avalonia;
+namespace DotNetQuery.Demo.Avalonia;
 
 internal static class Program
 {

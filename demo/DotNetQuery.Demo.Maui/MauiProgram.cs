@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace DotNetQuery.Sample.Maui;
+namespace DotNetQuery.Demo.Maui;
 
 public static class MauiProgram
 {
@@ -16,7 +16,7 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
 
-		// DotNetQuery: the client, the sample data source, and the page (constructor-injected).
+		// DotNetQuery: the client, the demo data source, and the page (constructor-injected).
 		builder.Services.AddDotNetQuery(options =>
 		{
 			options.DefaultStaleTime = TimeSpan.FromSeconds(5);

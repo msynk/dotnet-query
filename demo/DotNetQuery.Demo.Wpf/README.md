@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.Wpf
+# DotNetQuery.Demo.Wpf
 
 A minimal WPF app over the [`DotNetQuery.Wpf`](../../src/adapters/DotNetQuery.Wpf) adapter, in one file
 ([Program.cs](Program.cs)): the client is registered with `AddDotNetQuery`, the view model creates an
@@ -9,8 +9,8 @@ stale list when the user switches back to the app.
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.Wpf            # the window
-dotnet run --project samples/DotNetQuery.Sample.Wpf -- verify  # self-check (exit 0 == pass)
+dotnet run --project demo/DotNetQuery.Demo.Wpf            # the window
+dotnet run --project demo/DotNetQuery.Demo.Wpf -- verify  # self-check (exit 0 == pass)
 ```
 
 `verify` shows the window off-screen, checks that the bound list renders `fetch #1`, that the bound

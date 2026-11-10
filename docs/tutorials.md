@@ -1,27 +1,27 @@
 # Tutorials
 
-Step-by-step paths through common scenarios. Each one points to runnable code in [`samples/`](https://github.com/msynk/dotnet-query/tree/main/samples) and to the
+Step-by-step paths through common scenarios. Each one points to runnable code in [`demo/`](https://github.com/msynk/dotnet-query/tree/main/demo) and to the
 guide that explains the details.
 
 ## 1. A Blazor Web App with a CRUD list
 
-Sample: [`samples/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/samples/TodoApp) (`/` and `/todos/{id}`).
+Demo: [`demo/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/demo/TodoApp) (`/` and `/todos/{id}`).
 
 1. Install `Msynk.DotNetQuery.Blazor` and register it: `builder.Services.AddDotNetQueryBlazor(o => o.DefaultStaleTime = TimeSpan.FromSeconds(10));`.
-2. Define the queries once ([TodoApi.cs](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/TodoApi.cs) - `TodoQueries.List`, `TodoQueries.ById`), or
+2. Define the queries once ([TodoApi.cs](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/TodoApi.cs) - `TodoQueries.List`, `TodoQueries.ById`), or
    generate them from your API interface with `[GenerateQueries]` ([guide](source-generation.md)).
 3. Render the list with `<Query Definition="TodoQueries.List(Api, _filter)" KeepPreviousData="true">` and its
-   `Loading`/`Error` templates ([Todos.razor](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/Components/Pages/Todos.razor)).
+   `Loading`/`Error` templates ([Todos.razor](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/Components/Pages/Todos.razor)).
 4. Add items with an optimistic mutation: `UseMutation(fn, new() { OptimisticUpdates = [...], Invalidates = [TodoQueries.All] })`.
 5. Edit with `EditForm` bound to a model copied from the cached item once, saved through a mutation
-   ([EditTodo.razor](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/Components/Pages/EditTodo.razor)).
+   ([EditTodo.razor](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/Components/Pages/EditTodo.razor)).
 6. Add `<QueryDevToolsPanel Floating="true" Enabled="@Environment.IsDevelopment()" />` and watch the cache.
 
 Guides: [Blazor](blazor.md), [Mutations](mutations.md), [Optimistic updates](optimistic-updates.md).
 
 ## 2. Blazor Server, WebAssembly and Auto in one app
 
-Sample: [`samples/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/samples/TodoApp) + [`samples/TodoApp.Client`](https://github.com/msynk/dotnet-query/tree/main/samples/TodoApp.Client) (`/wasm`,
+Demo: [`demo/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/demo/TodoApp) + [`demo/TodoApp.Client`](https://github.com/msynk/dotnet-query/tree/main/demo/TodoApp.Client) (`/wasm`,
 `/auto`, `/ssr`).
 
 1. Call `AddDotNetQueryBlazor()` in both the server and the `.Client` project.
@@ -38,7 +38,7 @@ Guide: [Blazor - render modes](blazor.md#render-modes).
 
 ## 3. Sign-in, sign-out and tenants
 
-Sample: [`Tenants.razor`](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/Components/Pages/Tenants.razor).
+Demo: [`Tenants.razor`](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/Components/Pages/Tenants.razor).
 
 1. Keep the server client scoped (the default of `AddDotNetQueryBlazor`), so circuits never share a cache.
 2. In WebAssembly, add `.ResetOnUserChange()` so the tab's cache is cleared when the signed-in user changes (pass a
@@ -50,8 +50,8 @@ Guide: [Blazor - signing users in and out](blazor.md#signing-users-in-and-out).
 
 ## 4. Infinite scrolling and large lists
 
-Samples: [`LargeList.razor`](https://github.com/msynk/dotnet-query/blob/main/samples/TodoApp/Components/Pages/LargeList.razor) (10,000 rows),
-[`samples/DotNetQuery.Sample.Chat`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Chat).
+Demos: [`LargeList.razor`](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/Components/Pages/LargeList.razor) (10,000 rows),
+[`demo/DotNetQuery.Demo.Chat`](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.Chat).
 
 1. Create an infinite query with `InitialPageParam` and `GetNextPageParam` (offset or cursor).
 2. In Blazor, feed `<Virtualize ItemsProvider>` with `UseInfiniteQuery(...).ToItemsProvider(page => page.Items, page => page.Total)`
@@ -63,7 +63,7 @@ Guide: [Infinite queries](infinite-queries.md).
 
 ## 5. Offline-first
 
-Sample: [`samples/DotNetQuery.Sample.OfflineFirst`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.OfflineFirst).
+Demo: [`demo/DotNetQuery.Demo.OfflineFirst`](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.OfflineFirst).
 
 1. Persist the queries the app needs offline with `QueryPersistenceManager` (`RegisterPrefix`, `RestoreAllAsync`,
    `StartAutoPersist`).
@@ -77,7 +77,7 @@ Guide: [Offline mode](offline-mode.md).
 
 ## 6. Optimistic updates and conflicts
 
-Sample: [`samples/DotNetQuery.Sample.ECommerce`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.ECommerce).
+Demo: [`demo/DotNetQuery.Demo.ECommerce`](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.ECommerce).
 
 1. Describe each optimistic change declaratively (`OptimisticUpdate.Create<TVariables, TData>(key, updater)`).
 2. Always pair it with `Invalidates`, so the server's truth replaces the guess when the mutation settles.
@@ -88,9 +88,9 @@ Guide: [Optimistic updates](optimistic-updates.md).
 
 ## 7. A desktop or mobile app (WPF, WinUI, Avalonia, MAUI, Uno)
 
-Samples: [`samples/DotNetQuery.Sample.Wpf`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Wpf),
-[`samples/DotNetQuery.Sample.Avalonia`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Avalonia),
-[`samples/DotNetQuery.Sample.Maui`](https://github.com/msynk/dotnet-query/tree/main/samples/DotNetQuery.Sample.Maui).
+Demos: [`demo/DotNetQuery.Demo.Wpf`](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.Wpf),
+[`demo/DotNetQuery.Demo.Avalonia`](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.Avalonia),
+[`demo/DotNetQuery.Demo.Maui`](https://github.com/msynk/dotnet-query/tree/main/demo/DotNetQuery.Demo.Maui).
 
 1. Register with `services.AddDotNetQuery(...)`.
 2. Expose `ObservableQuery` / `ObservableInfiniteQuery` / `ObservableMutation` from view models (created on the UI

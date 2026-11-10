@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace DotNetQuery.Sample.Maui;
+namespace DotNetQuery.Demo.Maui;
 
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate

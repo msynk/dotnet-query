@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace DotNetQuery.Sample.Avalonia;
+namespace DotNetQuery.Demo.Avalonia;
 
 public partial class MainWindow : Window
 {

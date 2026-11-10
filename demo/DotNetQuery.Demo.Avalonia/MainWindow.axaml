@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="DotNetQuery.Sample.Avalonia.MainWindow"
+        x:Class="DotNetQuery.Demo.Avalonia.MainWindow"
         Width="420" Height="520"
         Title="DotNetQuery · Avalonia">
 

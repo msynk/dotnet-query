@@ -11,8 +11,8 @@ ordering by version or sequence, coalesced refetches, and recovery after a recon
 - `Msynk.DotNetQuery.Blazor` adds component-scoped mappings (`UseQueryEvents`), a status hook (`UseQuerySyncStatus`),
   a cross-tab relay over `BroadcastChannel` (`AddCrossTabEventRelay`) and a "Sync" tab in the DevTools panel.
 
-The runnable sample [`samples/DotNetQuery.Sample.Realtime`](../samples/DotNetQuery.Sample.Realtime) shows everything on
-this page end to end; the TodoApp sample's WebAssembly pages use it in a browser.
+The runnable demo [`demo/DotNetQuery.Demo.Realtime`](../demo/DotNetQuery.Demo.Realtime) shows everything on
+this page end to end; the TodoApp demo's WebAssembly pages use it in a browser.
 
 ## Installation and registration
 
@@ -259,7 +259,7 @@ protected override void OnParametersSet() =>
 ```
 
 In Blazor WebAssembly, register the synchronizer in the client project and start it from a component (the renderer's
-scope holds the app's `IQueryClient`, not the root provider); see the TodoApp sample's `LiveUpdates.razor`. When the
+scope holds the app's `IQueryClient`, not the root provider); see the TodoApp demo's `LiveUpdates.razor`. When the
 prerendered data was just hydrated, `RecoverOnConnect = false` avoids an immediate refetch.
 
 ## Cross-tab relay

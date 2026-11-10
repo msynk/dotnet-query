@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace DotNetQuery.Sample.ECommerce;
+namespace DotNetQuery.Demo.ECommerce;
 
 /// <summary>
 /// A stand-in store server holding the authoritative cart. Adds have simulated latency so the optimistic

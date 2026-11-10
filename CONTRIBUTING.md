@@ -122,13 +122,13 @@ tests in `FetchLifecycleTests`, `OfflineBehaviorTests` and `ConcurrencyRegressio
 
 ## Browser end-to-end tests
 
-`tests/DotNetQuery.E2E` drives the `samples/TodoApp` Blazor app in a real browser with Playwright: prerender
+`tests/DotNetQuery.E2E` drives the `demo/TodoApp` Blazor app in a real browser with Playwright: prerender
 hydration without a second fetch or loading flash, optimistic add and rollback, keep-previous-data filtering,
 cross-tab sync, the WebAssembly and Auto render modes, streaming SSR, `EditForm`, the virtualized list, `QuickGrid`
 and tenant switching.
-The fixture launches the built sample in Kestrel and uses the locally installed Chrome (or Edge) through
+The fixture launches the built demo in Kestrel and uses the locally installed Chrome (or Edge) through
 Playwright's browser channels, so no browser download is needed; the tests are skipped when neither browser is
-installed or the sample was not built. They run as part of `dotnet test DotNetQuery.slnx` (the Windows CI job
+installed or the demo was not built. They run as part of `dotnet test DotNetQuery.slnx` (the Windows CI job
 has Chrome).
 
 ## Benchmarks
@@ -151,7 +151,7 @@ dotnet publish aot/DotNetQuery.AotHarness -c Release -r linux-x64   # or win-x64
 ```
 
 See [aot/DotNetQuery.AotHarness/README.md](aot/DotNetQuery.AotHarness/README.md). For the Blazor adapter, CI publishes
-`samples/TodoApp.Client` trimmed (`-p:SuppressTrimAnalysisWarnings=false -p:TrimmerSingleWarn=false`) and fails on
+`demo/TodoApp.Client` trimmed (`-p:SuppressTrimAnalysisWarnings=false -p:TrimmerSingleWarn=false`) and fails on
 any trim warning from a DotNetQuery assembly.
 
 ## Documentation site

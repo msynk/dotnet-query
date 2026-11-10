@@ -18,7 +18,7 @@ Measured on Windows 11, .NET SDK 11.0.100-rc.3 (default) with the 8.0 and 10.0 S
 | Blazor (bUnit) test project | 23 passed |
 | NativeAOT | CI job publishes `aot/DotNetQuery.AotHarness` on Linux; locally the ILC analysis runs but the Windows native link fails (missing VC++ linker), see the AOT section below |
 | Benchmarks | BenchmarkDotNet suite exists (`tests/DotNetQuery.Benchmarks`); no committed baseline numbers |
-| TODO/FIXME/NotImplemented markers | None in `src`, `tests` or `samples` |
+| TODO/FIXME/NotImplemented markers | None in `src`, `tests` or `demo` |
 
 ### Projects
 
@@ -31,7 +31,7 @@ Measured on Windows 11, .NET SDK 11.0.100-rc.3 (default) with the 8.0 and 10.0 S
 | `src/DotNetQuery.DevTools.Cli` | net10.0 | Console renderer for DevTools exports. |
 | `aot/DotNetQuery.AotHarness` | net10.0 | NativeAOT publish check. |
 | `tests/*` | net10.0 | xUnit core tests, bUnit Blazor tests, BenchmarkDotNet. |
-| `samples/*` | net10.0 | Blazor TodoApp, Chat, OfflineFirst, ECommerce, Dashboard (console smoke tests in CI), Avalonia (headless CI check), MAUI. |
+| `demo/*` | net10.0 | Blazor TodoApp, Chat, OfflineFirst, ECommerce, Dashboard (console smoke tests in CI), Avalonia (headless CI check), MAUI. |
 
 ## Capability inventory at baseline
 
@@ -262,7 +262,7 @@ Entries are appended as tasks are verified.
 | --- | --- |
 | `dotnet build DotNetQuery.slnx -c Release` | 0 warnings, 0 errors |
 | `dotnet test DotNetQuery.slnx -c Release` | 349 passed (315 core + 34 Blazor), 4 skipped (Redis), 0 failed |
-| Console samples (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI, Avalonia headless | all pass |
+| Console demos (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI, Avalonia headless | all pass |
 | Trimmed self-contained publish of the AOT harness (`PublishTrimmed`, win-x64) | 0 IL warnings; all 22 checks pass, including new checks for retry predicates, structural sharing, selectors, filters, transactions, mutation cache/scopes and initial data |
 | NativeAOT native link | not runnable locally (VC++ linker missing); CI `aot` job is authoritative |
 
@@ -304,7 +304,7 @@ Entries are appended as tasks are verified.
   may revise it" (rollbacks propagate); echo suppression by timestamp and a thread-static apply flag; removals are
   deliberately not synchronized (GC). Envelope uses source-generated JSON.
 - Blazor: `BroadcastChannelQuerySync` (`dotnetquery-sync.js`), `AddCrossTabSync(register, options, channelName)`,
-  `<DotNetQueryCrossTabSync />`. Enabled in the TodoApp sample.
+  `<DotNetQueryCrossTabSync />`. Enabled in the TodoApp demo.
 - Tests: `QuerySynchronizerTests` (10); E2E `A_change_made_in_one_tab_appears_in_another_tab` in real Chrome
   (fails when the sync component is removed - negative check done); AOT harness check added.
 
@@ -349,8 +349,8 @@ Entries are appended as tasks are verified.
 ### 21. Dependency vulnerability scanning (verified)
 
 - `dotnet list package --vulnerable --include-transitive` over the solution found one issue:
-  `samples/DotNetQuery.Sample.Avalonia` pulled `Tmds.DBus.Protocol 0.20.0` transitively (GHSA-xrw6-gwf8-vvr9, high).
-  Pinned the patched 0.21.3 in the sample; the scan is now clean for every project and the Avalonia headless
+  `demo/DotNetQuery.Demo.Avalonia` pulled `Tmds.DBus.Protocol 0.20.0` transitively (GHSA-xrw6-gwf8-vvr9, high).
+  Pinned the patched 0.21.3 in the demo; the scan is now clean for every project and the Avalonia headless
   check still passes. Shipped packages were not affected.
 - CI: new "Vulnerability scan" step in the Windows job fails the build on any vulnerable package.
 
@@ -413,7 +413,7 @@ then passed 8 consecutive runs.
 | `dotnet build DotNetQuery.slnx -c Release` | 0 warnings, 0 errors |
 | `dotnet test DotNetQuery.slnx -c Release` | **412 passed** (369 core + 38 Blazor bUnit + 5 Playwright browser E2E), 4 skipped (Redis needs `DOTNETQUERY_REDIS`), 0 failed; core suite stable over 8 consecutive runs |
 | Trimmed self-contained AOT harness publish | 0 IL2xxx/IL3xxx warnings, all 23 checks pass |
-| Console samples, DevTools CLI, Avalonia headless, TodoApp prerender smoke | all pass |
+| Console demos, DevTools CLI, Avalonia headless, TodoApp prerender smoke | all pass |
 | `dotnet list package --vulnerable --include-transitive` | clean for every project |
 | NativeAOT native link | not runnable on this machine (no VC++ linker); CI `aot` job is authoritative |
 | Benchmarks | ShortRun baseline committed (`tests/DotNetQuery.Benchmarks/Baselines/`) |
@@ -490,18 +490,18 @@ then passed 8 consecutive runs.
   stale refetch).
 - Tests: `InfinitePaginationTests` (2), `VirtualizeAndScrollTests` (3), `ProviderAndNavigationTests` (4).
 
-### 35. Blazor render modes, sample pages and browser tests (verified)
+### 35. Blazor render modes, demo pages and browser tests (verified)
 
 - The TodoApp has per-page render modes (no global one): Interactive Server (`/`, `/todos/{id}`, `/large`, `/grid`,
   `/tenants`), Interactive WebAssembly (`/wasm`), Interactive Auto (`/auto`) and static streaming SSR (`/ssr`). The
-  new `samples/TodoApp.Client` project holds the browser components and an `ITodoClient` abstraction (HTTP in the
+  new `demo/TodoApp.Client` project holds the browser components and an `ITodoClient` abstraction (HTTP in the
   browser, the data layer while prerendering); it is in the solution and CI builds it.
 - Pages: `EditForm` editing through an optimistic mutation, a 10,000-row infinite query behind `<Virtualize>` with
   `<ScrollRestoration>`, `QuickGrid` paging where each page is a query, tenant-scoped keys with removal on switch.
-- Defect found by the tenant test (sample): removing the previous tenant's queries in the same handler that changed
+- Defect found by the tenant test (demo): removing the previous tenant's queries in the same handler that changed
   the key removed them while still observed, so the observer refetched them. The handler now renders first, then
   removes.
-- `QueryCircuitHandler` (sample + `docs/blazor.md`) refetches stale active queries when a dropped circuit
+- `QueryCircuitHandler` (demo + `docs/blazor.md`) refetches stale active queries when a dropped circuit
   reconnects; `CircuitHandler` is server-only, so it is a documented pattern, not part of the WebAssembly-safe
   adapter.
 - Tests: `TodoAppPagesTests` (7: WebAssembly hydration without API calls, Auto, edit, virtualized list, grid,
@@ -525,9 +525,9 @@ then passed 8 consecutive runs.
   `IActivatableLifetime` on mobile/macOS, network), `MauiQueryLifecycle` (window activation/resume/stop +
   `MauiConnectivityBridge`), `MauiQueryPersistence.CreateFileSystemPersister()`; every adapter gained
   `CreateObservableInfiniteQuery`. The MAUI adapter now references `Microsoft.Maui.Controls` (window events).
-- Samples: Avalonia binds its button to `RefetchCommand` and attaches `AvaloniaQueryLifecycle`; the headless CI
+- Demos: Avalonia binds its button to `RefetchCommand` and attaches `AvaloniaQueryLifecycle`; the headless CI
   verify now also checks the command refetch and the focus refetch after re-activating the window (PASS). MAUI
-  sample uses `MauiQueryLifecycle` + `RefetchCommand`; it and the adapter build for Android locally (0 warnings).
+  demo uses `MauiQueryLifecycle` + `RefetchCommand`; it and the adapter build for Android locally (0 warnings).
 - Docs: `docs/desktop-and-mobile.md`, adapter READMEs.
 - Tests: `LifecycleAndMvvmTests` (11). WPF/WinUI lifecycle classes are compile-verified only (their events need a
   real desktop session); the logic they forward to is unit-tested.
@@ -601,7 +601,7 @@ then passed 8 consecutive runs.
   is shown optimistically and not sent; back online it is sent once and confirmed. `docs/offline-mode.md` gained a
   WebAssembly/PWA section (IndexedDB persistence, durable queue, service-worker guidance).
 - New guides: `architecture.md` (pieces, fetch lifecycle, outbox, mutations, GC, persistence, threading),
-  `troubleshooting.md`, `tutorials.md` (8 scenario walkthroughs mapped to samples), `migration.md` (package IDs,
+  `troubleshooting.md`, `tutorials.md` (8 scenario walkthroughs mapped to demos), `migration.md` (package IDs,
   behavior changes, new dependencies), `releasing.md` (SemVer, breaking-change rules, deprecation, release
   checklist), `desktop-and-mobile.md`, `source-generation.md`; Blazor guide gained render modes, reconnection, forms
   and grids, SignalR.
@@ -615,10 +615,10 @@ then passed 8 consecutive runs.
 | `dotnet build DotNetQuery.slnx -c Release` | 0 warnings, 0 errors (two blocking test waits flagged by xUnit1031 made async) |
 | `dotnet test DotNetQuery.slnx -c Release` | **1,013 passed**, 8 skipped (Redis, needs `DOTNETQUERY_REDIS`), 0 failed: core 449 on net8.0 + 449 on net10.0, Blazor bUnit 48 + 48, source generator 6, Playwright browser E2E 13 |
 | Trimmed self-contained AOT harness publish | 0 IL2xxx/IL3xxx warnings, all 32 checks pass (incl. generated queries, GraphQL mutation, MVVM infinite query, lifecycle signals) |
-| Console samples (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI | all exit 0 |
+| Console demos (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI | all exit 0 |
 | Avalonia headless verify | PASS (render, command refetch, focus refetch through `AvaloniaQueryLifecycle`) |
 | TodoApp CI smoke | PASS (server + WebAssembly prerender state, API) |
-| MAUI adapter + sample (net10.0-android) | 0 warnings, 0 errors |
+| MAUI adapter + demo (net10.0-android) | 0 warnings, 0 errors |
 | `dotnet list package --vulnerable --include-transitive` | clean for every project, including MAUI |
 | `dotnet pack` | 7 packages + symbols; metadata, README, icon, SourceLink and the bundled generator verified; packed generator smoke-tested in a fresh net8.0 consumer |
 | DocFX site (`docfx docs/docfx.json`) | builds, 0 warnings in the build step, 0 errors |
@@ -628,7 +628,7 @@ then passed 8 consecutive runs.
 
 A review of every Markdown document found stale entries (ROADMAP listed the shipped source generator as remaining work;
 README/ROADMAP still said 412 tests and 10 guides; this file's capability inventory and "Open items" were out of date;
-the TanStack guide mapped `QueryClientProvider` to DI only; two tutorials pointed at samples that did not show what
+the TanStack guide mapped `QueryClientProvider` to DI only; two tutorials pointed at demos that did not show what
 they described) and real gaps, all addressed by items 43-55. ROADMAP, README, the guides and this file were updated.
 
 ### 43. Mutation retry opt-out and `Meta` (verified)
@@ -689,35 +689,35 @@ they described) and real gaps, all addressed by items 43-55. ROADMAP, README, th
 - `IsAotCompatible` on: prerender hydration now writes a hand-built envelope as a JSON string (strings need no
   reflection metadata), `UseHydrationJson(IJsonTypeInfoResolver)` and `JsonTypeInfo<T>` overloads make it trim-safe;
   reflection is the documented fallback; DevTools previews are suppressed as development-only.
-- Trimmed publish of `samples/TodoApp.Client` (`SuppressTrimAnalysisWarnings=false`): no trim warning from a DotNetQuery
+- Trimmed publish of `demo/TodoApp.Client` (`SuppressTrimAnalysisWarnings=false`): no trim warning from a DotNetQuery
   assembly (only ASP.NET Core/JSInterop framework warnings) - now a CI gate in the `aot` job.
 - Tests: hydration tests updated to the envelope, `HydrationJsonTests` (2); the Playwright WebAssembly hydration tests
   pass unchanged.
 
-### 50. Platforms: WPF/WinUI on .NET 8, lifecycle tests, WPF sample, Uno adapter (verified)
+### 50. Platforms: WPF/WinUI on .NET 8, lifecycle tests, WPF demo, Uno adapter (verified)
 
 - WPF and WinUI adapters multi-target `net8.0-windows*` and `net10.0-windows*`.
 - `tests/DotNetQuery.Desktop.Tests`: `WpfQueryLifecycle` with a real `System.Windows.Application` on an STA thread
   (activation after deactivation refetches, system resume refetches, disposal stops forwarding, network monitor) and the
   WinUI activation mapping (4 tests).
-- `samples/DotNetQuery.Sample.Wpf` with `verify` (window renders `fetch #1`, bound `RefetchCommand` loads `#2`,
+- `demo/DotNetQuery.Demo.Wpf` with `verify` (window renders `fetch #1`, bound `RefetchCommand` loads `#2`,
   deactivate/activate loads `#3`): PASS; a CI step.
 - `Msynk.DotNetQuery.Uno` (`net9.0`/`net10.0`, Uno.WinUI 6.7, generators stripped): factories and `UnoQueryLifecycle`
   (window activation, background/foreground, network except in the browser). Uno's `net10.0` assemblies are reference
   implementations, so `tests/DotNetQuery.Uno.Tests` covers the activation mapping only.
 
-### 51. Samples match the tutorials (verified)
+### 51. Demos match the tutorials (verified)
 
 - OfflineFirst: durable `PersistentMutationQueue` across a restart, idempotency keys, retry classification and a
   dead-lettered 409 through `OnReplayFailure`.
 - ECommerce: declarative `OptimisticUpdates` over two keys, three concurrent adds with one rejected and rolled back
   alone, one reconciliation after the burst (with per-add `Invalidates`, a refetch landed while other adds were pending
   and briefly showed the server's cart - documented in the optimistic updates guide, backlog item in ROADMAP).
-- The samples reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c reported for 10.0.13).
+- The demos reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c reported for 10.0.13).
 
 ### 52. CI, release and repository hygiene
 
-- CI: coverage (`coverage.runsettings`, ReportGenerator summary and artifact), WPF sample and DevTools `watch demo` steps,
+- CI: coverage (`coverage.runsettings`, ReportGenerator summary and artifact), WPF demo and DevTools `watch demo` steps,
   trimmed WebAssembly gate, `test-latest-runtime` (core suite on the newest .NET, rolled forward; non-blocking while it
   is a preview - passes locally on .NET 11 RC 3), `-ci.N` package suffix, symbols uploaded.
 - `release.yml`: tag must match `VersionPrefix`, unshipped API check, build/test/pack (MAUI included), provenance
@@ -758,7 +758,7 @@ until the others settled.
 - Tests: `OptimisticRefetchDeferralTests` (5: three concurrent adds with `Invalidates`, one rejected - no state without
   the pending items, exactly one refetch; invalidate/refetch/stale read during a pending write run once after it
   settles; inactive queries stay stale; scoped mutations do not deadlock; infinite next page not deferred). Negative
-  check: with the deferral disabled, the three behavior tests fail. The ECommerce sample went back to `Invalidates` on
+  check: with the deferral disabled, the three behavior tests fail. The ECommerce demo went back to `Invalidates` on
   each add (12/12 runs pass, one refetch per burst).
 - Found while stress-running the suite: `DeduplicatePending` removed a run from its pending list in a continuation that
   could run after the caller's own continuation, so a call made right after a run completed joined the settled run
@@ -786,12 +786,12 @@ happened.
   invalidation still restarts; a refresh completed after the server call covers the invalidation; an infinite query's
   next-page fetch does not). Negative check: with mutations routed through plain invalidation, the two behavior tests
   fail. When the second response only arrives after the first mutation's refetch started, that refetch may predate the
-  second write, so it is still restarted - correctly (this is why the ECommerce sample keeps distinct server latencies).
+  second write, so it is still restarted - correctly (this is why the ECommerce demo keeps distinct server latencies).
 
 ### 56. Real-time cache synchronization (SignalR), 2026-11-04
 
 Plan: the real-time cache synchronization plan (typed SignalR event mappings, deduplication and ordering, reconnect
-recovery, race safety with fetches and optimistic mutations, cross-tab relay, diagnostics, tests, samples, docs).
+recovery, race safety with fetches and optimistic mutations, cross-tab relay, diagnostics, tests, demos, docs).
 
 **Found at the start.** `StreamIntoCacheAsync` (an `IAsyncEnumerable` written into one key), `QuerySynchronizer`
 (data and invalidation replication between caches over `IQuerySyncChannel`, with BroadcastChannel and Redis transports)
@@ -835,7 +835,7 @@ good, ownership, disposal during a recovery, a 2,000-event ordered burst, DI (12
 `QuerySyncComponentTests` (3) and a DevTools "Sync" tab test. E2E: a todo added through the API appears in an open
 WebAssembly tab through SignalR. Sync suites stable over repeated runs (core 8x, SignalR 6x, both target frameworks).
 
-**Other evidence.** `samples/DotNetQuery.Sample.Realtime` exits 0 (3 runs; CI smoke test added). Trimmed self-contained
+**Other evidence.** `demo/DotNetQuery.Demo.Realtime` exits 0 (3 runs; CI smoke test added). Trimmed self-contained
 AOT harness publish with the SignalR package: 0 IL warnings, all checks pass including the two new ones (NativeAOT link:
 CI only, as before). Trimmed `TodoApp.Client` publish (now with the SignalR client): 0 trim warnings from DotNetQuery
 assemblies. BenchmarkDotNet `EventSyncBenchmarks` ShortRun baseline committed
@@ -853,7 +853,7 @@ Measured on this machine without a Redis server; checks not re-run since the pre
 | --- | --- |
 | `dotnet build DotNetQuery.slnx -c Release` | 0 warnings, 0 errors |
 | `dotnet test DotNetQuery.slnx -c Release` | **1,260 passed**, 12 skipped (the Redis tests: no `DOTNETQUERY_REDIS`), 0 failed: core 542 + 542, Blazor 62 + 62, SignalR 12 + 12, source generator 9, WPF/WinUI 4, Uno 1, Playwright E2E 14 |
-| Realtime sample | exits 0, all checks pass (3 runs) |
+| Realtime demo | exits 0, all checks pass (3 runs) |
 | Trimmed self-contained AOT harness publish (with `Msynk.DotNetQuery.SignalR`) | 0 IL warnings, all checks pass; NativeAOT native link not available locally (CI job) |
 | Trimmed Blazor WebAssembly publish (`TodoApp.Client`, now with the SignalR client) | 0 trim warnings from DotNetQuery assemblies |
 | `dotnet list package --vulnerable --include-transitive` | clean (the SignalR package references the patched 10.0.14 client; 10.0.0 is flagged by GHSA-334f-vvp4-7g6p) |
@@ -868,7 +868,7 @@ Measured on this machine without a Redis server; checks not re-run since the pre
 | `dotnet test DotNetQuery.slnx -c Release`, Redis 7 available | **1,135 passed**, 0 skipped, 0 failed: core 496 on net8.0 + 496 on net10.0, Blazor bUnit 58 + 58, source generator 9, WPF/WinUI lifecycle 4, Uno 1, Playwright browser E2E 13; core suite clean over 10 more consecutive runs |
 | Line coverage (cobertura) | core 89.3%, Blazor 81.1%, Blazor.Server 100%, source generator 93.9%, Sqlite 76.9%, Redis 65.2%, WPF 60.6% |
 | Core suite on .NET 11 RC 3 (`DOTNET_ROLL_FORWARD=LatestMajor`) | 486 passed |
-| Console samples (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI (`emit` demo and `watch demo`) | all exit 0 |
+| Console demos (Chat, OfflineFirst, ECommerce, Dashboard), DevTools CLI (`emit` demo and `watch demo`) | all exit 0 |
 | Avalonia headless verify, WPF verify | PASS, PASS |
 | Trimmed self-contained AOT harness publish | 0 IL2xxx/IL3xxx warnings, all 37 checks pass (NativeAOT link: CI) |
 | Trimmed Blazor WebAssembly publish (`TodoApp.Client`) | 0 trim warnings from DotNetQuery assemblies |

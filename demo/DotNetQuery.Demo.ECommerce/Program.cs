@@ -1,5 +1,5 @@
 using DotNetQuery;
-using DotNetQuery.Sample.ECommerce;
+using DotNetQuery.Demo.ECommerce;
 
 // Demonstrates declarative optimistic updates: the cart and its item count update instantly (atomically, as one
 // transaction) when you add an item, then reconcile with the server. Three adds run at the same time; the server

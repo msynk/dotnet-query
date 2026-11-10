@@ -6,7 +6,7 @@ using DotNetQuery.Mvvm;
 using DotNetQuery.Wpf;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DotNetQuery.Sample.Wpf;
+namespace DotNetQuery.Demo.Wpf;
 
 /// <summary>
 /// A minimal WPF app over the WPF adapter: an <see cref="ObservableQuery{T}"/> bound to a list, a status line and a
@@ -109,7 +109,7 @@ internal sealed class MainViewModel(IQueryClient client, TodoService service)
     public ObservableQuery<List<string>> Todos { get; } = client.CreateObservableQuery(QueryKey.Create("todos"), service.GetTodosAsync);
 }
 
-/// <summary>The window, built in code to keep the sample to one file.</summary>
+/// <summary>The window, built in code to keep the demo to one file.</summary>
 internal static class MainWindow
 {
     public static Window Create(MainViewModel viewModel)
@@ -127,7 +127,7 @@ internal static class MainWindow
         panel.Children.Add(list);
         panel.Children.Add(refresh);
 
-        var window = new Window { Title = "DotNetQuery WPF sample", Width = 420, Height = 280, Content = panel, DataContext = viewModel };
+        var window = new Window { Title = "DotNetQuery WPF demo", Width = 420, Height = 280, Content = panel, DataContext = viewModel };
         NameScope.SetNameScope(window, new NameScope());
         window.RegisterName(list.Name, list);
         return window;

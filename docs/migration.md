@@ -41,7 +41,7 @@ assembly names and the Blazor static asset paths are unchanged, so no code chang
 - **`QueryStateHydration.Persist<T>`/`TryHydrate<T>` without a `JsonTypeInfo<T>` are annotated
   `[RequiresUnreferencedCode]`.** In trimmed apps use the new `JsonTypeInfo<T>` overloads, or register a context once
   with `AddDotNetQueryBlazor().UseHydrationJson(AppJson.Default)`.
-- **Blazor Server reconnection** moved from a sample class into `Msynk.DotNetQuery.Blazor.Server`: replace a copied
+- **Blazor Server reconnection** moved from a demo class into `Msynk.DotNetQuery.Blazor.Server`: replace a copied
   `QueryCircuitHandler` with `AddDotNetQueryBlazor().RefetchOnCircuitReconnect()`.
 
 ### Behavior changes (review)

@@ -31,7 +31,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 - **Blazor real-time helpers:** `UseQueryEvents` (component-scoped mappings that follow a dependency) and
   `UseQuerySyncStatus` on `DotNetQueryComponentBase`; `AddCrossTabEventRelay` + `<DotNetQueryCrossTabEvents />`
   (BroadcastChannel relay of event notices, no payloads); a "Sync" tab in `QueryDevToolsPanel` (`Synchronizers`).
-- **Samples:** `samples/DotNetQuery.Sample.Realtime` (SignalR hub, incremental updates, optimistic mutation vs
+- **Demos:** `demo/DotNetQuery.Demo.Realtime` (SignalR hub, incremental updates, optimistic mutation vs
   broadcast, reconnect replay, duplicates, relay; CI smoke test); the TodoApp WebAssembly pages receive live updates
   over SignalR and relay them across tabs.
 - **Query and mutation `Meta`:** `QueryOptions.Meta`, `MutationOptions.Meta` and `MutationDefaults.Meta` attach
@@ -55,7 +55,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 - **Source generator:** `[GenerateQueries]` on classes (for example wrappers over Kiota clients), generic methods
   (type arguments become key segments, constraints are kept) and `[InfiniteQueryMethod("page")]` (key without the page
   parameter, `XPageFn`, and an `InfiniteQuery` factory).
-- **Platforms:** the WPF and WinUI adapters also target .NET 8; WPF sample (`samples/DotNetQuery.Sample.Wpf`) with a CI
+- **Platforms:** the WPF and WinUI adapters also target .NET 8; WPF demo (`demo/DotNetQuery.Demo.Wpf`) with a CI
   self-check; WPF/WinUI lifecycle tests.
 - **Engineering:** package validation, code coverage in CI, a forward-compatibility job on the newest .NET runtime, a
   trimmed Blazor WebAssembly publish check, a tag-driven release workflow (trusted publishing, provenance
@@ -101,7 +101,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 - **Synchronization:** `QuerySynchronizer` over any `IQuerySyncChannel` keeps registered queries consistent
   across caches (last-writer-wins, rollbacks propagate, invalidations propagate); `InMemoryQuerySyncHub`; Blazor
   `AddCrossTabSync(...)` + `<DotNetQueryCrossTabSync />` over the browser `BroadcastChannel`.
-- **Testing:** Playwright browser end-to-end tests for the Blazor sample (`tests/DotNetQuery.E2E`), new benchmark
+- **Testing:** Playwright browser end-to-end tests for the Blazor demo (`tests/DotNetQuery.E2E`), new benchmark
   suites and a committed benchmark baseline.
 - **Fetch scheduling:** `QueryOptions.Timeout` (per attempt, `TimeoutException`), `Priority` and
   `AdaptiveRefetchInterval`; `QueryClientOptions.MaxConcurrentFetches` (priority-ordered, cancellation-aware),
@@ -150,7 +150,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 - **Structural sharing** now also applies to `SetQueryData`, updaters, hydration and synchronized data.
 - **Documentation:** architecture, troubleshooting, tutorials, migration and release-policy guides, and a DocFX
   site with an API reference published to GitHub Pages.
-- **Samples:** the TodoApp now has per-page render modes (Interactive Server, WebAssembly and Auto, plus a
+- **Demos:** the TodoApp now has per-page render modes (Interactive Server, WebAssembly and Auto, plus a
   static streaming-SSR page), an `EditForm` page, a 10,000-row virtualized list, a `QuickGrid` page and a
   multi-tenant page, and the WebAssembly page works offline (a todo added offline syncs on reconnect); the
   Playwright suite covers each of them.
@@ -165,7 +165,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
   while the entry lock was held; it now compares the state fields without calling it.
 - Blazor refetched every active query twice on a reconnect (connectivity provider and online manager both
   reported it); the duplicate signal is now coalesced.
-- `DotNetQuery.Sample.Avalonia` pulled `Tmds.DBus.Protocol 0.20.0` (GHSA-xrw6-gwf8-vvr9); pinned 0.21.3.
+- `DotNetQuery.Demo.Avalonia` pulled `Tmds.DBus.Protocol 0.20.0` (GHSA-xrw6-gwf8-vvr9); pinned 0.21.3.
 - `PersistentMutationQueue`: a replay handler that enqueues a follow-up mutation (or calls `FlushAsync`,
   `RestoreAsync`, `RemoveAsync`, `ClearAsync` or `RetryDeadLetterAsync`) deadlocked the queue; `RestoreAsync`
   running beside such a handler did too. A retried dead letter moved back ahead of later mutations after a
@@ -212,7 +212,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
   `QueryStateHydration.Persist<T>`/`TryHydrate<T>` without `JsonTypeInfo<T>` are annotated `[RequiresUnreferencedCode]`.
 - **`PersistentMutationQueue.RestoreAsync`** reconciles with the store: entries that are no longer stored are dropped.
 - `Msynk.DotNetQuery` references `Microsoft.Extensions.Logging.Abstractions`.
-- `VersionPrefix` is 0.9.0; the samples reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c).
+- `VersionPrefix` is 0.9.0; the demos reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c).
 - **Package IDs are now prefixed with `Msynk.`** (`Msynk.DotNetQuery`, `Msynk.DotNetQuery.Blazor`,
   `Msynk.DotNetQuery.Persistence.Sqlite`, `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`): `DotNetQuery.Core` and
   `DotNetQuery.Blazor` on NuGet belong to an unrelated library, so the previous IDs could not all be published.
@@ -280,7 +280,7 @@ published to nuget.org (its package IDs collided with an unrelated library); its
   one private cache per circuit (per tab in WebAssembly).
 - `BrowserSignalService` was disposed twice (by the component and by DI), signalled a reconnect on startup
   (refetching every active query), and could leak its JS registration when disposed during startup.
-- The sample app served an empty `blazor.web.js` outside the Development environment and did not load the
+- The demo app served an empty `blazor.web.js` outside the Development environment and did not load the
   DevTools panel styles.
 
 ### Added

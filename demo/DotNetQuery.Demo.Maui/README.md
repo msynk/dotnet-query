@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.Maui
+# DotNetQuery.Demo.Maui
 
 A minimal .NET MAUI app demonstrating the [`DotNetQuery.Maui`](../../src/adapters/DotNetQuery.Maui) adapter
 end to end: it registers the query client with `AddDotNetQuery`, creates an `ObservableQuery` via the
@@ -14,7 +14,7 @@ The project targets `net10.0-android` (the head verified with the .NET CLI + an 
 
 ```bash
 # with an Android emulator running (or a device attached):
-dotnet build samples/DotNetQuery.Sample.Maui -f net10.0-android -t:Run
+dotnet build demo/DotNetQuery.Demo.Maui -f net10.0-android -t:Run
 ```
 
 Verified on a Pixel 7 (API 36) emulator: the list renders `fetch #1` on load, and tapping **Refetch**

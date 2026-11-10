@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Runtime;
 
-namespace DotNetQuery.Sample.Maui;
+namespace DotNetQuery.Demo.Maui;
 
 [Application]
 public class MainApplication : MauiApplication

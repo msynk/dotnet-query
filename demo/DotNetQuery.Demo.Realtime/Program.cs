@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using DotNetQuery;
-using DotNetQuery.Sample.Realtime;
+using DotNetQuery.Demo.Realtime;
 using DotNetQuery.SignalR;
 using DotNetQuery.Synchronization;
 using Microsoft.AspNetCore.Http.Connections;

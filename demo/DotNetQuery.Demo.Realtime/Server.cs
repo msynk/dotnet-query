@@ -1,7 +1,7 @@
 using DotNetQuery.Synchronization;
 using Microsoft.AspNetCore.SignalR;
 
-namespace DotNetQuery.Sample.Realtime;
+namespace DotNetQuery.Demo.Realtime;
 
 public sealed record Todo(int Id, string Title, bool Done, long Version);
 

@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Build the sample under test; the fixture launches its output in a real Kestrel process. -->
-    <ProjectReference Include="..\..\samples\TodoApp\TodoApp.csproj" ReferenceOutputAssembly="false" />
+    <!-- Build the demo under test; the fixture launches its output in a real Kestrel process. -->
+    <ProjectReference Include="..\..\demo\TodoApp\TodoApp.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

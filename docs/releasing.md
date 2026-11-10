@@ -63,7 +63,7 @@ further minor release, and removed in the next breaking release. The changelog l
 ### Each release
 
 1. All CI jobs green on `main`: build, tests (core and Blazor on both target frameworks, generator, WPF/WinUI/Uno,
-   Playwright browser tests), coverage, vulnerability scan, sample smoke tests, AOT harness, trimmed WebAssembly
+   Playwright browser tests), coverage, vulnerability scan, demo smoke tests, AOT harness, trimmed WebAssembly
    publish, MAUI build.
 2. On a release branch, run `eng/prepare-release.ps1 -Version X.Y.Z` (PowerShell 5.1 or 7; `-DryRun` previews it). It
    moves every `PublicAPI.Unshipped.txt` entry into `PublicAPI.Shipped.txt`, ships the analyzer rules of

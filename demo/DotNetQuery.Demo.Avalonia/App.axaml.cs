@@ -3,7 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using DotNetQuery.Avalonia;
 
-namespace DotNetQuery.Sample.Avalonia;
+namespace DotNetQuery.Demo.Avalonia;
 
 public partial class App : Application
 {

@@ -1,7 +1,7 @@
-namespace DotNetQuery.Sample.Maui;
+namespace DotNetQuery.Demo.Maui;
 
 /// <summary>
-/// A stand-in data source with simulated latency, so the sample exercises the query lifecycle
+/// A stand-in data source with simulated latency, so the demo exercises the query lifecycle
 /// (loading → success, refetch) without a real backend. The fetch counter makes refetches visible.
 /// </summary>
 public sealed class TodoService

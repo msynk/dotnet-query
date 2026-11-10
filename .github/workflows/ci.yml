@@ -33,7 +33,7 @@ jobs:
       - name: Restore
         run: dotnet restore DotNetQuery.slnx
 
-      # Fails on any known-vulnerable direct or transitive package (samples and tests included).
+      # Fails on any known-vulnerable direct or transitive package (demos and tests included).
       - name: Vulnerability scan
         shell: bash
         run: |
@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: dotnet build DotNetQuery.slnx -c Release --no-restore
 
-      # Includes the Playwright browser end-to-end tests (tests/DotNetQuery.E2E), which drive the TodoApp sample
+      # Includes the Playwright browser end-to-end tests (tests/DotNetQuery.E2E), which drive the TodoApp demo
       # in the runner's preinstalled Chrome, and the WPF/WinUI lifecycle tests. Collects code coverage of the
       # shipped libraries (coverage.runsettings).
       - name: Test
@@ -56,7 +56,7 @@ jobs:
           reports: coverage/**/coverage.cobertura.xml
           targetdir: coverage-report
           reporttypes: MarkdownSummaryGithub;HtmlInline;Cobertura
-          assemblyfilters: -DotNetQuery.Tests*;-*.Sample*;-TodoApp*
+          assemblyfilters: -DotNetQuery.Tests*;-*.Demo*;-TodoApp*
 
       - name: Publish coverage summary
         if: always()
@@ -72,19 +72,19 @@ jobs:
           path: coverage-report
 
       - name: Avalonia adapter end-to-end smoke test (headless render)
-        run: dotnet run --project samples/DotNetQuery.Sample.Avalonia -c Release --no-build -- verify
+        run: dotnet run --project demo/DotNetQuery.Demo.Avalonia -c Release --no-build -- verify
 
       - name: WPF adapter end-to-end smoke test (window, bound command, activation refetch)
-        run: dotnet run --project samples/DotNetQuery.Sample.Wpf -c Release --no-build -- verify
+        run: dotnet run --project demo/DotNetQuery.Demo.Wpf -c Release --no-build -- verify
 
-      - name: Chat sample end-to-end smoke test (infinite query + streaming)
-        run: dotnet run --project samples/DotNetQuery.Sample.Chat -c Release --no-build
+      - name: Chat demo end-to-end smoke test (infinite query + streaming)
+        run: dotnet run --project demo/DotNetQuery.Demo.Chat -c Release --no-build
 
-      - name: Realtime sample end-to-end smoke test (SignalR hub, event mappings, reconnect replay, relay)
-        run: dotnet run --project samples/DotNetQuery.Sample.Realtime -c Release --no-build
+      - name: Realtime demo end-to-end smoke test (SignalR hub, event mappings, reconnect replay, relay)
+        run: dotnet run --project demo/DotNetQuery.Demo.Realtime -c Release --no-build
 
-      - name: OfflineFirst sample end-to-end smoke test (persist + durable queue across restarts + dead letters)
-        run: dotnet run --project samples/DotNetQuery.Sample.OfflineFirst -c Release --no-build
+      - name: OfflineFirst demo end-to-end smoke test (persist + durable queue across restarts + dead letters)
+        run: dotnet run --project demo/DotNetQuery.Demo.OfflineFirst -c Release --no-build
 
       - name: DevTools CLI smoke test (renders a DevTools export)
         run: dotnet run --project src/DotNetQuery.DevTools.Cli -c Release --no-build
@@ -92,16 +92,16 @@ jobs:
       - name: DevTools CLI live smoke test (watches an in-process QueryDevToolsServer)
         run: dotnet run --project src/DotNetQuery.DevTools.Cli -c Release --no-build -- watch demo
 
-      - name: ECommerce sample end-to-end smoke test (overlapping optimistic updates + rollback)
-        run: dotnet run --project samples/DotNetQuery.Sample.ECommerce -c Release --no-build
+      - name: ECommerce demo end-to-end smoke test (overlapping optimistic updates + rollback)
+        run: dotnet run --project demo/DotNetQuery.Demo.ECommerce -c Release --no-build
 
-      - name: Dashboard sample end-to-end smoke test (dedup + background refresh)
-        run: dotnet run --project samples/DotNetQuery.Sample.Dashboard -c Release --no-build
+      - name: Dashboard demo end-to-end smoke test (dedup + background refresh)
+        run: dotnet run --project demo/DotNetQuery.Demo.Dashboard -c Release --no-build
 
       - name: TodoApp smoke test (Blazor Server and WebAssembly prerender with persisted query state, API)
         shell: bash
         run: |
-          dotnet run --project samples/TodoApp -c Release --no-build --urls http://localhost:5199 > todoapp.log 2>&1 &
+          dotnet run --project demo/TodoApp -c Release --no-build --urls http://localhost:5199 > todoapp.log 2>&1 &
           for i in $(seq 1 90); do curl -sf http://localhost:5199/ -o page.html && break; sleep 1; done
           grep -q "Learn DotNetQuery" page.html || { cat todoapp.log; exit 1; }
           grep -q "Blazor-Server-Component-State" page.html || { cat todoapp.log; exit 1; }
@@ -205,7 +205,7 @@ jobs:
 
       - name: Trimmed Blazor WebAssembly publish (no trim warnings from DotNetQuery)
         run: |
-          dotnet publish samples/TodoApp.Client -c Release -o wasm-publish \
+          dotnet publish demo/TodoApp.Client -c Release -o wasm-publish \
             -p:SuppressTrimAnalysisWarnings=false -p:TrimmerSingleWarn=false 2>&1 | tee wasm-publish.log
           if grep -E "warning IL[0-9]+" wasm-publish.log | grep -E "DotNetQuery"; then
             echo "::error::DotNetQuery code produced trim warnings in a trimmed Blazor WebAssembly publish"
@@ -232,8 +232,8 @@ jobs:
       - name: Build MAUI adapter (android)
         run: dotnet build src/adapters/DotNetQuery.Maui -c Release -f net10.0-android
 
-      - name: Build MAUI sample (android)
-        run: dotnet build samples/DotNetQuery.Sample.Maui -c Release -f net10.0-android
+      - name: Build MAUI demo (android)
+        run: dotnet build demo/DotNetQuery.Demo.Maui -c Release -f net10.0-android
 
       - name: Pack MAUI adapter
         run: dotnet pack src/adapters/DotNetQuery.Maui -c Release --no-build -o artifacts

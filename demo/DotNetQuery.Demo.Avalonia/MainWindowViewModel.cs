@@ -1,7 +1,7 @@
 using DotNetQuery.Avalonia;
 using DotNetQuery.Mvvm;
 
-namespace DotNetQuery.Sample.Avalonia;
+namespace DotNetQuery.Demo.Avalonia;
 
 /// <summary>
 /// Exposes an <see cref="ObservableQuery{T}"/> created through the Avalonia adapter so the view can bind

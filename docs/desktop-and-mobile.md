@@ -162,13 +162,13 @@ On desktop, use a folder under `Environment.SpecialFolder.LocalApplicationData`.
 
 ## Verified
 
-- Avalonia: CI runs the sample headless (`dotnet run --project samples/DotNetQuery.Sample.Avalonia -- verify`): the
+- Avalonia: CI runs the demo headless (`dotnet run --project demo/DotNetQuery.Demo.Avalonia -- verify`): the
   window renders the query, the bound `RefetchCommand` refetches, and re-activating the window refetches the stale
   query through `AvaloniaQueryLifecycle`.
-- WPF: CI runs the sample's self-check (`dotnet run --project samples/DotNetQuery.Sample.Wpf -- verify`): the window's
+- WPF: CI runs the demo's self-check (`dotnet run --project demo/DotNetQuery.Demo.Wpf -- verify`): the window's
   bound list renders the query, the bound `RefetchCommand` refetches, and deactivating and re-activating the application
   refetches through `WpfQueryLifecycle`. `tests/DotNetQuery.Desktop.Tests` drives `WpfQueryLifecycle` with a real WPF
   `Application` (activation, system resume, network) and the WinUI activation mapping.
-- MAUI: the adapter and the sample build for Android in CI; iOS and Mac Catalyst need a Mac build host.
+- MAUI: the adapter and the demo build for Android in CI; iOS and Mac Catalyst need a Mac build host.
 - WinUI and Uno: the adapters build in CI and their activation mapping is tested; a window needs the Windows App runtime
   or an Uno app head, so the event wiring itself is compile-verified.

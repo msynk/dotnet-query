@@ -4,7 +4,7 @@ using Xunit;
 namespace DotNetQuery.E2E;
 
 /// <summary>
-/// End-to-end checks of the Blazor integration in a real browser against the TodoApp sample (interactive server
+/// End-to-end checks of the Blazor integration in a real browser against the TodoApp demo (interactive server
 /// rendering with prerendering).
 /// </summary>
 [Collection(TodoAppCollection.Name)]

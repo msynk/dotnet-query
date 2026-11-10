@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.Avalonia
+# DotNetQuery.Demo.Avalonia
 
 A minimal Avalonia desktop app demonstrating the [`DotNetQuery.Avalonia`](../../src/adapters/DotNetQuery.Avalonia)
 adapter end to end: [MainWindowViewModel](MainWindowViewModel.cs) creates an `ObservableQuery` via the
@@ -9,8 +9,8 @@ the query so the active observer refetches (a per-fetch counter makes it visible
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.Avalonia          # normal desktop window
-dotnet run --project samples/DotNetQuery.Sample.Avalonia -- verify  # headless self-check (no display)
+dotnet run --project demo/DotNetQuery.Demo.Avalonia          # normal desktop window
+dotnet run --project demo/DotNetQuery.Demo.Avalonia -- verify  # headless self-check (no display)
 ```
 
 The **`verify`** mode renders the window with Avalonia's headless Skia backend (no display required),

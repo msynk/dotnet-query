@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.Chat
+# DotNetQuery.Demo.Chat
 
 A console showcase of two DotNetQuery features working together for a chat UI, with no UI-framework noise:
 
@@ -14,7 +14,7 @@ app) and a bounded live stream (a SignalR `HubConnection.StreamAsync<Message>` i
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.Chat
+dotnet run --project demo/DotNetQuery.Demo.Chat
 ```
 
 Expected output: two history pages (20 messages) load, then five live messages stream in one by one. The

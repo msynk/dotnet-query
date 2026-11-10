@@ -1,5 +1,5 @@
 using DotNetQuery;
-using DotNetQuery.Sample.Chat;
+using DotNetQuery.Demo.Chat;
 
 // A console showcase of two DotNetQuery features working together for a chat UI:
 //   1. an infinite query paginating message *history* (load older pages), and

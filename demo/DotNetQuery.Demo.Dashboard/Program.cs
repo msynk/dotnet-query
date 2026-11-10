@@ -1,5 +1,5 @@
 using DotNetQuery;
-using DotNetQuery.Sample.Dashboard;
+using DotNetQuery.Demo.Dashboard;
 
 // A dashboard loads several widgets at once. This shows two DotNetQuery behaviors:
 //   1. request deduplication - concurrent requests for the same key share one fetch, and

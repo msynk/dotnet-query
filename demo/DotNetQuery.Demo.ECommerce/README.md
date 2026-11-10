@@ -1,4 +1,4 @@
-# DotNetQuery.Sample.ECommerce
+# DotNetQuery.Demo.ECommerce
 
 A console walkthrough of **declarative optimistic updates** - the mutation feature cluster - with no UI-framework
 noise. [Program.cs](Program.cs) adds three items to a cart at the same time through one mutation whose
@@ -18,7 +18,7 @@ noise. [Program.cs](Program.cs) adds three items to a cart at the same time thro
 ## Run it
 
 ```bash
-dotnet run --project samples/DotNetQuery.Sample.ECommerce
+dotnet run --project demo/DotNetQuery.Demo.ECommerce
 ```
 
 Expected: the cart shows all three items optimistically, rolls "Mouse" back, and ends with the server's

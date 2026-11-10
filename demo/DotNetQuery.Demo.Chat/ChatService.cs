@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace DotNetQuery.Sample.Chat;
+namespace DotNetQuery.Demo.Chat;
 
 public sealed record Message(int Id, string User, string Text);
 

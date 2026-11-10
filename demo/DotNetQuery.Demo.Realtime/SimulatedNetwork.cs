@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace DotNetQuery.Sample.Realtime;
+namespace DotNetQuery.Demo.Realtime;
 
 /// <summary>
 /// Simulates the client's network for the demo: <see cref="Drop"/> fails every request in flight and every new one
