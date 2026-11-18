@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.15" />
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
     <ProjectReference Include="..\..\src\integrations\DotNetQuery.SignalR\DotNetQuery.SignalR.csproj" />
   </ItemGroup>
