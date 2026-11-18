@@ -26,6 +26,9 @@
     <PackageReference Include="Avalonia.Headless" Version="11.2.1" />
     <PackageReference Include="Avalonia.Skia" Version="11.2.1" />
     <!-- Lift Avalonia.FreeDesktop's transitive Tmds.DBus.Protocol 0.20.0 past GHSA-xrw6-gwf8-vvr9 (high). -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.15" />
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
   </ItemGroup>
 

@@ -18,6 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.15" />
     <ProjectReference Include="..\..\src\DotNetQuery\DotNetQuery.csproj" />
     <!-- The SignalR integration must stay trim/AOT-clean as well. -->
     <ProjectReference Include="..\..\src\integrations\DotNetQuery.SignalR\DotNetQuery.SignalR.csproj" />
