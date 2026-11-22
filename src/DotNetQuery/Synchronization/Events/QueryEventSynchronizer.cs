@@ -7,7 +7,7 @@ namespace DotNetQuery.Synchronization;
 /// Translates real-time server events into query cache operations: invalidations, typed incremental updates and entity
 /// upserts and removals, with duplicate protection, ordering by entity version or stream sequence, coalesced refetches,
 /// and recovery after a reconnect, a sequence gap or a queue overflow. Transport-agnostic: events arrive from an
-/// <see cref="IQueryEventSource"/> (for example the SignalR source in <c>Msynk.DotNetQuery.SignalR</c>) or through
+/// <see cref="IQueryEventSource"/> (for example the SignalR source in <c>DotNetQuery.SignalR</c>) or through
 /// <see cref="ProcessAsync"/> and <see cref="Post"/>.
 /// </summary>
 /// <remarks>

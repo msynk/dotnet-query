@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <PackageId>Msynk.DotNetQuery.SignalR</PackageId>
     <Description>SignalR integration for DotNetQuery: an IQueryEventSource over a HubConnection that feeds typed hub events into a QueryEventSynchronizer (invalidation, incremental updates, duplicate and ordering protection), restores server-side subscriptions after every reconnect, reconciles missed events, and never disposes a connection it does not own.</Description>
     <PackageTags>$(PackageTags);signalr;real-time;realtime;synchronization</PackageTags>
     <!-- The SignalR client is trim/AOT-compatible with source-generated JSON payloads (configure them on the HubConnection). -->

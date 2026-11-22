@@ -35,13 +35,13 @@ verified evidence.
 - **Real-time events** - `QueryEventSynchronizer` in the core (typed event mappings to invalidations, incremental
   updates and entity upserts/removals; duplicate, version and sequence protection; coalesced refetches; recovery by
   invalidation, snapshot or replay after reconnects, gaps and overflows; diagnostics, metrics, DevTools);
-  `Msynk.DotNetQuery.SignalR` (hub event source with group resubscription, restart policy, connection ownership,
+  `DotNetQuery.SignalR` (hub event source with group resubscription, restart policy, connection ownership,
   `AddSignalRSync`); Blazor component-scoped mappings, status hook and a cross-tab notice relay; a real-time demo and
   live updates in the TodoApp WebAssembly pages.
 - **Blazor** - .NET 8 + .NET 10; scoped per-circuit clients; `<Query>` with templates, keep-previous-data,
   dependent queries and automatic prerender hydration (trim-safe with `UseHydrationJson`); hook-style
   `UseQuery`/`UseMutation`/`UseInfiniteQuery`; browser signals; inline/floating DevTools panel; Blazor Server circuit
-  reconnection (`Msynk.DotNetQuery.Blazor.Server`); Blazor Hybrid guidance.
+  reconnection (`DotNetQuery.Blazor.Server`); Blazor Hybrid guidance.
 - **Diagnostics** - event stream, `ILogger` integration (`AddDiagnosticLogging`), OpenTelemetry `ActivitySource`/`Meter`,
   DevTools model with data previews and mutation history, a live DevTools endpoint (`QueryDevToolsServer`) for any app
   and the CLI dashboard (`watch` mode).
@@ -64,7 +64,7 @@ verified evidence.
 
 | Item | Notes | Priority |
 | --- | --- | --- |
-| **Reserve the `Msynk.` NuGet prefix** | Owner action on nuget.org: request prefix reservation for the `Msynk.DotNetQuery*` IDs. | P1 |
+| **Resolve the NuGet package ID collision** | Owner action on nuget.org: `DotNetQuery` and `DotNetQuery.Blazor` currently belong to other accounts and cannot be published until they are transferred or this project's IDs change; request prefix reservation for the remaining `DotNetQuery.*` IDs where possible. | P1 |
 | **Enable GitHub Pages** | Owner action: Settings > Pages > Source = GitHub Actions, so `docs.yml` publishes the site. | P1 |
 | **Configure trusted publishing** | Owner action: a nuget.org trusted publishing policy for `release.yml`, the `NUGET_USER` repository variable and the `nuget` environment (see the header of `release.yml`). | P1 |
 | **First public release (0.9.0)** | Run `eng/prepare-release.ps1 -Version 0.9.0`, commit, tag `v0.9.0`. 0.8.0 was never published, so 0.9.0 is the first version on nuget.org. | P1 |
@@ -79,7 +79,7 @@ verified evidence.
 | Item | Notes |
 | --- | --- |
 | Visual DevTools for XAML apps | The live endpoint and CLI cover any app; an in-app panel for WPF/WinUI/Avalonia/MAUI/Uno would match the Blazor one. |
-| SignalR `IQuerySyncChannel` | Event synchronization ships in `Msynk.DotNetQuery.SignalR`; a ready-made channel + hub for relaying `QuerySynchronizer` *data* through a server is still a recipe. |
+| SignalR `IQuerySyncChannel` | Event synchronization ships in `DotNetQuery.SignalR`; a ready-made channel + hub for relaying `QuerySynchronizer` *data* through a server is still a recipe. |
 | Prefix index for event mappings | Data mappings matching by key prefix scan the cache once per event (~19 µs with 1,000 cached queries); an index would make dispatch independent of the cache size. |
 | Durable deduplication/checkpoints | Deduplication and checkpoints are in memory; a pluggable store would let replay resume across restarts without application code. |
 | Native Kiota request-builder generation | Kiota clients are supported through a thin wrapper class; generating from request builders directly would remove it. |

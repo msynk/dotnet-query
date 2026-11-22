@@ -4,7 +4,7 @@ Writing a key and a fetcher for every endpoint is repetitive and easy to get sub
 data, an invalidation that misses a query). `[GenerateQueries]` generates them from the API you already have - a Refit
 interface, a client generated from an OpenAPI document, a hand-written service interface, or a class (for example a
 thin wrapper over a Kiota client). The
-generator ships inside the `Msynk.DotNetQuery` package; there is nothing else to install. The generated code is
+generator ships inside the `DotNetQuery` package; there is nothing else to install. The generated code is
 plain C# (no reflection), so it is trim- and NativeAOT-safe.
 
 ## A hand-written or Refit interface

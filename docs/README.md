@@ -48,8 +48,7 @@ The same guides are published as a website with an API reference (built by DocFX
 
 ## Packages
 
-Published with the owner-scoped `Msynk.` prefix (for example `Msynk.DotNetQuery.Blazor`); namespaces and
-assemblies are named without it.
+Package IDs match the assembly and namespace names (for example `DotNetQuery.Blazor`).
 
 - **DotNetQuery** - the portable engine (zero UI dependencies) plus `AddDotNetQuery`, cache persistence
   (in-memory + file system) and the durable mutation queue, HTTP/JSON and GraphQL fetchers, MVVM bindings,

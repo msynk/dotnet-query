@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <PackageId>Msynk.DotNetQuery.Maui</PackageId>
     <Description>.NET MAUI adapter for DotNetQuery: dispatcher-aware MVVM binding factories, window lifecycle (focus/resume refetch), a connectivity bridge that drives offline pause/resume from Connectivity.Current, and app-data persistence.</Description>
     <!-- Android builds everywhere (incl. the bare .NET CLI and CI). -->
     <TargetFrameworks>net10.0-android</TargetFrameworks>

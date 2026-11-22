@@ -251,8 +251,8 @@ packaging).
 - [x] Tutorials and demos (Blazor Server/WASM/Web App, MAUI/desktop, CRUD, auth, multi-tenant,
       infinite scrolling, optimistic/conflict, DevTools) (docs/tutorials.md + demos)
 - [x] Troubleshooting and performance guides (troubleshooting.md, performance.md with measured numbers)
-- [x] Package strategy (Msynk.-prefixed IDs; features without extra dependencies stay in the core package)
-- [x] Naming and discoverability collision (Msynk.DotNetQuery.* package IDs)
+- [x] Package strategy (package IDs match assembly names; features without extra dependencies stay in the core package)
+- [ ] Naming and discoverability collision (`DotNetQuery` and `DotNetQuery.Blazor` IDs are taken on nuget.org; owner prefix dropped)
 - [x] Minimize transitive dependencies (core: two Microsoft.Extensions abstractions; generator bundled, not a dependency)
 - [x] Package metadata, icon, README, SourceLink, symbols (validated in the packed .nupkg files; packed generator smoke-tested)
 - [x] Semantic versioning and release policy (docs/releasing.md)
@@ -275,7 +275,7 @@ packaging).
 - [x] Live DevTools for non-Blazor apps (`QueryDevToolsServer` + CLI `watch`)
 - [x] `ILogger` integration (`AddDiagnosticLogging`)
 - [x] Redis pub/sub synchronization channel; SignalR recipe
-- [x] Blazor Server reconnection shipped as a package (`Msynk.DotNetQuery.Blazor.Server`)
+- [x] Blazor Server reconnection shipped as a package (`DotNetQuery.Blazor.Server`)
 - [x] Uno Platform adapter; Blazor Hybrid guidance
 - [x] Generator: classes (Kiota wrappers), generic methods, infinite queries
 - [x] Query and mutation `Meta`
@@ -283,4 +283,4 @@ packaging).
 - [x] Refreshes wait for pending optimistic updates (no flash of server data during concurrent mutations)
 - [x] `DeduplicatePending` race (a call right after completion joined the settled run)
 - [x] Mutations settling together refetch once (invalidation joins a refetch started after the server call)
-- [ ] Owner actions: reserve the `Msynk.` prefix, enable GitHub Pages, configure nuget.org trusted publishing (see ROADMAP)
+- [ ] Owner actions: resolve the NuGet package ID collision, enable GitHub Pages, configure nuget.org trusted publishing (see ROADMAP)

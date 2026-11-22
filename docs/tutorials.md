@@ -7,7 +7,7 @@ guide that explains the details.
 
 Demo: [`demo/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/demo/TodoApp) (`/` and `/todos/{id}`).
 
-1. Install `Msynk.DotNetQuery.Blazor` and register it: `builder.Services.AddDotNetQueryBlazor(o => o.DefaultStaleTime = TimeSpan.FromSeconds(10));`.
+1. Install `DotNetQuery.Blazor` and register it: `builder.Services.AddDotNetQueryBlazor(o => o.DefaultStaleTime = TimeSpan.FromSeconds(10));`.
 2. Define the queries once ([TodoApi.cs](https://github.com/msynk/dotnet-query/blob/main/demo/TodoApp/TodoApi.cs) - `TodoQueries.List`, `TodoQueries.ById`), or
    generate them from your API interface with `[GenerateQueries]` ([guide](source-generation.md)).
 3. Render the list with `<Query Definition="TodoQueries.List(Api, _filter)" KeepPreviousData="true">` and its
@@ -30,7 +30,7 @@ Demo: [`demo/TodoApp`](https://github.com/msynk/dotnet-query/tree/main/demo/Todo
 3. Choose the render mode per page (`@rendermode InteractiveServer` / `InteractiveWebAssembly` / `InteractiveAuto`);
    prerendered data hydrates in every mode, so nothing is fetched twice.
 4. For pages that need no interactivity, `[StreamRendering]` streams the `Loading` template and then the data.
-5. Call `.RefetchOnCircuitReconnect()` (package `Msynk.DotNetQuery.Blazor.Server`) in the server project, so stale
+5. Call `.RefetchOnCircuitReconnect()` (package `DotNetQuery.Blazor.Server`) in the server project, so stale
    queries refetch when a dropped Blazor Server connection comes back.
 6. In trimmed WebAssembly apps, register your JSON context for hydration: `.UseHydrationJson(AppJson.Default)`.
 

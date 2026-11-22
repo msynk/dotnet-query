@@ -79,12 +79,12 @@ var persister = new ProtectedQueryPersister(new FileSystemQueryPersister(dir), p
 
 | Persister | Package | Use for |
 | --- | --- | --- |
-| `InMemoryQueryPersister` | `Msynk.DotNetQuery` | tests, transient caches |
-| `FileSystemQueryPersister` | `Msynk.DotNetQuery` | desktop/mobile, one JSON file per query |
-| `SqliteQueryPersister` | `Msynk.DotNetQuery.Persistence.Sqlite` | durable single-file store, many queries |
-| `RedisQueryPersister` | `Msynk.DotNetQuery.Persistence.Redis` | shared / server-side caches |
-| `LocalStorageQueryPersister` | `Msynk.DotNetQuery.Blazor` | Blazor WebAssembly (survives reloads) |
-| `IndexedDbQueryPersister` | `Msynk.DotNetQuery.Blazor` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
+| `InMemoryQueryPersister` | `DotNetQuery` | tests, transient caches |
+| `FileSystemQueryPersister` | `DotNetQuery` | desktop/mobile, one JSON file per query |
+| `SqliteQueryPersister` | `DotNetQuery.Persistence.Sqlite` | durable single-file store, many queries |
+| `RedisQueryPersister` | `DotNetQuery.Persistence.Redis` | shared / server-side caches |
+| `LocalStorageQueryPersister` | `DotNetQuery.Blazor` | Blazor WebAssembly (survives reloads) |
+| `IndexedDbQueryPersister` | `DotNetQuery.Blazor` | Blazor WebAssembly, larger datasets (past localStorage's ~5 MB) |
 
 ```csharp
 await using var persister = SqliteQueryPersister.ForFile("cache.db");
@@ -131,7 +131,7 @@ await client.FetchGraphQLAsync<UserResponse>(
 
 For server *events* (an entity changed, was created or deleted), use the event synchronizer: typed mappings to
 invalidations, incremental updates and entity upserts, with duplicate and ordering protection and recovery after a
-reconnect - see [Real-time synchronization](realtime-sync.md) and the `Msynk.DotNetQuery.SignalR` package. The
+reconnect - see [Real-time synchronization](realtime-sync.md) and the `DotNetQuery.SignalR` package. The
 `StreamIntoCacheAsync` bridge below suits a continuous *stream* of values for one query (a price ticker, a log tail).
 
 `StreamIntoCacheAsync` bridges any `IAsyncEnumerable<T>` into the cache: each emitted value is written
@@ -184,7 +184,7 @@ var sync = new QuerySynchronizer(client, channel, new QuerySyncOptions { Channel
 ### Several server instances (Redis pub/sub)
 
 Behind a load balancer each instance has its own cache; a write handled by one instance leaves the others stale until
-their stale time passes. `RedisQuerySyncChannel` (in `Msynk.DotNetQuery.Persistence.Redis`) connects them over a Redis
+their stale time passes. `RedisQuerySyncChannel` (in `DotNetQuery.Persistence.Redis`) connects them over a Redis
 channel:
 
 ```csharp
@@ -199,7 +199,7 @@ that bounds how long that can matter. Use one channel name per application and s
 
 ### SignalR (recipe)
 
-To keep caches current with *server-side* changes, prefer the event synchronizer (`Msynk.DotNetQuery.SignalR`, see
+To keep caches current with *server-side* changes, prefer the event synchronizer (`DotNetQuery.SignalR`, see
 [Real-time synchronization](realtime-sync.md)). The recipe below instead relays `QuerySynchronizer` messages - cached
 data written by one client - between browsers or apps through your own server: implement the channel over a hub
 connection and broadcast on the server:

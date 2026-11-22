@@ -25,7 +25,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
   (`QuerySyncStatus`, `StatusChanged`), statistics (`GetStatistics`), diagnostic events
   (`QuerySyncEventProcessedEvent`, `QuerySyncStatusChangedEvent`, `QuerySyncRecoveryCompletedEvent`), `ILogger`
   messages (1200-1202), metrics (`dotnetquery.sync.*`), a recovery trace span, and `QueryDevTools.AttachSynchronizer`.
-- **`Msynk.DotNetQuery.SignalR`:** `HubConnectionQueryEventSource` (typed hub handlers, connection lifecycle,
+- **`DotNetQuery.SignalR`:** `HubConnectionQueryEventSource` (typed hub handlers, connection lifecycle,
   `OnConnected` resubscription of groups after every reconnect, `RestartDelay` policy, explicit connection ownership)
   and `AddSignalRSync` for DI.
 - **Blazor real-time helpers:** `UseQueryEvents` (component-scoped mappings that follow a dependency) and
@@ -44,11 +44,11 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 - **Durable queues shared by several instances:** `PersistentMutationQueueOptions.ReplayLock` (`IMutationQueueLock`)
   with `FileMutationQueueLock` (processes) and the Blazor `WebLocksMutationQueueLock` (browser tabs); a queue replays
   only while holding the lock and reconciles with the store first, so each queued write is sent once.
-- **Redis synchronization:** `RedisQuerySyncChannel` (in `Msynk.DotNetQuery.Persistence.Redis`) keeps the caches of
+- **Redis synchronization:** `RedisQuerySyncChannel` (in `DotNetQuery.Persistence.Redis`) keeps the caches of
   several server instances consistent over Redis pub/sub; a SignalR transport recipe in the docs.
-- **`Msynk.DotNetQuery.Blazor.Server`:** `RefetchOnCircuitReconnect()` / `QueryCircuitHandler` refetch the stale
+- **`DotNetQuery.Blazor.Server`:** `RefetchOnCircuitReconnect()` / `QueryCircuitHandler` refetch the stale
   queries on screen when a dropped Blazor Server connection comes back.
-- **`Msynk.DotNetQuery.Uno`:** Uno Platform adapter (`UnoQueryExtensions` factories, `UnoQueryLifecycle`).
+- **`DotNetQuery.Uno`:** Uno Platform adapter (`UnoQueryExtensions` factories, `UnoQueryLifecycle`).
 - **Trim-safe prerender hydration:** `AddDotNetQueryBlazor().UseHydrationJson(resolver)` and `JsonTypeInfo<T>` overloads of
   `QueryStateHydration.Persist`/`TryHydrate`; the Blazor adapter is now `IsAotCompatible` and covered by the public API
   analyzer.
@@ -141,7 +141,7 @@ the 0.8.0 ones together describe the first public release. All changes are addit
   `ObservableInfiniteQuery.FetchNextPageCommand` / `FetchPreviousPageCommand` / `RefetchCommand`.
 - **Source generator:** `[GenerateQueries]` (on an API interface, or `[assembly: GenerateQueries(typeof(IApi))]` for
   Refit/OpenAPI-generated interfaces) generates key factories, query definitions and mutations with invalidation;
-  `[QueryMethod]`, `[MutationMethod]`, `[QueryIgnore]`. Ships inside the `Msynk.DotNetQuery` package; trim/AOT-safe.
+  `[QueryMethod]`, `[MutationMethod]`, `[QueryIgnore]`. Ships inside the `DotNetQuery` package; trim/AOT-safe.
 - **GraphQL:** `GraphQLMutationFn` and `CreateGraphQLMutation`; `GraphQLError.Path` / `Code` and
   `GraphQLException.HasCode`.
 - **Performance:** allocation-free cache lookups and fresh hits (`FetchAsync` served from the cache allocates 32 B
@@ -211,13 +211,13 @@ the 0.8.0 ones together describe the first public release. All changes are addit
 - **Prerender hydration** carries a JSON string envelope (`{"updatedAt", "data"}`) instead of a serialized object;
   `QueryStateHydration.Persist<T>`/`TryHydrate<T>` without `JsonTypeInfo<T>` are annotated `[RequiresUnreferencedCode]`.
 - **`PersistentMutationQueue.RestoreAsync`** reconciles with the store: entries that are no longer stored are dropped.
-- `Msynk.DotNetQuery` references `Microsoft.Extensions.Logging.Abstractions`.
+- `DotNetQuery` references `Microsoft.Extensions.Logging.Abstractions`.
 - `VersionPrefix` is 0.9.0; the demos reference the patched ASP.NET Core 10.0.14 packages (GHSA-g27p-qf6j-c96c).
-- **Package IDs are now prefixed with `Msynk.`** (`Msynk.DotNetQuery`, `Msynk.DotNetQuery.Blazor`,
-  `Msynk.DotNetQuery.Persistence.Sqlite`, `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`): `DotNetQuery.Core` and
-  `DotNetQuery.Blazor` on NuGet belong to an unrelated library, so the previous IDs could not all be published.
-  Namespaces, assembly names and the Blazor static asset path (`_content/DotNetQuery.Blazor/...`) are unchanged -
-  only `PackageReference`s need updating.
+- **Package IDs match the assembly names** (`DotNetQuery`, `DotNetQuery.Blazor`, `DotNetQuery.Persistence.Sqlite`,
+  `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`, plus the new `.Blazor.Server`, `.SignalR`, `.Uno`); there is no
+  owner prefix. `DotNetQuery` and `DotNetQuery.Blazor` on nuget.org currently belong to other accounts, so those two
+  IDs cannot be published until the collision is resolved. The Blazor static asset path
+  (`_content/DotNetQuery.Blazor/...`) is pinned and does not depend on the package ID.
 - Declarative `OptimisticUpdates` are applied (and rolled back) as one atomic transaction across keys. Two
   updates of the same key now roll back to the original value instead of triggering a refetch.
 - Removing (`RemoveQuery`, `RemoveQueries`, `Clear`) a query that is still observed now resets it (data

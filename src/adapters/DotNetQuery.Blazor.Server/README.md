@@ -1,6 +1,6 @@
 # DotNetQuery.Blazor.Server
 
-Server-only companion to `Msynk.DotNetQuery.Blazor` for Blazor Server and interactive server rendering. When the
+Server-only companion to `DotNetQuery.Blazor` for Blazor Server and interactive server rendering. When the
 browser's SignalR connection to a circuit drops and comes back, the browser's own online/offline events do not fire
 and the queries on screen may have gone stale meanwhile; `QueryCircuitHandler` refetches them.
 

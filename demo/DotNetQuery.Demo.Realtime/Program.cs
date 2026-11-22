@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 
 // Real-time cache synchronization end to end: an ASP.NET Core server with a SignalR hub publishes versioned, sequenced
-// todo changes; a client keeps its query cache in sync through Msynk.DotNetQuery.SignalR. Deterministic and
+// todo changes; a client keeps its query cache in sync through DotNetQuery.SignalR. Deterministic and
 // self-verifying (exit 0 == pass), so it doubles as a CI smoke test.
 
 // ------------------------------------------------------------------ server

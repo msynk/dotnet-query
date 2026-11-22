@@ -90,7 +90,7 @@ Hydration could not (de)serialize the type without reflection. Register your `Js
 `AddDotNetQueryBlazor().UseHydrationJson(AppJson.Default)`, in both the server and the `.Client` project.
 
 **Stale data after a Blazor Server connection drop.**
-Reference `Msynk.DotNetQuery.Blazor.Server` and call `.RefetchOnCircuitReconnect()` in the server project.
+Reference `DotNetQuery.Blazor.Server` and call `.RefetchOnCircuitReconnect()` in the server project.
 
 **`JSDisconnectedException` in the logs on shutdown.**
 The circuit closed while a browser call was in flight; the adapter's components ignore it. If it comes from your
@@ -141,5 +141,7 @@ From the `[GenerateQueries]` generator: an annotated method that cannot be gener
 target that is not an accessible, non-generic interface or non-static class. See
 [Generated queries](source-generation.md).
 
-**The package `DotNetQuery.Core` / `DotNetQuery.Blazor` is a different library.**
-This project's packages are `Msynk.DotNetQuery*` (see [Migrating between releases](migration.md)).
+**The package `DotNetQuery.Core` is a different library.**
+It belongs to an unrelated project with the same name. This project's packages are `DotNetQuery` and
+`DotNetQuery.*` (see the package list in the [README](https://github.com/msynk/dotnet-query#packages)); check the
+package's project URL points to `github.com/msynk/dotnet-query`.

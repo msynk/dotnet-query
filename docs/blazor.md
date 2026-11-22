@@ -238,7 +238,7 @@ The adapter works the same in every interactive render mode, and a Blazor Web Ap
 ### Blazor Server reconnection
 
 Browser online/offline events do not cover a dropped SignalR connection to the circuit. The server-only
-`Msynk.DotNetQuery.Blazor.Server` package (it references the ASP.NET Core shared framework, which WebAssembly cannot
+`DotNetQuery.Blazor.Server` package (it references the ASP.NET Core shared framework, which WebAssembly cannot
 load, so it is separate from the adapter) registers a `CircuitHandler` that refetches the stale queries the user is
 looking at when the connection comes back:
 
@@ -287,7 +287,7 @@ builder.Services.AddDotNetQueryBlazor().RefetchOnCircuitReconnect(new QueryCircu
 
 ### Real-time updates (SignalR)
 
-Server pushes map onto the cache through a `QueryEventSynchronizer` (`Msynk.DotNetQuery.SignalR`): typed mappings to
+Server pushes map onto the cache through a `QueryEventSynchronizer` (`DotNetQuery.SignalR`): typed mappings to
 invalidations and incremental updates, with duplicate and ordering protection, group resubscription and recovery after
 every reconnect - see [Real-time synchronization](realtime-sync.md). Components can own mappings for as long as they are
 shown and render the connection status:

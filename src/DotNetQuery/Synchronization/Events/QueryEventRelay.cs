@@ -22,7 +22,7 @@ public sealed record QueryEventRelayOptions
 /// <summary>
 /// Relays a <see cref="QueryEventSynchronizer"/>'s processed events to other participants of an
 /// <see cref="IQuerySyncChannel"/> - browser tabs over <c>BroadcastChannel</c> (<c>AddCrossTabEventRelay</c> in
-/// <c>Msynk.DotNetQuery.Blazor</c>), windows of a desktop app - as small invalidation notices, so a participant without
+/// <c>DotNetQuery.Blazor</c>), windows of a desktop app - as small invalidation notices, so a participant without
 /// its own connection (or whose connection lagged) refreshes the queries those events affect.
 /// </summary>
 /// <remarks>

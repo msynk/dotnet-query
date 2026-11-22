@@ -6,11 +6,11 @@ application events into refetches, and (for MAUI) device connectivity and storag
 
 | Package | Factories | Lifecycle | Connectivity |
 | --- | --- | --- | --- |
-| `Msynk.DotNetQuery.Wpf` | `WpfQueryExtensions` | `WpfQueryLifecycle(Application, ...)` - activation, system resume | OS network availability |
-| `Msynk.DotNetQuery.WinUI` | `WinUIQueryExtensions` | `WinUIQueryLifecycle(Window, ...)` - window activation | OS network availability |
-| `Msynk.DotNetQuery.Avalonia` | `AvaloniaQueryExtensions` | `AvaloniaQueryLifecycle(Window, ...)` (desktop) or `(Application, ...)` (mobile, macOS) | OS network availability |
-| `Msynk.DotNetQuery.Maui` | `MauiQueryExtensions` | `MauiQueryLifecycle(Window, ...)` - activation, resume | `Connectivity.Current` (`MauiConnectivityBridge`) |
-| `Msynk.DotNetQuery.Uno` | `UnoQueryExtensions` | `UnoQueryLifecycle(Window, Application, ...)` - activation, background/foreground | OS network availability (desktop, mobile); reported by the app in the browser |
+| `DotNetQuery.Wpf` | `WpfQueryExtensions` | `WpfQueryLifecycle(Application, ...)` - activation, system resume | OS network availability |
+| `DotNetQuery.WinUI` | `WinUIQueryExtensions` | `WinUIQueryLifecycle(Window, ...)` - window activation | OS network availability |
+| `DotNetQuery.Avalonia` | `AvaloniaQueryExtensions` | `AvaloniaQueryLifecycle(Window, ...)` (desktop) or `(Application, ...)` (mobile, macOS) | OS network availability |
+| `DotNetQuery.Maui` | `MauiQueryExtensions` | `MauiQueryLifecycle(Window, ...)` - activation, resume | `Connectivity.Current` (`MauiConnectivityBridge`) |
+| `DotNetQuery.Uno` | `UnoQueryExtensions` | `UnoQueryLifecycle(Window, Application, ...)` - activation, background/foreground | OS network availability (desktop, mobile); reported by the app in the browser |
 
 The WPF and WinUI adapters target .NET 8 and .NET 10; Avalonia .NET 8 and 10; MAUI .NET 10 (the supported MAUI
 release); Uno .NET 9 and 10 (the frameworks Uno 6 supports).
@@ -158,7 +158,7 @@ var protectedPersister = new ProtectedQueryPersister(persister, Protect, Unprote
 ```
 
 On desktop, use a folder under `Environment.SpecialFolder.LocalApplicationData`. The SQLite persister
-(`Msynk.DotNetQuery.Persistence.Sqlite`) works on every platform as well.
+(`DotNetQuery.Persistence.Sqlite`) works on every platform as well.
 
 ## Verified
 

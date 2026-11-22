@@ -3,12 +3,11 @@
 ## Install
 
 ```bash
-dotnet add package Msynk.DotNetQuery
-dotnet add package Msynk.DotNetQuery.Blazor      # Blazor apps
+dotnet add package DotNetQuery
+dotnet add package DotNetQuery.Blazor      # Blazor apps
 ```
 
-Packages are published under the owner-scoped `Msynk.` prefix (`DotNetQuery.Core` and `DotNetQuery.Blazor` on
-NuGet belong to an unrelated library). Namespaces and assembly names are unchanged: `using DotNetQuery;`.
+Package IDs match the assembly and namespace names: `using DotNetQuery;`.
 
 ## Register the client
 

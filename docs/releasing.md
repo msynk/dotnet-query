@@ -3,7 +3,7 @@
 ## Semantic versioning
 
 Every package follows [SemVer 2.0](https://semver.org/). All packages are versioned and released together, from the
-single `VersionPrefix` in `Directory.Build.props`, so a set of `Msynk.DotNetQuery*` packages with the same version
+single `VersionPrefix` in `Directory.Build.props`, so a set of `DotNetQuery*` packages with the same version
 always works together. `VersionPrefix` holds the version being developed; CI packages carry a `-ci.<run>` suffix so they
 are never mistaken for a release.
 
@@ -54,8 +54,9 @@ further minor release, and removed in the next breaking release. The changelog l
 
 ### One-time setup (repository owner)
 
-1. **nuget.org** - reserve the `Msynk.` prefix, and add a trusted publishing policy for this repository and the
-   `release.yml` workflow (no long-lived API key is stored).
+1. **nuget.org** - resolve the package ID collision (`DotNetQuery` and `DotNetQuery.Blazor` currently belong to other
+   accounts), reserve the `DotNetQuery.` prefix if possible, and add a trusted publishing policy for this repository
+   and the `release.yml` workflow (no long-lived API key is stored).
 2. **GitHub** - set the repository variable `NUGET_USER` to the nuget.org account that owns the policy, and create the
    `nuget` environment (Settings > Environments), ideally with required reviewers. Enable Pages (Settings > Pages >
    Source = GitHub Actions) for the documentation site.

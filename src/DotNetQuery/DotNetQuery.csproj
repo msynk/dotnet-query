@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <PackageId>Msynk.DotNetQuery</PackageId>
     <Description>Server-state management for .NET: fetching, caching, deduplication, retries, invalidation, mutations, infinite and streaming queries, offline support. Includes AddDotNetQuery for Microsoft.Extensions.DependencyInjection, cache persistence (in-memory and file system) with the durable mutation queue, HTTP/JSON and GraphQL fetchers, MVVM bindings (ObservableQuery/ObservableMutation) and the DevTools model. Zero UI dependencies.</Description>
     <!-- Trim/AOT-safe: persisted envelopes use source-generated JSON; the reflection-based JSON overloads
          (Http, GraphQL, persistence registration, DevTools previews/export) are annotated. -->

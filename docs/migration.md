@@ -5,29 +5,17 @@ DotNetQuery follows [semantic versioning](releasing.md). This page lists what to
 
 ## Before 0.9 (builds from source) to 0.9
 
-0.9.0 is the first version published on nuget.org. Version 0.8.0 was never published (its package IDs collided with an
-unrelated library), so this section only matters if you built DotNetQuery from source or a private feed.
+0.9.0 is the first version published on nuget.org. Version 0.8.0 was never published, so this section only matters
+if you built DotNetQuery from source or a private feed.
 
-### Package IDs (action required)
+### Package IDs
 
-The packages are published with the owner-scoped `Msynk.` prefix, because `DotNetQuery.Core` and
-`DotNetQuery.Blazor` on nuget.org belong to an unrelated library. Replace the package references; namespaces,
-assembly names and the Blazor static asset paths are unchanged, so no code changes are needed.
-
-| Before | After |
-| --- | --- |
-| `DotNetQuery` | `Msynk.DotNetQuery` |
-| `DotNetQuery.Blazor` | `Msynk.DotNetQuery.Blazor` |
-| `DotNetQuery.Persistence.Sqlite` | `Msynk.DotNetQuery.Persistence.Sqlite` |
-| `DotNetQuery.Persistence.Redis` | `Msynk.DotNetQuery.Persistence.Redis` |
-| `DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` | `Msynk.DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` |
-| (new) | `Msynk.DotNetQuery.Blazor.Server`, `Msynk.DotNetQuery.Uno` |
+The package IDs are unchanged and match the assembly names (`DotNetQuery`, `DotNetQuery.Blazor`,
+`DotNetQuery.Persistence.Sqlite`, `.Redis`, `.Wpf`, `.WinUI`, `.Avalonia`, `.Maui`). New in 0.9:
+`DotNetQuery.Blazor.Server`, `DotNetQuery.SignalR` and `DotNetQuery.Uno`.
 
 ```xml
-<!-- before -->
-<PackageReference Include="DotNetQuery.Blazor" Version="0.8.0" />
-<!-- after -->
-<PackageReference Include="Msynk.DotNetQuery.Blazor" Version="0.9.0" />
+<PackageReference Include="DotNetQuery.Blazor" Version="0.9.0" />
 ```
 
 `<script src="_content/DotNetQuery.Blazor/...">` and scoped CSS references keep working.
@@ -41,7 +29,7 @@ assembly names and the Blazor static asset paths are unchanged, so no code chang
 - **`QueryStateHydration.Persist<T>`/`TryHydrate<T>` without a `JsonTypeInfo<T>` are annotated
   `[RequiresUnreferencedCode]`.** In trimmed apps use the new `JsonTypeInfo<T>` overloads, or register a context once
   with `AddDotNetQueryBlazor().UseHydrationJson(AppJson.Default)`.
-- **Blazor Server reconnection** moved from a demo class into `Msynk.DotNetQuery.Blazor.Server`: replace a copied
+- **Blazor Server reconnection** moved from a demo class into `DotNetQuery.Blazor.Server`: replace a copied
   `QueryCircuitHandler` with `AddDotNetQueryBlazor().RefetchOnCircuitReconnect()`.
 
 ### Behavior changes (review)
@@ -73,11 +61,11 @@ These fix incorrect behavior; most apps need no change, but check code that reli
 
 ### New dependencies
 
-- `Msynk.DotNetQuery` references `Microsoft.Extensions.Logging.Abstractions` (for `AddDiagnosticLogging`), alongside
+- `DotNetQuery` references `Microsoft.Extensions.Logging.Abstractions` (for `AddDiagnosticLogging`), alongside
   the DependencyInjection and Options abstractions it already used.
-- `Msynk.DotNetQuery.Blazor` references `Microsoft.AspNetCore.Components.Authorization` (first-party).
-- `Msynk.DotNetQuery.Maui` references `Microsoft.Maui.Controls` (every MAUI app already does).
-- `Msynk.DotNetQuery` contains the `[GenerateQueries]` source generator. It only runs on types that carry the
+- `DotNetQuery.Blazor` references `Microsoft.AspNetCore.Components.Authorization` (first-party).
+- `DotNetQuery.Maui` references `Microsoft.Maui.Controls` (every MAUI app already does).
+- `DotNetQuery` contains the `[GenerateQueries]` source generator. It only runs on types that carry the
   attribute; nothing is generated otherwise.
 
 ### Optional adoption

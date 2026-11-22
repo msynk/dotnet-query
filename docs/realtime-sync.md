@@ -5,10 +5,10 @@ message broker, server-sent events - any transport), and a `QueryEventSynchroniz
 operations - invalidations, typed incremental updates, entity upserts and removals - with duplicate protection,
 ordering by version or sequence, coalesced refetches, and recovery after a reconnect.
 
-- The engine lives in the core package (`Msynk.DotNetQuery`, namespace `DotNetQuery.Synchronization`) and has no
+- The engine lives in the core package (`DotNetQuery`, namespace `DotNetQuery.Synchronization`) and has no
   transport, browser or UI dependency.
-- `Msynk.DotNetQuery.SignalR` adds `HubConnectionQueryEventSource`, the SignalR transport, and `AddSignalRSync` for DI.
-- `Msynk.DotNetQuery.Blazor` adds component-scoped mappings (`UseQueryEvents`), a status hook (`UseQuerySyncStatus`),
+- `DotNetQuery.SignalR` adds `HubConnectionQueryEventSource`, the SignalR transport, and `AddSignalRSync` for DI.
+- `DotNetQuery.Blazor` adds component-scoped mappings (`UseQueryEvents`), a status hook (`UseQuerySyncStatus`),
   a cross-tab relay over `BroadcastChannel` (`AddCrossTabEventRelay`) and a "Sync" tab in the DevTools panel.
 
 The runnable demo [`demo/DotNetQuery.Demo.Realtime`](../demo/DotNetQuery.Demo.Realtime) shows everything on
@@ -17,7 +17,7 @@ this page end to end; the TodoApp demo's WebAssembly pages use it in a browser.
 ## Installation and registration
 
 ```bash
-dotnet add package Msynk.DotNetQuery.SignalR
+dotnet add package DotNetQuery.SignalR
 ```
 
 ```csharp

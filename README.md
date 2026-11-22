@@ -34,16 +34,16 @@ visual inspector - built around `Task`, `CancellationToken`, immutable state, an
 
 ## Packages
 
-Package IDs carry the owner-scoped `Msynk.` prefix (namespaces do not: `using DotNetQuery;`).
+Package IDs match the assembly and namespace names (`using DotNetQuery;`).
 
 | Package | Description |
 | --- | --- |
-| `Msynk.DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers and mutations, the `[GenerateQueries]` source generator, MVVM bindings (`ObservableQuery`/`ObservableInfiniteQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
-| `Msynk.DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, cross-tab sync, `localStorage`/IndexedDB persisters, the Web Locks queue lock, and the visual DevTools panel. Trim/AOT-safe. |
-| `Msynk.DotNetQuery.Blazor.Server` | Server-only: refetches the stale queries on screen when a dropped Blazor Server circuit reconnects (`RefetchOnCircuitReconnect()`). |
-| `Msynk.DotNetQuery.SignalR` | Real-time cache synchronization over SignalR: typed hub events feed the core's `QueryEventSynchronizer` (invalidations, incremental updates, entity upserts, duplicate and ordering protection), with group resubscription and recovery after every reconnect (`AddSignalRSync`). Trim/AOT-safe. |
-| `Msynk.DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers; the Redis package also carries the Redis pub/sub synchronization channel. |
-| `Msynk.DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` / `.Uno` | Dispatcher-aware factories over the MVVM bindings and lifecycle classes (focus/resume refetch, connectivity) for XAML apps. |
+| `DotNetQuery` | The framework-agnostic engine plus everything that needs no extra dependency: `AddDotNetQuery` (singleton or scoped) for `Microsoft.Extensions.DependencyInjection`, persistence (in-memory, file system) and the durable `PersistentMutationQueue`, HTTP/JSON and GraphQL fetchers and mutations, the `[GenerateQueries]` source generator, MVVM bindings (`ObservableQuery`/`ObservableInfiniteQuery`/`ObservableMutation`), and the DevTools model (inspector, mutation history, event log, actions, JSON export). Zero UI dependencies, trim/AOT-safe. |
+| `DotNetQuery.Blazor` | `<Query>`, hook-style `UseQuery`/`UseMutation`/`UseInfiniteQuery`, prerender hydration, browser signals, cross-tab sync, `localStorage`/IndexedDB persisters, the Web Locks queue lock, and the visual DevTools panel. Trim/AOT-safe. |
+| `DotNetQuery.Blazor.Server` | Server-only: refetches the stale queries on screen when a dropped Blazor Server circuit reconnects (`RefetchOnCircuitReconnect()`). |
+| `DotNetQuery.SignalR` | Real-time cache synchronization over SignalR: typed hub events feed the core's `QueryEventSynchronizer` (invalidations, incremental updates, entity upserts, duplicate and ordering protection), with group resubscription and recovery after every reconnect (`AddSignalRSync`). Trim/AOT-safe. |
+| `DotNetQuery.Persistence.Sqlite` / `.Redis` | SQLite and Redis persistence providers; the Redis package also carries the Redis pub/sub synchronization channel. |
+| `DotNetQuery.Wpf` / `.WinUI` / `.Avalonia` / `.Maui` / `.Uno` | Dispatcher-aware factories over the MVVM bindings and lifecycle classes (focus/resume refetch, connectivity) for XAML apps. |
 
 Namespaces follow the feature, not the package: `DotNetQuery.Persistence`, `DotNetQuery.Mvvm`,
 `DotNetQuery.DevTools`, `DotNetQuery.GraphQL` and `DotNetQuery.DevTools.Blazor` all ship inside the packages
@@ -178,7 +178,7 @@ await client.FetchAsync(PetStoreApiQueries.GetPetById(petStore, 7));
 _ = client.StreamIntoCacheAsync<List<Message>, Message>(QueryKey.Create("chat", roomId),
         hub.StreamAsync<Message>("Messages", roomId), (messages, m) => [.. messages ?? [], m], ct);
 
-// Server events -> cache operations (Msynk.DotNetQuery.SignalR): deduplicated, ordered by version/sequence,
+// Server events -> cache operations (DotNetQuery.SignalR): deduplicated, ordered by version/sequence,
 // reconciled after reconnects. See docs/realtime-sync.md.
 builder.Services.AddDotNetQuery().AddSignalRSync(_ => hubConnection, sync => sync
     .Map<QueryEventEnvelope<Todo>>("TodoChanged", m => m.Upsert(TodoQueries.Entity, e => e.Payload).Invalidate(TodoQueries.Stats)));

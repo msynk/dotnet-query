@@ -1,4 +1,4 @@
-# Msynk.DotNetQuery.SignalR
+# DotNetQuery.SignalR
 
 SignalR transport for DotNetQuery's real-time cache synchronization. `HubConnectionQueryEventSource` feeds typed hub
 events into the core's `QueryEventSynchronizer`, reports the connection lifecycle (connecting, reconnecting,

@@ -26,7 +26,7 @@ public readonly record struct QueryEventSourceStateChange(QueryEventSourceState 
 
 /// <summary>
 /// A transport delivering named, typed events to a <see cref="QueryEventSynchronizer"/> - a SignalR hub connection
-/// (<c>Msynk.DotNetQuery.SignalR</c>), a message broker, server-sent events, or <see cref="InMemoryQueryEventSource"/> in
+/// (<c>DotNetQuery.SignalR</c>), a message broker, server-sent events, or <see cref="InMemoryQueryEventSource"/> in
 /// tests. The core takes no dependency on any transport.
 /// </summary>
 /// <remarks>

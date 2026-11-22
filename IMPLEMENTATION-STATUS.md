@@ -106,7 +106,7 @@ Legend: **Done** = implemented and tested; **Partial** = exists with a concrete 
 | OpenTelemetry traces/metrics | Done | `DotNetQueryDiagnostics` |
 | Public API baselines | Done | PublicApiAnalyzers (Blazor adapter excluded by design) |
 | Package metadata | Partial | `PackageProjectUrl`/`RepositoryUrl` point to `github.com/dotnetquery/dotnetquery`, not the real repository |
-| Package naming | Done | Package IDs renamed to `Msynk.DotNetQuery.*` (item 27) |
+| Package naming | Partial | Package IDs match the assembly names, no owner prefix (item 57); `DotNetQuery` and `DotNetQuery.Blazor` are taken on nuget.org |
 
 ## Defects found during investigation
 
@@ -121,7 +121,7 @@ Legend: **Done** = implemented and tested; **Partial** = exists with a concrete 
    `ConnectivityProvider` (which the client already treats as a reconnect) and raises `OnlineManager`; with a
    zero stale time and a fast fetch this refetched every active query twice. **Fixed** (item 23).
 
-## Naming collision (resolved in item 27: option 1, owner-scoped package IDs)
+## Naming collision (item 27 chose owner-scoped IDs; item 57 dropped the owner prefix, collision open)
 
 NuGet.org (checked 2026-11-02):
 
@@ -138,8 +138,8 @@ results and invites prefix-reservation conflicts. Renaming every package ID, nam
 a breaking, outward-facing decision for the project owner, so it has not been done. Options, in order of
 preference:
 
-1. **Rename the product and package prefix** (for example an owner-scoped prefix such as `Msynk.Query.*`,
-   or a distinct product name) and reserve the prefix on NuGet. Cleanest long-term; requires a migration note.
+1. **Rename the product and package prefix** (for example an owner-scoped prefix or a distinct product name)
+   and reserve the prefix on NuGet. Cleanest long-term; requires a migration note.
 2. **Keep `DotNetQuery` for the core, rename only the colliding packages** (for example
    `DotNetQuery.Components.Blazor`). Smallest change, but search results stay ambiguous.
 3. Coordinate with the other package owner. Out of this repository's control.
@@ -420,8 +420,8 @@ then passed 8 consecutive runs.
 
 ### 27. Package naming (resolved)
 
-- Chose the recommended option: owner-scoped package IDs. All packable projects now use `Msynk.DotNetQuery*`
-  (`Msynk.` is free on NuGet and the `msynk` account already publishes packages). Namespaces, assembly names and
+- Chose the recommended option: owner-scoped package IDs (superseded by item 57, which dropped the owner prefix).
+  Namespaces, assembly names and
   the documented Blazor asset path are unchanged (`StaticWebAssetBasePath` pinned to `_content/DotNetQuery.Blazor`),
   so only `PackageReference`s change. E2E tests confirm the JS modules and scoped CSS still load.
 
@@ -543,7 +543,7 @@ then passed 8 consecutive runs.
 ### 38. Source generator: queries and mutations from API interfaces (verified)
 
 - New `src/DotNetQuery.SourceGenerators` (incremental Roslyn generator, netstandard2.0, Roslyn 4.8 so it runs on the
-  .NET 8 SDK); packed into `Msynk.DotNetQuery` under `analyzers/dotnet/cs` - no extra package.
+  .NET 8 SDK); packed into `DotNetQuery` under `analyzers/dotnet/cs` - no extra package.
 - `[GenerateQueries]` on an interface or `[assembly: GenerateQueries(typeof(IApi))]` for interfaces that cannot be
   edited (OpenAPI-generated, other assemblies) generates `<Name>Queries`: hierarchical key factories
   (`Keys.X(args)`, `Keys.XPrefix`, `All`), `QueryDefinition<T>` factories, and per mutation `XFn`, `XOptions`
@@ -572,7 +572,7 @@ then passed 8 consecutive runs.
   wins, x50); connectivity flapping every millisecond during 40 `NetworkMode.Online` mutations (each runs exactly
   once); shutting down during auto-persist leaves a store that restores cleanly (x10). Stable over 5 consecutive runs.
 - Pack validation: all 7 packages carry license, icon, README, SourceLink repository/commit and `.snupkg` symbols;
-  `Msynk.DotNetQuery` contains `analyzers/dotnet/cs/DotNetQuery.SourceGenerators.dll` and depends only on
+  `DotNetQuery` contains `analyzers/dotnet/cs/DotNetQuery.SourceGenerators.dll` and depends only on
   `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Options`. A fresh net8.0 console
   app restoring the packed `.nupkg` (warnings as errors, XML docs on) used `[GenerateQueries]` and ran correctly.
 
@@ -667,7 +667,7 @@ they described) and real gaps, all addressed by items 43-55. ROADMAP, README, th
 - Tests: `RedisSyncChannelTests` (2: ordered delivery of 20 messages; two clients synchronized through Redis) - run
   against a local `redis:7-alpine` container and in the Linux CI job.
 
-### 47. `Msynk.DotNetQuery.Blazor.Server` (verified)
+### 47. `DotNetQuery.Blazor.Server` (verified)
 
 - `QueryCircuitHandler` + `RefetchOnCircuitReconnect(QueryCircuitHandlerOptions?)` (filter, invalidate); the TodoApp
   uses it instead of its own copy. Tests: `CircuitReconnectTests` (2).
@@ -702,7 +702,7 @@ they described) and real gaps, all addressed by items 43-55. ROADMAP, README, th
   WinUI activation mapping (4 tests).
 - `demo/DotNetQuery.Demo.Wpf` with `verify` (window renders `fetch #1`, bound `RefetchCommand` loads `#2`,
   deactivate/activate loads `#3`): PASS; a CI step.
-- `Msynk.DotNetQuery.Uno` (`net9.0`/`net10.0`, Uno.WinUI 6.7, generators stripped): factories and `UnoQueryLifecycle`
+- `DotNetQuery.Uno` (`net9.0`/`net10.0`, Uno.WinUI 6.7, generators stripped): factories and `UnoQueryLifecycle`
   (window activation, background/foreground, network except in the browser). Uno's `net10.0` assemblies are reference
   implementations, so `tests/DotNetQuery.Uno.Tests` covers the activation mapping only.
 
@@ -802,7 +802,7 @@ reconnect, coordination with in-flight fetches, a SignalR package, diagnostics f
 - The engine is in the core (`DotNetQuery.Synchronization`): `QueryEventSynchronizer`, `QueryEventMapping<TEvent>`,
   `QueryEntity<TItem, TId>`, `QueryEventMetadata`/`QueryEventEnvelope<T>`, `QuerySyncRecovery`, `IQueryEventSource` +
   `InMemoryQueryEventSource`, `QueryEventRelay`. No SignalR, browser or UI dependency (the core's package references
-  are unchanged). Transports are separate packages: `Msynk.DotNetQuery.SignalR` (`HubConnectionQueryEventSource`,
+  are unchanged). Transports are separate packages: `DotNetQuery.SignalR` (`HubConnectionQueryEventSource`,
   `AddSignalRSync`).
 - Reused, not duplicated: writes go through the existing atomic transaction (`QueryDataTransaction`, one per mapping,
   with a new internal `SkipUnchanged` so unchanged queries are not re-rendered); invalidations through
@@ -845,6 +845,17 @@ assemblies. BenchmarkDotNet `EventSyncBenchmarks` ShortRun baseline committed
 and checkpoints are in memory; prefix-matching mappings scan the cache per event (no index); the cross-tab relay does not
 elect a leader connection (every tab keeps its own); the Blazor panel's Sync tab is read-only.
 
+### 57. Package IDs without an owner prefix, 2026-11-22
+
+- The owner prefix is removed: packable projects no longer set `PackageId`, so each package ID is its assembly name
+  (`DotNetQuery`, `DotNetQuery.Blazor`, `DotNetQuery.Blazor.Server`, `DotNetQuery.SignalR`,
+  `DotNetQuery.Persistence.Sqlite`/`.Redis`, `DotNetQuery.Wpf`/`.WinUI`/`.Avalonia`/`.Maui`/`.Uno`). Docs, changelog,
+  migration notes and the issue template follow.
+- nuget.org (checked 2026-11-22): `DotNetQuery` (another account, v0.1.0) and `DotNetQuery.Blazor` (Patrick Sachmann,
+  v2.0.0) are taken; `DotNetQuery.Core` is still the unrelated library; all other IDs are free. The two taken IDs
+  cannot be published until the collision is resolved (owner action).
+- The Blazor static asset path stays pinned to `_content/DotNetQuery.Blazor`.
+
 ## Verification snapshot (after item 56, 2026-11-04)
 
 Measured on this machine without a Redis server; checks not re-run since the previous snapshot are not repeated here.
@@ -854,10 +865,10 @@ Measured on this machine without a Redis server; checks not re-run since the pre
 | `dotnet build DotNetQuery.slnx -c Release` | 0 warnings, 0 errors |
 | `dotnet test DotNetQuery.slnx -c Release` | **1,260 passed**, 12 skipped (the Redis tests: no `DOTNETQUERY_REDIS`), 0 failed: core 542 + 542, Blazor 62 + 62, SignalR 12 + 12, source generator 9, WPF/WinUI 4, Uno 1, Playwright E2E 14 |
 | Realtime demo | exits 0, all checks pass (3 runs) |
-| Trimmed self-contained AOT harness publish (with `Msynk.DotNetQuery.SignalR`) | 0 IL warnings, all checks pass; NativeAOT native link not available locally (CI job) |
+| Trimmed self-contained AOT harness publish (with `DotNetQuery.SignalR`) | 0 IL warnings, all checks pass; NativeAOT native link not available locally (CI job) |
 | Trimmed Blazor WebAssembly publish (`TodoApp.Client`, now with the SignalR client) | 0 trim warnings from DotNetQuery assemblies |
 | `dotnet list package --vulnerable --include-transitive` | clean (the SignalR package references the patched 10.0.14 client; 10.0.0 is flagged by GHSA-334f-vvp4-7g6p) |
-| `dotnet pack` with package validation | 10 solution packages (new: `Msynk.DotNetQuery.SignalR`), no validation errors; `Msynk.DotNetQuery`'s dependencies unchanged |
+| `dotnet pack` with package validation | 10 solution packages (new: `DotNetQuery.SignalR`), no validation errors; `DotNetQuery`'s dependencies unchanged |
 | Not re-run | coverage report, DocFX site build, .NET 11 roll-forward, MAUI build, `eng/prepare-release.ps1` |
 
 ## Final verification snapshot (after items 42-55, 2026-11-04)
@@ -882,7 +893,8 @@ Measured on this machine without a Redis server; checks not re-run since the pre
 
 What remains needs the repository owner or hardware this machine does not have:
 
-- **Owner actions:** reserve the `Msynk.` prefix on nuget.org; enable GitHub Pages (Settings > Pages > Source = GitHub
+- **Owner actions:** resolve the NuGet package ID collision (`DotNetQuery` and `DotNetQuery.Blazor` belong to other
+  accounts); enable GitHub Pages (Settings > Pages > Source = GitHub
   Actions); configure nuget.org trusted publishing for `release.yml`, the `NUGET_USER` variable and the `nuget`
   environment; then cut 0.9.0 with `eng/prepare-release.ps1` and a `v0.9.0` tag.
 - **Needs a Mac:** the MAUI iOS / Mac Catalyst heads (the project adds them automatically on macOS).

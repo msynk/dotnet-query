@@ -2,7 +2,7 @@
 
 Real-time cache synchronization end to end, in one console process: an ASP.NET Core server ([Server.cs](Server.cs))
 with a SignalR hub publishes versioned, sequenced todo changes as `QueryEventEnvelope<Todo>`s and keeps their history;
-a client ([Program.cs](Program.cs)) keeps its query cache in sync through `Msynk.DotNetQuery.SignalR`.
+a client ([Program.cs](Program.cs)) keeps its query cache in sync through `DotNetQuery.SignalR`.
 
 What it shows, in order:
 

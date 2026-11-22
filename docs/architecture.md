@@ -112,7 +112,7 @@ resets and refetches it rather than stranding its observers.
   queue drained by one loop (events apply in arrival order and never block the transport), metadata-based deduplication
   and ordering, atomic writes through the same transaction protocol as `SetQueriesData`, supersession of fetches that
   predate an event (the invalidation machinery's cancel-and-refetch with a logical-time join), coalesced invalidations,
-  and recovery after missed events. Transports live in their own packages (`Msynk.DotNetQuery.SignalR`), so the core has
+  and recovery after missed events. Transports live in their own packages (`DotNetQuery.SignalR`), so the core has
   no SignalR, browser or UI dependency; `QueryEventRelay` shares event notices between tabs over any `IQuerySyncChannel`.
   See [Real-time synchronization](realtime-sync.md).
 - `PersistentMutationQueue` instances that share a store coordinate through an `IMutationQueueLock` (Web Locks in the
