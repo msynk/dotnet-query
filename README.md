@@ -1,3 +1,7 @@
+**Note**: moved to bitfoundation labs (https://github.com/bitfoundation/bitlabs)
+
+---
+
 # DotNetQuery
 
 Server-state management for .NET - the native, idiomatic counterpart to TanStack Query, with first-class
